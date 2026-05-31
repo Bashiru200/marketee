@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #e8f7f1;
+  --color-brand-100: #c5eadb;
+  --color-brand-200: #9fdcc3;
+  --color-brand-300: #72ceaa;
+  --color-brand-400: #4dc397;
+  --color-brand-500: #1D9E75;
+  --color-brand-600: #0F6E56;
+  --color-brand-700: #085041;
+  --color-brand-800: #053528;
+  --color-brand-900: #021a14;
+}
+
+body {
+  background: #FAFAF9;
+  color: #1C1C1C;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.font-display { font-family: Georgia, 'Times New Roman', serif; }
+.star-filled { color: #F59E0B; }
+.star-empty  { color: #D1D5DB; }
+.business-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.business-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
+.map-bg, .map-container {
+  background: linear-gradient(135deg, #e8f7f1 0%, #c5eadb 50%, #9fdcc3 100%);
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Dark mode overrides ───────────────────────────────────────────────── */
+.dark body {
+  background: #0f1117;
+  color: #e5e7eb;
+}
+ 
+.dark .bg-white          { background-color: #1e2029 !important; }
+.dark .bg-gray-50        { background-color: #16181f !important; }
+.dark .bg-gray-100       { background-color: #1e2029 !important; }
+.dark .border-gray-100   { border-color: #2d2f3a !important; }
+.dark .border-gray-200   { border-color: #2d2f3a !important; }
+.dark .text-gray-900     { color: #ffffff !important; }
+.dark .text-gray-800     { color: #e5e7eb !important; }
+.dark .text-gray-700     { color: #d1d5db !important; }
+.dark .text-gray-600     { color: #9ca3af !important; }
+.dark .text-gray-500     { color: #6b7280 !important; }
+.dark .text-gray-400     { color: #4b5563 !important; }
+.dark header.sticky      { background-color: #1e2029 !important; border-color: #2d2f3a !important; }
+.dark footer             { background-color: #1e2029 !important; border-color: #2d2f3a !important; }
+.dark input, .dark textarea, .dark select {
+  background-color: #16181f !important;
+  border-color: #16181f !important;
+  color: #ffffff !important;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #4b5563 !important;
+}
+ 
