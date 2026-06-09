@@ -26,6 +26,7 @@ const GRADIENTS: Record<string, string> = {
   music:      'linear-gradient(135deg,#FAECE7,#F0997B)',
   crafts:     'linear-gradient(135deg,#E6F1FB,#85B7EB)',
   services:   'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
+  nightlife: 'linear-gradient(135deg,#2D1B69,#6B46C1)',
 }
 
 interface Hit {

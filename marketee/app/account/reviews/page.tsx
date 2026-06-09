@@ -22,18 +22,36 @@ export default function MyReviewsPage() {
   useEffect(() => {
     if (authLoading) return
     if (!isLoggedIn) { router.replace('/auth/login'); return }
+    if (!user) return
     supabase.from('reviews')
       .select('id, rating, title, body, created_at, businesses(id,name,cover_image)')
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false })
-      .then((res: { data: MyReview[] | null }) => { setReviews((res.data ?? []) as MyReview[]); setLoading(false) })
-  }, [authLoading, isLoggedIn])
+      .then(({ data }: { data: MyReview[] | null }) => { setReviews(data ?? []); setLoading(false) })
+  }, [authLoading, isLoggedIn, user])
 
   if (authLoading || loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 size={28} className="animate-spin" style={{ color:'#1D9E75' }} />
+    <div className="max-w-3xl mx-auto px-4 py-10">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-6 h-6 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+        <div className="h-7 w-32 bg-gray-200 rounded-lg" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+      </div>
+      <div className="space-y-4">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gray-200 flex-shrink-0" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-40 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="h-3 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="h-3 w-full bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="h-3 w-2/3 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
     </div>
-  )
+    )
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

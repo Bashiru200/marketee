@@ -30,10 +30,11 @@ export default function ProfilePage() {
   useEffect(() => {
     if (authLoading) return
     if (!isLoggedIn) { router.replace('/auth/login'); return }
+    if (!user) return
     setName(profile?.name ?? '')
     setAvatarUrl(profile?.avatar_url ?? null)
     loadStats()
-  }, [authLoading, isLoggedIn, profile])
+  }, [authLoading, isLoggedIn, user, profile])
 
   async function loadStats() {
     const [reviewRes, savedRes] = await Promise.all([
@@ -70,8 +71,49 @@ export default function ProfilePage() {
   }
 
   if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
+    <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="flex items-center justify-between mb-8">
+        <div className="h-7 w-28 bg-gray-200 rounded-lg" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+        <div className="h-5 w-20 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+      </div>
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-4">
+        <div className="h-24 bg-gray-200" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+        <div className="px-6 pb-6">
+          <div className="flex items-end justify-between -mt-10 mb-5">
+            <div className="w-20 h-20 rounded-full bg-gray-200 border-4 border-white" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="h-9 w-28 bg-gray-200 rounded-xl" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          </div>
+          <div className="space-y-2">
+            <div className="h-6 w-40 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="h-4 w-52 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="h-6 w-20 bg-gray-200 rounded-full" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {[1,2,3].map(i => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 text-center space-y-2">
+            <div className="w-5 h-5 bg-gray-200 rounded mx-auto" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="h-6 w-10 bg-gray-200 rounded mx-auto" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="h-3 w-14 bg-gray-200 rounded mx-auto" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          </div>
+        ))}
+      </div>
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="h-3 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+        </div>
+        {[1,2,3].map(i => (
+          <div key={i} className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="w-8 h-8 bg-gray-200 rounded-lg flex-shrink-0" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-36 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="h-3 w-52 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
     </div>
   )
 

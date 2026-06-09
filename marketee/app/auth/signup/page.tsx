@@ -2,8 +2,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, User, Building2, MapPin, Phone, ChevronLeft, Check } from 'lucide-react'
+import {
+  Mail, Lock, Eye, EyeOff, User, Building2,
+  MapPin, Phone, ChevronLeft, Check, Home
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import ImageUpload from '@/components/ui/ImageUpload'
 
 type Role = 'customer' | 'owner' | null
 type Step = 0 | 1 | 2 | 3
@@ -17,7 +21,9 @@ const CATEGORIES = [
   { id: 'music',      label: 'Music & Arts'       },
   { id: 'crafts',     label: 'Crafts & Decor'     },
   { id: 'services',   label: 'Services'           },
+  { id: 'nightlife',  label: 'Bars & Nightlife'   },
 ]
+
 const COUNTRIES = [
   { code:'NG', flag:'🇳🇬', name:'Nigeria' },
   { code:'GH', flag:'🇬🇭', name:'Ghana' },
@@ -29,6 +35,7 @@ const COUNTRIES = [
   { code:'CI', flag:'🇨🇮', name:"Côte d'Ivoire" },
   { code:'OTHER', flag:'🌍', name:'Other African country' },
 ]
+
 const INTERESTS = [
   { icon:'🍲', label:'Food & Groceries' }, { icon:'🍽️', label:'Restaurants' },
   { icon:'👗', label:'Fashion & Fabric' }, { icon:'💆', label:'Beauty & Hair' },
@@ -42,29 +49,43 @@ export default function SignupPage() {
   const [role,             setRole]             = useState<Role>(null)
   const [step,             setStep]             = useState<Step>(0)
   const [showPass,         setShowPass]         = useState(false)
+  const [showConfirm,      setShowConfirm]      = useState(false)
   const [interests,        setInterests]        = useState<string[]>([])
   const [error,            setError]            = useState('')
   const [loading,          setLoading]          = useState(false)
   const [confirmationSent, setConfirmationSent] = useState(false)
 
   const [form, setForm] = useState({
-    name:'', email:'', password:'',
-    businessName:'', category:'', country:'', city:'', phone:'',
+    name:'', email:'', password:'', confirmPassword:'',
+    businessName:'', category:'', country:'',
+    street:'', city:'', state:'', zip:'', phone:'',
+    cover_image:'',
   })
+
   function upd(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
 
   function toggleInterest(label: string) {
     setInterests(p => p.includes(label) ? p.filter(i => i !== label) : [...p, label])
   }
 
-  // ── Step 1 → 2: create the Supabase auth user ──────────────────────────
+  // Step 1 → 2: create Supabase auth user
   async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
     setLoading(true)
 
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
+      email:    form.email,
       password: form.password,
       options: {
         data: { name: form.name, role },
@@ -72,15 +93,12 @@ export default function SignupPage() {
       },
     })
 
-    console.log('[signup] data:', data, 'error:', signUpError)
-
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
       return
     }
 
-    // User exists but needs email confirmation
     if (data.user && !data.session) {
       setConfirmationSent(true)
       setLoading(false)
@@ -88,26 +106,41 @@ export default function SignupPage() {
       return
     }
 
-    // User confirmed (email confirmations disabled in Supabase) — insert profile
     if (data.user && data.session) {
-      const { error: profileError } = await supabase.from('profiles').upsert({
+      await supabase.from('profiles').upsert({
         id:    data.user.id,
         name:  form.name,
         email: form.email,
         role,
       })
-      if (profileError) console.error('[signup] profile insert error:', profileError)
     }
 
     setLoading(false)
     setStep(2)
   }
 
-  // ── Step 2 (owner): save business ─────────────────────────────────────
+  // Step 2 (owner): save business with geocoding
   async function handleSaveBusiness(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    // Geocode address to lat/lng
+    let lat: number | null = null
+    let lng: number | null = null
+    const addressStr = [form.street, form.city, form.state, form.zip, 'USA'].filter(Boolean).join(', ')
+    if (addressStr && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+      try {
+        const geoRes  = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressStr)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+        )
+        const geoData = await geoRes.json()
+        if (geoData.results?.[0]?.geometry?.location) {
+          lat = geoData.results[0].geometry.location.lat
+          lng = geoData.results[0].geometry.location.lng
+        }
+      } catch { /* Geocoding optional */ }
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
@@ -116,14 +149,20 @@ export default function SignupPage() {
         name:        form.businessName,
         category:    form.category,
         country:     form.country,
+        address:     form.street || null,
+        street:      form.street || null,
         city:        form.city,
+        state:       form.state,
+        zip:         form.zip   || null,
         phone:       form.phone,
+        cover_image: form.cover_image || null,
+        lat,
+        lng,
         verified:    false,
         premium:     false,
         featured:    false,
       }).select().single()
 
-      // Link business to profile
       if (biz) {
         await supabase.from('profiles')
           .update({ business_id: biz.id })
@@ -135,10 +174,10 @@ export default function SignupPage() {
     setStep(3)
   }
 
-  // ── Step 2 (customer): save preferences ──────────────────────────────
+  // Step 2 (customer): save preferences
   async function handleSavePreferences() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (user && interests.length > 0) {
+    if (user && (interests.length > 0 || form.city)) {
       await supabase.from('profiles')
         .update({ interests, city: form.city })
         .eq('id', user.id)
@@ -160,9 +199,12 @@ export default function SignupPage() {
   }
   const left = role ? leftContent[role] : leftContent.customer
 
+  const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent transition-all"
+  const labelCls = "block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5"
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 py-10">
-      <div className="w-full max-w-4xl bg-white border border-gray-100 rounded-2xl overflow-hidden flex" style={{ minHeight: '600px' }}>
+      <div className="w-full max-w-4xl bg-white border border-gray-100 rounded-2xl overflow-hidden flex" style={{ minHeight: '620px' }}>
 
         {/* Left panel */}
         <div className="hidden lg:flex flex-col justify-between w-2/5 p-10" style={{ background: '#085041' }}>
@@ -189,14 +231,13 @@ export default function SignupPage() {
         </div>
 
         {/* Right panel */}
-        <div className="flex-1 flex flex-col justify-center p-8 lg:p-10">
+        <div className="flex-1 flex flex-col justify-center p-8 lg:p-10 overflow-y-auto">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
             <span className="font-semibold text-lg text-gray-900">Markeetee</span>
           </div>
 
-          {/* Step dots */}
-          {step < 3 && (
+          {step < 3 && !confirmationSent && (
             <div className="flex items-center justify-center gap-1.5 mb-6">
               {[0,1,2].map(i => (
                 <div key={i} className="h-1.5 rounded-full transition-all duration-300"
@@ -259,33 +300,58 @@ export default function SignupPage() {
               <p className="text-sm text-gray-500 mb-5">Create your Markeetee account</p>
               <form onSubmit={handleCreateAccount} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Full name</label>
+                  <label className={labelCls}>Full name</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="text" value={form.name} onChange={e => upd('name', e.target.value)} placeholder="Chisom Okafor" required
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
+                    <input type="text" value={form.name} onChange={e => upd('name', e.target.value)}
+                      placeholder="Chisom Okafor" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Email address</label>
+                  <label className={labelCls}>Email address</label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="email" value={form.email} onChange={e => upd('email', e.target.value)} placeholder="you@example.com" required
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
+                    <input type="email" value={form.email} onChange={e => upd('email', e.target.value)}
+                      placeholder="you@example.com" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Password</label>
+                  <label className={labelCls}>Password</label>
                   <div className="relative">
                     <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type={showPass ? 'text' : 'password'} value={form.password} onChange={e => upd('password', e.target.value)} placeholder="Min. 8 characters" required minLength={8}
-                      className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <input type={showPass ? 'text' : 'password'} value={form.password}
+                      onChange={e => upd('password', e.target.value)}
+                      placeholder="Min. 8 characters" required minLength={8}
+                      className={`${inputCls} pl-9 pr-10`} />
+                    <button type="button" onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
                 </div>
-                <button type="submit" disabled={loading}
+                <div>
+                  <label className={labelCls}>Confirm password</label>
+                  <div className="relative">
+                    <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
+                      onChange={e => upd('confirmPassword', e.target.value)}
+                      placeholder="Repeat your password" required
+                      className={`${inputCls} pl-9 pr-10`} />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  {form.confirmPassword && form.password !== form.confirmPassword && (
+                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                  )}
+                  {form.confirmPassword && form.password === form.confirmPassword && form.confirmPassword.length >= 8 && (
+                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#1D9E75' }}>
+                      <Check size={11} /> Passwords match
+                    </p>
+                  )}
+                </div>
+                <button type="submit" disabled={loading || form.password !== form.confirmPassword}
                   className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                   style={{ background: '#1D9E75' }}>
                   {loading ? 'Creating account…' : 'Continue'}
@@ -294,74 +360,92 @@ export default function SignupPage() {
             </>
           )}
 
-          {/* ── Step 2: Email confirmation (if Supabase requires it) ── */}
-          {step === 2 && confirmationSent && (
-            <div className="text-center py-6">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#E1F5EE' }}>
-                <Mail size={24} style={{ color: '#0F6E56' }} />
-              </div>
-              <h1 className="text-xl font-semibold text-gray-900 mb-2">Check your email</h1>
-              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                We sent a confirmation link to <strong>{form.email}</strong>. Click it to activate your account.
-              </p>
-              <p className="text-xs text-gray-400">Didn't receive it? Check your spam folder or{' '}
-                <button onClick={() => setStep(1)} className="font-medium" style={{ color: '#0F6E56' }}>try again</button>
-              </p>
-            </div>
-          )}
-
           {/* ── Step 2a: Business details (owner) ── */}
-          {step === 2 && role === 'owner' && (
+          {step === 2 && role === 'owner' && !confirmationSent && (
             <>
               <button type="button" onClick={() => setStep(1)}
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-5 transition-colors">
                 <ChevronLeft size={14} /> Back
               </button>
               <h1 className="text-xl font-semibold text-gray-900 mb-1">Your business</h1>
-              <p className="text-sm text-gray-500 mb-5">Tell us about your African business</p>
+              <p className="text-sm text-gray-500 mb-4">Tell us about your African business</p>
               <form onSubmit={handleSaveBusiness} className="space-y-3">
+
+                {/* Cover image */}
+                <ImageUpload bucket="businesses"
+                  folder={form.email.replace(/[@.]/g, '_')}
+                  currentUrl={form.cover_image || null}
+                  onUpload={url => upd('cover_image', url)}
+                  onRemove={() => upd('cover_image', '')}
+                  label="Business cover photo (optional)" />
+
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Business name</label>
+                  <label className={labelCls}>Business name *</label>
                   <div className="relative">
                     <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="text" value={form.businessName} onChange={e => upd('businessName', e.target.value)} placeholder="Mama Titi African Kitchen" required
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
+                    <input type="text" value={form.businessName} onChange={e => upd('businessName', e.target.value)}
+                      placeholder="Mama Titi African Kitchen" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Category</label>
-                  <select value={form.category} onChange={e => upd('category', e.target.value)} required
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:border-transparent">
-                    <option value="">Select a category</option>
-                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                  </select>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Category *</label>
+                    <select value={form.category} onChange={e => upd('category', e.target.value)} required
+                      className={inputCls}>
+                      <option value="">Select category</option>
+                      {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Country of origin *</label>
+                    <select value={form.country} onChange={e => upd('country', e.target.value)} required
+                      className={inputCls}>
+                      <option value="">Select country</option>
+                      {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
+                    </select>
+                  </div>
                 </div>
+
+                {/* Address fields */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Country of origin</label>
-                  <select value={form.country} onChange={e => upd('country', e.target.value)} required
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white outline-none focus:ring-2 focus:border-transparent">
-                    <option value="">Where is your food/products from?</option>
-                    {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">City, State</label>
+                  <label className={labelCls}>Street address</label>
                   <div className="relative">
-                    <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="text" value={form.city} onChange={e => upd('city', e.target.value)} placeholder="Houston, TX" required
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
+                    <Home size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input type="text" value={form.street} onChange={e => upd('street', e.target.value)}
+                      placeholder="4821 Main St" className={`${inputCls} pl-9`} />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-1">
+                    <label className={labelCls}>City *</label>
+                    <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
+                      placeholder="Houston" required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>State *</label>
+                    <input type="text" value={form.state} onChange={e => upd('state', e.target.value)}
+                      placeholder="TX" required maxLength={2} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>ZIP code</label>
+                    <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
+                      placeholder="77001" maxLength={10} className={inputCls} />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Phone number</label>
+                  <label className={labelCls}>Phone number *</label>
                   <div className="relative">
                     <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)} placeholder="+1 (713) 555-0192" required
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
+                    <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)}
+                      placeholder="+1 (713) 555-0192" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
+
                 <button type="submit" disabled={loading}
-                  className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60"
                   style={{ background: '#1D9E75' }}>
                   {loading ? 'Saving…' : 'List my business'}
                 </button>
@@ -370,7 +454,7 @@ export default function SignupPage() {
           )}
 
           {/* ── Step 2b: Customer interests ── */}
-          {step === 2 && role === 'customer' && (
+          {step === 2 && role === 'customer' && !confirmationSent && (
             <>
               <button type="button" onClick={() => setStep(1)}
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-5 transition-colors">
@@ -384,18 +468,23 @@ export default function SignupPage() {
                   return (
                     <button key={label} type="button" onClick={() => toggleInterest(label)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left"
-                      style={{ borderColor: active ? '#1D9E75' : undefined, background: active ? '#f0faf6' : undefined, color: active ? '#085041' : undefined }}>
-                      <span>{icon}</span><span className="text-xs">{label}</span>
+                      style={{
+                        borderColor: active ? '#1D9E75' : undefined,
+                        background:  active ? '#f0faf6' : undefined,
+                        color:       active ? '#085041' : undefined,
+                      }}>
+                      <span>{icon}</span>
+                      <span className="text-xs">{label}</span>
                     </button>
                   )
                 })}
               </div>
               <div className="mb-5">
-                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Your city</label>
+                <label className={labelCls}>Your city</label>
                 <div className="relative">
                   <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input type="text" value={form.city} onChange={e => upd('city', e.target.value)} placeholder="Houston, TX"
-                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent" />
+                  <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
+                    placeholder="Houston, TX" className={`${inputCls} pl-9`} />
                 </div>
               </div>
               <button type="button" onClick={handleSavePreferences}
@@ -404,6 +493,24 @@ export default function SignupPage() {
                 Create my account
               </button>
             </>
+          )}
+
+          {/* ── Email confirmation screen ── */}
+          {step === 2 && confirmationSent && (
+            <div className="text-center py-6">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#E1F5EE' }}>
+                <Mail size={24} style={{ color: '#0F6E56' }} />
+              </div>
+              <h1 className="text-xl font-semibold text-gray-900 mb-2">Check your email</h1>
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                We sent a confirmation link to <strong>{form.email}</strong>.<br />
+                Click it to activate your account.
+              </p>
+              <p className="text-xs text-gray-400">
+                Didn&apos;t receive it? Check your spam folder or{' '}
+                <button onClick={() => setStep(1)} className="font-medium" style={{ color: '#0F6E56' }}>try again</button>
+              </p>
+            </div>
           )}
 
           {/* ── Step 3: Success ── */}
@@ -435,7 +542,8 @@ export default function SignupPage() {
                   ))}
                 </div>
               )}
-              <button type="button" onClick={() => router.push(role === 'owner' ? '/dashboard' : '/search')}
+              <button type="button"
+                onClick={() => router.push(role === 'owner' ? '/dashboard' : '/search')}
                 className="w-full max-w-xs mx-auto py-2.5 text-white rounded-xl text-sm font-semibold block"
                 style={{ background: '#1D9E75' }}>
                 {role === 'owner' ? 'Go to dashboard' : 'Explore businesses'}
@@ -445,7 +553,6 @@ export default function SignupPage() {
               </p>
             </div>
           )}
-
         </div>
       </div>
     </div>

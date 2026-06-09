@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { MapPin, Star, BadgeCheck } from 'lucide-react'
+import SaveButton from '@/components/ui/SaveButton'
 
 const FLAGS: Record<string, string> = {
   Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
@@ -15,6 +17,7 @@ const GRADIENTS: Record<string, string> = {
   music:      'linear-gradient(135deg,#FAECE7,#F0997B)',
   crafts:     'linear-gradient(135deg,#E6F1FB,#85B7EB)',
   services:   'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
+  nightlife: 'linear-gradient(135deg,#2D1B69,#6B46C1)',
 }
 
 interface Business {
@@ -45,7 +48,14 @@ export default function BusinessCard({ business: b }: { business: Business }) {
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-green-300 hover:shadow-md transition-all group">
       <div className="relative" style={{ height: '180px' }}>
         {b.cover_image
-          ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
+          ? <Image
+              src={b.cover_image}
+              alt={b.name}
+              fill
+              sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+              className="object-cover"
+              priority={false}
+            />
           : <div className="w-full h-full" style={{ background: grad }} />
         }
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
@@ -53,8 +63,11 @@ export default function BusinessCard({ business: b }: { business: Business }) {
           {b.featured && <span className="bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">Featured</span>}
           {b.premium  && <span className="text-white text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#1D9E75' }}>Premium</span>}
         </div>
-        <div className="absolute top-3 right-3 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm">
-          {FLAGS[b.country ?? ''] || '🌍'}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <SaveButton businessId={b.id} size="sm" />
+          <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm">
+            {FLAGS[b.country ?? ''] || '🌍'}
+          </div>
         </div>
         {b.price_range && (
           <div className="absolute bottom-3 right-3 text-xs font-medium px-2 py-0.5 rounded-full bg-black/60 text-white">

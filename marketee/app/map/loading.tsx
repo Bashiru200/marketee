@@ -1,63 +1,37 @@
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Map skeleton - full width hero */}
-      <div className="w-full h-96 bg-gray-200" style={{ animation: 'pulse 2s infinite' }} />
-
-      {/* Controls and info skeleton */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar controls skeleton */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
-              {/* Search bar skeleton */}
-              <div className="h-10 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-              
-              {/* Filter buttons skeleton */}
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-9 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-              ))}
-            </div>
-          </div>
-
-          {/* Main content area skeleton */}
-          <div className="lg:col-span-3">
-            {/* View toggle buttons skeleton */}
-            <div className="flex gap-2 mb-4">
-              <div className="h-10 w-12 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-              <div className="h-10 w-12 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-            </div>
-
-            {/* Results count skeleton */}
-            <div className="h-4 w-40 bg-gray-100 rounded mb-4" style={{ animation: 'pulse 2s infinite' }} />
-
-            {/* Business cards grid skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                  {/* Image skeleton */}
-                  <div className="h-32 bg-gray-100" style={{ animation: 'pulse 2s infinite' }} />
-                  
-                  {/* Content skeleton */}
-                  <div className="p-3 space-y-2">
-                    <div className="h-4 w-24 bg-gray-100 rounded" style={{ animation: 'pulse 2s infinite' }} />
-                    <div className="h-3 w-32 bg-gray-100 rounded" style={{ animation: 'pulse 2s infinite' }} />
-                    <div className="h-3 w-20 bg-gray-100 rounded" style={{ animation: 'pulse 2s infinite' }} />
-                    <div className="h-8 w-full bg-gray-100 rounded-lg mt-2" style={{ animation: 'pulse 2s infinite' }} />
-                  </div>
+    <>
+      <div className="h-[calc(100vh-4rem)] flex flex-col">
+              <div className="bg-white border-b border-gray-100 px-4 py-3">
+                <div className="max-w-7xl mx-auto flex items-center gap-3">
+                  <div className="flex-1 h-10 bg-gray-100 rounded-xl skeleton" />
+                  <div className="w-36 h-10 bg-gray-100 rounded-xl skeleton" />
+                  <div className="w-24 h-10 bg-gray-100 rounded-xl skeleton" />
                 </div>
-              ))}
+                <div className="max-w-7xl mx-auto flex gap-2 mt-2">
+                  {[1,2,3,4,5].map(i => <div key={i} className="h-7 w-24 bg-gray-100 rounded-full skeleton" />)}
+                </div>
+              </div>
+              <div className="flex-1 flex">
+                <div className="flex-1 skeleton" style={{ background:'linear-gradient(135deg,#f0faf6,#e8f7f1)', opacity:0.6 }} />
+                <div className="hidden md:block w-72 bg-white border-l border-gray-100">
+                  <div className="p-4 border-b border-gray-100">
+                    <div className="h-4 w-32 bg-gray-100 rounded skeleton" />
+                  </div>
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className="flex gap-3 p-4 border-b border-gray-50">
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 skeleton flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-32 bg-gray-100 rounded skeleton" />
+                        <div className="h-3 w-24 bg-gray-100 rounded skeleton" />
+                        <div className="h-3 w-16 bg-gray-100 rounded skeleton" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
+    </>
   )
 }

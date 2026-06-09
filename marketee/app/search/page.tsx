@@ -1,26 +1,29 @@
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import SearchClient from './SearchClient'
+import SearchLoading from './loading'
 
-const STATIC_CATEGORIES = [
-  { id: 'food',       name: 'Food & Groceries',  icon: '🍲' },
-  { id: 'restaurant', name: 'Restaurants',        icon: '🍽️' },
-  { id: 'fashion',    name: 'Fashion & Fabric',   icon: '👗' },
-  { id: 'beauty',     name: 'Beauty & Hair',      icon: '💆' },
-  { id: 'herbs',      name: 'Herbs & Wellness',   icon: '🌿' },
-  { id: 'music',      name: 'Music & Arts',       icon: '🎵' },
-  { id: 'crafts',     name: 'Crafts & Decor',     icon: '🏺' },
-  { id: 'services',   name: 'Services',           icon: '🛠️' },
+const PAGE_SIZE = 12
+
+const CATEGORIES = [
+  { id:'food',       name:'Food & Groceries', icon:'🍲' },
+  { id:'restaurant', name:'Restaurants',       icon:'🍽️' },
+  { id:'fashion',    name:'Fashion & Fabric',  icon:'👗' },
+  { id:'beauty',     name:'Beauty & Hair',     icon:'💆' },
+  { id:'herbs',      name:'Herbs & Wellness',  icon:'🌿' },
+  { id:'music',      name:'Music & Arts',      icon:'🎵' },
+  { id:'crafts',     name:'Crafts & Decor',    icon:'🏺' },
+  { id:'services',   name:'Services',          icon:'🛠️' },
+  { id:'nightlife', name:'Bars & Nightlife', icon:'🍺' },
 ]
 
-// Cache this page for 60 seconds — revalidates in background
-// so users always get a fast response from cache
 export const revalidate = 60
 
-export default async function SearchPage() {
+async function SearchContent() {
   const supabase = await createClient()
 
-  // Only select the fields we actually use — reduces payload size
-  const { data: businesses, error } = await supabase
+  // Only fetch first page on server — client handles the rest
+  const { data: businesses, count } = await supabase
     .from('businesses')
     .select(`
       id, name, category, subcategory, description,
@@ -28,26 +31,32 @@ export default async function SearchPage() {
       cover_image, rating, review_count,
       price_range, tags, lat, lng,
       verified, premium, featured
-    `)
+    `, { count: 'exact' })
     .order('featured',   { ascending: false })
     .order('rating',     { ascending: false })
     .order('created_at', { ascending: false })
+    .range(0, PAGE_SIZE - 1)
 
-  if (error) console.error('[SearchPage]', error)
-
-  const allBusinesses = businesses ?? []
-
-  const categories = STATIC_CATEGORIES
-    .map(cat => ({
-      ...cat,
-      count: allBusinesses.filter(b => b.category === cat.id).length,
-    }))
-    .filter(cat => cat.count > 0)
+  const categories = CATEGORIES.map(cat => ({
+    ...cat,
+    count: 0, // counts loaded client-side via Supabase
+  }))
 
   return (
     <SearchClient
-      businesses={allBusinesses}
+      initialBusinesses={businesses ?? []}
+      totalCount={count ?? 0}
+      pageSize={PAGE_SIZE}
       categories={categories}
+      initialTab="businesses"
     />
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchLoading />}>
+      <SearchContent />
+    </Suspense>
   )
 }

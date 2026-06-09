@@ -5,40 +5,52 @@ import {
 } from 'react'
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { AdminPermission } from '@/lib/permissions'
 
 type Role = 'customer' | 'owner' | null
 
 interface Profile {
-  id:           string
-  name:         string
-  email:        string
-  role:         Role
-  business_id?: string
-  avatar_url?:  string | null
+  id:                  string
+  name:                string
+  email:               string
+  role:                Role
+  business_id?:        string
+  avatar_url?:         string | null
+  is_admin?:           boolean
+  admin_role?:         'super_admin' | 'admin' | null
+  admin_permissions?:  AdminPermission[]
 }
 
 interface AuthContextType {
-  user:           User | null
-  profile:        Profile | null
-  session:        Session | null
-  isOwner:        boolean
-  isCustomer:     boolean
-  isLoggedIn:     boolean
-  loading:        boolean
-  signOut:        () => Promise<void>
-  refreshProfile: () => Promise<void>
+  user:             User | null
+  profile:          Profile | null
+  session:          Session | null
+  isOwner:          boolean
+  isCustomer:       boolean
+  isLoggedIn:       boolean
+  isAdmin:          boolean
+  isSuperAdmin:     boolean
+  adminPermissions: AdminPermission[]
+  hasPermission:    (permission: AdminPermission) => boolean
+  loading:          boolean
+  signOut:          () => Promise<void>
+  refreshProfile:   () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user:           null,
-  profile:        null,
-  session:        null,
-  isOwner:        false,
-  isCustomer:     false,
-  isLoggedIn:     false,
-  loading:        true,
-  signOut:        async () => {},
-  refreshProfile: async () => {},
+  user:             null,
+  profile:          null,
+  session:          null,
+  isOwner:          false,
+  isCustomer:       false,
+  isLoggedIn:       false,
+  isAdmin:          false,
+  isSuperAdmin:     false,
+  adminPermissions: [],
+  hasPermission:    () => false,
+  loading:          true,
+  signOut:          async () => {},
+  refreshProfile:   async () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -52,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, email, role, business_id, avatar_url')
+      .select('id, name, email, role, business_id, avatar_url, is_admin, admin_role, admin_permissions')
       .eq('id', userId)
       .single()
     if (!error && data) setProfile(data as Profile)
@@ -76,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    // Get initial session — fires INITIAL_SESSION event above
+    
     supabase.auth.getSession().then(({ data: { session: initial } }: { data: { session: Session | null } }) => {
       if (!initial) setLoading(false)
     })
@@ -91,6 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }, [supabase])
 
+  const isSuperAdmin     = profile?.admin_role === 'super_admin'
+  const adminPermissions = (profile?.admin_permissions ?? []) as AdminPermission[]
+
+  const hasPermission = useCallback((permission: AdminPermission): boolean => {
+    if (profile?.admin_role === 'super_admin') return true
+    return adminPermissions.includes(permission)
+  }, [profile?.admin_role, adminPermissions])
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -99,6 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner:    profile?.role === 'owner',
       isCustomer: profile?.role === 'customer',
       isLoggedIn: !!user,
+      isAdmin:    profile?.is_admin === true,
+      isSuperAdmin,
+      adminPermissions,
+      hasPermission,
       loading,
       signOut,
       refreshProfile,

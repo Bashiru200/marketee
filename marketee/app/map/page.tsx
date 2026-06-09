@@ -29,6 +29,7 @@ const GRADIENTS: Record<string, string> = {
   music:      'linear-gradient(135deg,#FAECE7,#F0997B)',
   crafts:     'linear-gradient(135deg,#E6F1FB,#85B7EB)',
   services:   'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
+  nightlife:   'linear-gradient(135deg,#2D1B69,#6B46C1)',
 }
 
 const CATEGORIES = [
@@ -151,11 +152,60 @@ export default function MapPage() {
   }
 
   if (loading) return (
-    <div className="h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: '#1D9E75' }} />
-        <p className="text-sm text-gray-400">Loading map…</p>
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      {/* Toolbar skeleton */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="flex-1 h-10 bg-gray-200 rounded-xl" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          <div className="w-44 h-10 bg-gray-200 rounded-xl" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          <div className="w-24 h-10 bg-gray-200 rounded-xl" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+        </div>
+        <div className="max-w-7xl mx-auto flex gap-2 mt-2 overflow-hidden">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="h-7 w-28 bg-gray-200 rounded-full flex-shrink-0" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          ))}
+        </div>
       </div>
+
+      {/* Map + sidebar skeleton */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Map area */}
+        <div className="flex-1 relative" style={{ background: 'linear-gradient(135deg,#f0faf6,#e8f7f1)', animation: 'shimmer 1.8s ease-in-out infinite' }}>
+          {/* Fake pins */}
+          {[
+            { top: '30%', left: '25%' }, { top: '45%', left: '55%' },
+            { top: '60%', left: '35%' }, { top: '25%', left: '65%' },
+          ].map((pos, i) => (
+            <div key={i} className="absolute flex flex-col items-center" style={{ top: pos.top, left: pos.left }}>
+              <div className="h-6 w-20 bg-gray-300 rounded-full mb-0.5" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="w-2.5 h-2.5 bg-gray-300 rounded-full" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            </div>
+          ))}
+          {/* Stats overlay */}
+          <div className="absolute top-4 left-4 bg-white/80 rounded-xl px-4 py-2">
+            <div className="h-3 w-16 bg-gray-200 rounded mb-1.5" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            <div className="h-4 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="hidden md:flex flex-col w-72 bg-white border-l border-gray-100">
+          <div className="p-4 border-b border-gray-100">
+            <div className="h-4 w-32 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          </div>
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="flex gap-3 p-4 border-b border-gray-50">
+              <div className="w-12 h-12 rounded-lg bg-gray-200 flex-shrink-0" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-32 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-3 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-3 w-16 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
     </div>
   )
 
@@ -299,18 +349,29 @@ export default function MapPage() {
                           </p>
                         )}
                         {/* Actions */}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <a href={`/businesses/${selected.id}`}
-                            style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '6px 0', borderRadius: '8px', textDecoration: 'none' }}>
-                            View Store
-                          </a>
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 500, padding: '6px 10px', borderRadius: '8px', border: '1px solid #E5E7EB', color: '#374151', textDecoration: 'none' }}>
-                            Directions
-                          </a>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {selected.phone && (
+                            <a
+                              href={`https://wa.me/${selected.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I found your business on Markeetee — ${selected.name}.`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#25D366', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
+                              💬 WhatsApp
+                            </a>
+                          )}
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <a href={`/businesses/${selected.id}`}
+                              style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '6px 0', borderRadius: '8px', textDecoration: 'none' }}>
+                              View Store
+                            </a>
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 500, padding: '6px 10px', borderRadius: '8px', border: '1px solid #E5E7EB', color: '#374151', textDecoration: 'none' }}>
+                              Directions
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </InfoWindow>

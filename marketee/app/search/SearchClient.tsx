@@ -1,602 +1,741 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, X, MapPin, Star, BadgeCheck,
-  LayoutGrid, List, Map, ChevronLeft, ChevronRight, SlidersHorizontal
+  SlidersHorizontal, Loader2, ChevronDown
 } from 'lucide-react'
-import { BusinessRow } from '@/lib/queries'
+import { createClient } from '@/lib/supabase/client'
+import SaveButton from '@/components/ui/SaveButton'
 
-// ── Constants ──────────────────────────────────────────────────────────────
-const FLAGS: Record<string, string> = {
-  Nigeria: '🇳🇬', Ghana: '🇬🇭', Kenya: '🇰🇪',
-  Senegal: '🇸🇳', 'South Africa': '🇿🇦', Ethiopia: '🇪🇹', Cameroon: '🇨🇲',
+// ── Types ─────────────────────────────────────────────────────────────────
+interface Business {
+  id: string; name: string; category: string | null; subcategory: string | null
+  description: string | null; city: string | null; state: string | null
+  cover_image: string | null; rating: number; review_count: number
+  price_range: string | null; tags: string[] | null; country: string | null
+  verified: boolean; premium: boolean; featured: boolean
 }
 
-const COUNTRIES = ['Nigeria', 'Ghana', 'Kenya', 'Senegal', 'South Africa', 'Ethiopia', 'Cameroon']
+interface Category { id: string; name: string; icon: string; count: number }
 
-const GRADIENTS: Record<string, string> = {
-  food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
-  restaurant: 'linear-gradient(135deg,#EEEDFE,#AFA9EC)',
-  fashion:    'linear-gradient(135deg,#FAEEDA,#FAC775)',
-  beauty:     'linear-gradient(135deg,#FBEAF0,#ED93B1)',
-  herbs:      'linear-gradient(135deg,#EAF3DE,#C0DD97)',
-  music:      'linear-gradient(135deg,#FAECE7,#F0997B)',
-  crafts:     'linear-gradient(135deg,#E6F1FB,#85B7EB)',
-  services:   'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
+interface Product {
+  id:           string
+  name:         string
+  price:        number
+  description:  string | null
+  image_url:    string | null
+  available:    boolean
+  business_id:  string
+  businesses: {
+    id:          string
+    name:        string
+    city:        string | null
+    state:       string | null
+    cover_image: string | null
+    verified:    boolean
+    phone:       string | null
+    category:    string | null
+  } | null
 }
 
-const ITEMS_PER_PAGE = 6
+type SearchTab = 'businesses' | 'products'
 
-// ── Types ──────────────────────────────────────────────────────────────────
-interface Category {
-  id: string
-  name: string
-  icon: string
-  count: number
-}
+
 
 interface Props {
-  businesses: BusinessRow[]
-  categories: Category[]
+  initialBusinesses: Business[]
+  totalCount:        number
+  pageSize:          number
+  categories:        Category[]
+  initialTab?:       SearchTab
 }
 
-// ── Star rating row ────────────────────────────────────────────────────────
-function StarRow({ rating, size = 12 }: { rating: number; size?: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {[1,2,3,4,5].map(i => (
-        <Star key={i} size={size}
-          className={i <= Math.round(rating ?? 0) ? 'text-amber-400 fill-current' : 'text-gray-200'} />
-      ))}
-    </div>
-  )
+// ── Constants ─────────────────────────────────────────────────────────────
+const FLAGS: Record<string, string> = {
+  Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
+  Senegal:'🇸🇳', 'South Africa':'🇿🇦', Ethiopia:'🇪🇹', Cameroon:'🇨🇲',
 }
 
-// ── Single business card ───────────────────────────────────────────────────
-function BusinessCard({ b }: { b: BusinessRow }) {
+const GRADIENTS: Record<string, string> = {
+  food:'linear-gradient(135deg,#c5eadb,#9fdcc3)',
+  restaurant:'linear-gradient(135deg,#EEEDFE,#AFA9EC)',
+  fashion:'linear-gradient(135deg,#FAEEDA,#FAC775)',
+  beauty:'linear-gradient(135deg,#FBEAF0,#ED93B1)',
+  herbs:'linear-gradient(135deg,#EAF3DE,#C0DD97)',
+  music:'linear-gradient(135deg,#FAECE7,#F0997B)',
+  crafts:'linear-gradient(135deg,#E6F1FB,#85B7EB)',
+  services:'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
+  nightlife:'linear-gradient(135deg,#2D1B69,#6B46C1)',
+}
+
+const SORT_OPTIONS = [
+  { value:'featured', label:'Featured first' },
+  { value:'rating',   label:'Highest rated'  },
+  { value:'newest',   label:'Newest first'   },
+  { value:'reviews',  label:'Most reviewed'  },
+]
+
+// ── Card component ────────────────────────────────────────────────────────
+function BizCard({ b }: { b: Business }) {
   const grad = GRADIENTS[b.category ?? ''] ?? GRADIENTS.services
-
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-green-400 transition-colors group">
-      {/* Image / gradient */}
-      <div className="relative h-36">
-        {b.cover_image
-          ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
-          : <div className="w-full h-full" style={{ background: grad }} />
-        }
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-
+    <Link href={`/businesses/${b.id}`}
+      className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-md transition-all">
+      {/* Cover */}
+      <div className="relative h-44 overflow-hidden">
+        {b.cover_image ? (
+          <Image src={b.cover_image} alt={b.name} fill
+            sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300" />
+        ) : (
+          <div className="w-full h-full" style={{ background: grad }} />
+        )}
         {/* Badges */}
-        <div className="absolute top-2 left-2 flex gap-1">
+        <div className="absolute top-3 left-3 flex gap-1.5">
           {b.featured && (
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500 text-white">Featured</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">
+              Featured
+            </span>
           )}
-          {b.premium && (
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white" style={{ background: '#1D9E75' }}>Premium</span>
-          )}
-          {b.verified && !b.featured && !b.premium && (
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/90 flex items-center gap-1" style={{ color: '#085041' }}>
+          {b.verified && (
+            <span className="flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+              style={{ background:'#1D9E75' }}>
               <BadgeCheck size={9} /> Verified
             </span>
           )}
         </div>
-
-        {/* Country flag */}
-        <div className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-xs">
-          {FLAGS[b.country ?? ''] ?? '🌍'}
+        {/* Save + flag */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <SaveButton businessId={b.id} size="sm" />
+          {b.country && (
+            <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm shadow">
+              {FLAGS[b.country] ?? '🌍'}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Price range */}
-        {b.price_range && (
-          <div className="absolute bottom-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/50 text-white">
-            {b.price_range}
+      {/* Info */}
+      <div className="p-4">
+        <p className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-1">
+          {b.name}
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5 capitalize">
+          {b.subcategory ?? b.category}
+          {b.city ? ` · ${b.city}` : ''}
+          {b.state ? `, ${b.state}` : ''}
+        </p>
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center gap-1.5">
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} size={11}
+                  className={i <= Math.round(b.rating ?? 0) ? 'text-amber-400 fill-current' : 'text-gray-200'} />
+              ))}
+            </div>
+            <span className="text-xs text-gray-500">
+              {b.rating > 0 ? b.rating.toFixed(1) : '—'}
+              <span className="text-gray-400"> ({b.review_count})</span>
+            </span>
+          </div>
+          {b.price_range && (
+            <span className="text-xs font-medium text-gray-500">{b.price_range}</span>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+
+// ── Product card ──────────────────────────────────────────────────────────
+function ProductCard({ p }: { p: Product }) {
+  const waMsg = p.businesses?.phone
+    ? encodeURIComponent(`Hi ${p.businesses.name}! I'm interested in "${p.name}" ($${p.price?.toFixed(2)}) — is it available?`)
+    : null
+  const waUrl = p.businesses?.phone && waMsg
+    ? `https://wa.me/${p.businesses.phone.replace(/\D/g, '')}?text=${waMsg}`
+    : null
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col">
+      {/* Product image */}
+      <div className="relative h-44 overflow-hidden bg-gray-50">
+        {p.image_url ? (
+          <Image src={p.image_url} alt={p.name} fill
+            sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
+            className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>
+        )}
+        {!p.available && (
+          <div className="absolute inset-0 flex items-center justify-center"
+            style={{ background:'rgba(0,0,0,0.45)' }}>
+            <span className="text-xs font-semibold text-white bg-gray-800 px-3 py-1 rounded-full">
+              Out of stock
+            </span>
           </div>
         )}
       </div>
 
-      {/* Card body */}
-      <div className="p-3">
-        <p className="font-medium text-sm text-gray-900 truncate group-hover:text-green-700 transition-colors">{b.name}</p>
-        <p className="text-xs text-gray-400 truncate mb-1.5">{b.subcategory ?? b.category} · {b.city}</p>
-
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <StarRow rating={b.rating ?? 0} />
-          <span className="text-xs font-medium text-gray-800">{(b.rating ?? 0).toFixed(1)}</span>
-          <span className="text-xs text-gray-400">({b.review_count ?? 0})</span>
-        </div>
-
-        {b.address && (
-          <div className="flex items-center gap-1 text-xs text-gray-400 mb-2.5">
-            <MapPin size={10} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-            <span className="truncate">{b.address}</span>
-          </div>
+      {/* Info */}
+      <div className="p-4 flex flex-col flex-1">
+        <p className="font-semibold text-gray-900 line-clamp-1">{p.name}</p>
+        {p.description && (
+          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{p.description}</p>
         )}
+        <p className="text-lg font-bold mt-2" style={{ color:'#1D9E75' }}>
+          ${p.price?.toFixed(2)}
+        </p>
 
-        {b.tags && b.tags.length > 0 && (
-          <div className="flex gap-1 flex-wrap mb-3">
-            {b.tags.slice(0, 3).map(t => (
-              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>{t}</span>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-1.5">
-          <Link href={`/businesses/${b.id}`}
-            className="flex-1 text-center text-xs font-medium text-white py-1.5 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ background: '#1D9E75' }}>
-            View Store
+        {/* Business info */}
+        {p.businesses && (
+          <Link href={`/businesses/${p.businesses.id}`}
+            className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 hover:opacity-80 transition-opacity">
+            {p.businesses.cover_image ? (
+              <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                <Image src={p.businesses.cover_image} alt={p.businesses.name}
+                  fill sizes="24px" className="object-cover" />
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                style={{ background:'#085041' }}>
+                {p.businesses.name[0]}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-medium text-gray-700 truncate">{p.businesses.name}</p>
+                {p.businesses.verified && (
+                  <BadgeCheck size={10} style={{ color:'#1D9E75', flexShrink:0 }} />
+                )}
+              </div>
+              {(p.businesses.city || p.businesses.state) && (
+                <p className="text-[10px] text-gray-400">
+                  {[p.businesses.city, p.businesses.state].filter(Boolean).join(', ')}
+                </p>
+              )}
+            </div>
           </Link>
-          {b.lat && b.lng && (
-            <a href={`https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs border border-gray-200 text-gray-500 px-2.5 py-1.5 rounded-lg hover:border-green-400 hover:text-green-700 transition-colors">
-              <MapPin size={11} /> Map
+        )}
+
+        {/* CTA */}
+        <div className="mt-3 flex gap-2">
+          {waUrl ? (
+            <a href={waUrl} target="_blank" rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-white py-2 rounded-lg hover:opacity-90 transition-opacity"
+              style={{ background:'#25D366' }}>
+              💬 Enquire
             </a>
+          ) : (
+            <Link href={`/businesses/${p.business_id}`}
+              className="flex-1 flex items-center justify-center text-xs font-semibold text-white py-2 rounded-lg hover:opacity-90 transition-opacity"
+              style={{ background:'#1D9E75' }}>
+              View store
+            </Link>
           )}
         </div>
       </div>
     </div>
+  )}
+
+// ── Main component ────────────────────────────────────────────────────────
+export default function SearchClient({
+  initialBusinesses, totalCount, pageSize, categories, initialTab = 'businesses',
+}: Props) {
+  const supabase     = createClient()
+  const searchParams = useSearchParams()
+
+  // State
+  const [businesses, setBusinesses] = useState<Business[]>(initialBusinesses)
+  const [loading,    setLoading]    = useState(false)
+  const [loadingMore,setLoadingMore]= useState(false)
+  const [total,      setTotal]      = useState(totalCount)
+  const [page,       setPage]       = useState(0) // 0 = first page already loaded
+  const [hasMore,    setHasMore]    = useState(totalCount > pageSize)
+
+  // Tab
+  const [activeTab,  setActiveTab]  = useState<SearchTab>(
+    (searchParams.get('tab') as SearchTab) ?? initialTab
   )
-}
 
-// ── Main search page component ─────────────────────────────────────────────
-export default function SearchClient({ businesses = [], categories = [] }: Props) {
-  const [query,        setQuery]        = useState('')
-  const [city,         setCity]         = useState('')
-  const [cat,          setCat]          = useState('')
-  const [price,        setPrice]        = useState('')
-  const [sort,         setSort]         = useState('rating')
-  const [view,         setView]         = useState<'grid' | 'list'>('grid')
-  const [country,      setCountry]      = useState('')
-  const [verifiedOnly, setVerifiedOnly] = useState(false)
-  const [premiumOnly,  setPremiumOnly]  = useState(false)
-  const [minRating,    setMinRating]    = useState(0)
-  const [page,         setPage]         = useState(1)
-  const [sidebarOpen,  setSidebarOpen]  = useState(false)
+  // Product state
+  const [products,      setProducts]      = useState<Product[]>([])
+  const [productTotal,  setProductTotal]  = useState(0)
+  const [productPage,   setProductPage]   = useState(0)
+  const [productHasMore,setProductHasMore]= useState(false)
+  const [productLoading,setProductLoading]= useState(false)
+  const [productLoadingMore, setProductLoadingMore] = useState(false)
+  const [maxPrice,   setMaxPrice]   = useState(0)
+  const [inStockOnly,setInStockOnly]= useState(false)
 
-  // ── Filtering + sorting ─────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    let r = (businesses ?? []).filter(b => {
-      const q     = query.toLowerCase()
-      const mq    = !query  || b.name.toLowerCase().includes(q) ||
-        (b.tags ?? []).some(t => t.toLowerCase().includes(q)) ||
-        (b.description ?? '').toLowerCase().includes(q) ||
-        (b.subcategory ?? '').toLowerCase().includes(q)
-      const mc    = !cat          || b.category    === cat
-      const mp    = !price        || b.price_range  === price
-      const mco   = !country      || b.country      === country
-      const mcity = !city         ||
-        (b.city  ?? '').toLowerCase().includes(city.toLowerCase()) ||
-        (b.state ?? '').toLowerCase().includes(city.toLowerCase()) ||
-        (b.zip   ?? '').includes(city)
-      const mv    = !verifiedOnly || b.verified
-      const mpr   = !premiumOnly  || b.premium
-      const mr    = (b.rating ?? 0) >= minRating
-      return mq && mc && mp && mco && mcity && mv && mpr && mr
-    })
-    if (sort === 'rating')  r.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    if (sort === 'reviews') r.sort((a, b) => (b.review_count ?? 0) - (a.review_count ?? 0))
-    if (sort === 'name')    r.sort((a, b) => a.name.localeCompare(b.name))
-    return r
-  }, [query, city, cat, price, sort, country, verifiedOnly, premiumOnly, minRating, businesses])
+  // Filters
+  const [query,    setQuery]    = useState(searchParams.get('q')        ?? '')
+  const [city,     setCity]     = useState(searchParams.get('city')     ?? '')
+  const [cat,      setCat]      = useState(searchParams.get('category') ?? '')
+  const [country,  setCountry]  = useState('')
+  const [sort,     setSort]     = useState('featured')
+  const [minRating,setMinRating]= useState(0)
+  const [price,    setPrice]    = useState('')
+  const [verified, setVerified] = useState(false)
+  const [showFilters,setShowFilters] = useState(false)
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
-  const activeFilters = [cat, price, country, verifiedOnly ? 'v' : '', premiumOnly ? 'p' : ''].filter(Boolean)
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // ── Fetch page from Supabase ──────────────────────────────────────────
+  const fetchPage = useCallback(async (pageNum: number, replace = false) => {
+    if (pageNum === 0 && replace === false) return // already have initial data
+
+    const isFirst = pageNum === 0
+    if (isFirst) setLoading(true)
+    else         setLoadingMore(true)
+
+    let q = supabase
+      .from('businesses')
+      .select(`
+        id, name, category, subcategory, description,
+        address, city, state, zip, country,
+        cover_image, rating, review_count,
+        price_range, tags, lat, lng,
+        verified, premium, featured
+      `, { count: 'exact' })
+
+    // Filters
+    if (query.trim())   q = q.ilike('name',     `%${query.trim()}%`)
+    if (city.trim())    q = q.or(`city.ilike.%${city.trim()}%,state.ilike.%${city.trim()}%,zip.eq.${city.trim()}`)
+    if (cat)            q = q.eq('category',     cat)
+    if (country)        q = q.eq('country',      country)
+    if (verified)       q = q.eq('verified',     true)
+    if (price)          q = q.eq('price_range',  price)
+    if (minRating > 0)  q = q.gte('rating',      minRating)
+
+    // Sort
+    if (sort === 'featured') q = q.order('featured', { ascending:false }).order('rating', { ascending:false })
+    if (sort === 'rating')   q = q.order('rating',   { ascending:false })
+    if (sort === 'newest')   q = q.order('created_at',{ ascending:false })
+    if (sort === 'reviews')  q = q.order('review_count',{ ascending:false })
+
+    // Pagination
+    q = q.range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
+
+    const { data, count: cnt } = await q
+
+    const results = (data ?? []) as Business[]
+
+    if (replace) {
+      setBusinesses(results)
+    } else {
+      setBusinesses(prev => [...prev, ...results])
+    }
+
+    const newTotal = cnt ?? 0
+    setTotal(newTotal)
+    setHasMore((pageNum + 1) * pageSize < newTotal)
+    setLoading(false)
+    setLoadingMore(false)
+  }, [query, city, cat, country, verified, price, minRating, sort, pageSize, supabase])
+
+  // ── Fetch products ───────────────────────────────────────────────────────
+  const fetchProducts = useCallback(async (pageNum: number, replace = false) => {
+    const isFirst = pageNum === 0
+    if (isFirst) setProductLoading(true)
+    else         setProductLoadingMore(true)
+
+    let q = supabase
+      .from('products')
+      .select(`
+        id, name, price, description, image_url, available, business_id,
+        businesses(id, name, city, state, cover_image, verified, phone, category)
+      `, { count:'exact' })
+      .eq('available', true)
+
+    if (query.trim())    q = q.ilike('name', `%${query.trim()}%`)
+    if (inStockOnly)     q = q.eq('available', true)
+    if (maxPrice > 0)    q = q.lte('price', maxPrice)
+    if (cat)             q = (q as any).eq('businesses.category', cat)
+
+    q = q.order('name', { ascending: true })
+         .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
+
+    const { data, count: cnt } = await q
+
+    const results = (data ?? []) as Product[]
+
+    if (replace) setProducts(results)
+    else         setProducts(prev => [...prev, ...results])
+
+    setProductTotal(cnt ?? 0)
+    setProductHasMore((pageNum + 1) * pageSize < (cnt ?? 0))
+    setProductLoading(false)
+    setProductLoadingMore(false)
+  }, [query, inStockOnly, maxPrice, cat, pageSize, supabase])
+
+  // ── Re-fetch when filters change ──────────────────────────────────────
+  useEffect(() => {
+    setPage(0)
+    fetchPage(0, true)
+  }, [query, city, cat, country, verified, price, minRating, sort])
+
+  // Re-fetch products when filters change
+  useEffect(() => {
+    if (activeTab === 'products') {
+      setProductPage(0)
+      fetchProducts(0, true)
+    }
+  }, [query, cat, inStockOnly, maxPrice, activeTab])
+
+  // ── Infinite scroll observer ──────────────────────────────────────────
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          const nextPage = page + 1
+          setPage(nextPage)
+          fetchPage(nextPage, false)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, loading, page, fetchPage])
+
+  // Product infinite scroll sentinel
+  const productSentinelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = productSentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && productHasMore && !productLoadingMore && !productLoading) {
+        const nextPage = productPage + 1
+        setProductPage(nextPage)
+        fetchProducts(nextPage, false)
+      }
+    }, { threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [productHasMore, productLoadingMore, productLoading, productPage, fetchProducts])
+
+  // ── Active filter count ───────────────────────────────────────────────
+  const activeFilters = [cat, country, price, verified, minRating > 0].filter(Boolean).length
 
   function clearAll() {
-    setCat(''); setPrice(''); setCountry(''); setCity('')
-    setVerifiedOnly(false); setPremiumOnly(false); setMinRating(0); setQuery(''); setPage(1)
+    setQuery(''); setCity(''); setCat(''); setCountry('')
+    setPrice(''); setVerified(false); setMinRating(0)
   }
 
-  const ratingBreakdown = [5, 4, 3].map(s => ({
-    s,
-    pct: businesses.length
-      ? businesses.filter(b => (b.rating ?? 0) >= s).length / businesses.length * 100
-      : 0,
-  }))
+  const COUNTRIES = ['Nigeria','Ghana','Kenya','Senegal','South Africa','Ethiopia','Cameroon']
 
-  // ── Sidebar ─────────────────────────────────────────────────────────────
-  const Sidebar = () => (
-    <aside className="w-full space-y-5">
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
 
-      {/* Category */}
-      <div>
-        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Category</p>
-        <div className="space-y-0.5">
-          {[{ id: '', name: 'All categories', icon: '🌍', count: businesses.length }, ...categories].map(c => (
-            <button key={c.id} onClick={() => { setCat(c.id); setPage(1) }}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-sm transition-colors"
-              style={{
-                background: cat === c.id ? '#E1F5EE' : 'transparent',
-                color:      cat === c.id ? '#085041'  : '#374151',
-                fontWeight: cat === c.id ? 500 : 400,
-              }}>
-              <span className="flex items-center gap-2">
-                <span>{c.icon}</span>
-                <span className="text-left">{c.name}</span>
-              </span>
-              <span className="text-[11px] px-1.5 py-0.5 rounded-full"
-                style={{ background: cat === c.id ? '#085041' : '#F3F4F6', color: cat === c.id ? '#C5EADB' : '#6B7280' }}>
-                {c.count}
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 mb-5 w-fit">
+        {([
+          ['businesses', '🏪', 'Businesses'],
+          ['products',   '📦', 'Products'  ],
+        ] as const).map(([tab, icon, label]) => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={activeTab === tab
+              ? { background:'#1D9E75', color:'white' }
+              : { color:'#6B7280' }
+            }>
+            <span>{icon}</span> {label}
+          </button>
+        ))}
       </div>
 
-      <div className="border-t border-gray-100" />
-
-      {/* Price */}
-      <div>
-        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Price range</p>
-        <div className="flex gap-2">
-          {['$', '$$', '$$$'].map(p => (
-            <button key={p} onClick={() => { setPrice(price === p ? '' : p); setPage(1) }}
-              className="flex-1 py-1.5 rounded-lg text-sm border transition-colors"
-              style={{
-                borderColor: price === p ? '#1D9E75' : '#E5E7EB',
-                background:  price === p ? '#E1F5EE' : 'transparent',
-                color:       price === p ? '#085041'  : '#4B5563',
-                fontWeight:  price === p ? 500 : 400,
-              }}>
-              {p}
-            </button>
-          ))}
+      {/* Search bar */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex items-center gap-2 flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+          <Search size={16} className="text-gray-400 flex-shrink-0" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder='Search "jollof rice", "ankara", "hair braiding"…'
+            className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
+          />
+          {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400" /></button>}
         </div>
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm sm:w-52">
+          <MapPin size={14} style={{ color:'#1D9E75' }} className="flex-shrink-0" />
+          <input
+            value={city}
+            onChange={e => setCity(e.target.value)}
+            placeholder="City, state or zip"
+            className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+          />
+          {city && <button onClick={() => setCity('')}><X size={13} className="text-gray-400" /></button>}
+        </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-medium transition-colors hover:border-green-300 shadow-sm"
+          style={activeFilters > 0 ? { borderColor:'#1D9E75', color:'#1D9E75', background:'#f0faf6' } : { color:'#374151' }}
+        >
+          <SlidersHorizontal size={15} />
+          Filters
+          {activeFilters > 0 && (
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+              style={{ background:'#1D9E75' }}>
+              {activeFilters}
+            </span>
+          )}
+          <ChevronDown size={13} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+        </button>
       </div>
 
-      <div className="border-t border-gray-100" />
+      {/* Products tab content */}
+      {activeTab === 'products' && (
+        <div>
+          {/* Product filters */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Max price</span>
+              <input type="number" min={0} max={500} step={5}
+                value={maxPrice || ''}
+                onChange={e => setMaxPrice(Number(e.target.value))}
+                placeholder="Any"
+                className="w-20 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400" />
+              {maxPrice > 0 && (
+                <button onClick={() => setMaxPrice(0)} className="text-gray-400 hover:text-gray-600">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            <label className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 cursor-pointer hover:border-green-300 transition-colors">
+              <input type="checkbox" checked={inStockOnly} onChange={e => setInStockOnly(e.target.checked)}
+                className="rounded accent-green-600" />
+              <span className="text-sm text-gray-700">In stock only</span>
+            </label>
+          </div>
 
-      {/* Min rating */}
-      <div>
-        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Min. rating</p>
-        <div className="space-y-2">
-          {ratingBreakdown.map(({ s, pct }) => (
-            <button key={s} onClick={() => { setMinRating(minRating === s ? 0 : s); setPage(1) }}
-              className="w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors"
-              style={{ background: minRating === s ? '#E1F5EE' : 'transparent' }}>
-              <div className="flex gap-0.5">
-                {[1,2,3,4,5].map(i => (
-                  <Star key={i} size={11} className={i <= s ? 'text-amber-400 fill-current' : 'text-gray-200'} />
+          {/* Results count */}
+          <p className="text-sm text-gray-500 mb-5">
+            {productLoading ? 'Searching…' : (
+              <><span className="font-semibold text-gray-900">{productTotal}</span> product{productTotal !== 1 ? 's' : ''}
+              {query ? ` for "${query}"` : ''}</>
+            )}
+          </p>
+
+          {/* Product grid */}
+          {productLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length:6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="h-44 bg-gray-200" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                  <div className="p-4 space-y-2">
+                    <div className="h-5 w-2/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                    <div className="h-4 w-1/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                  </div>
+                </div>
+              ))}
+              <style dangerouslySetInnerHTML={{ __html:'@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-24">
+              <div className="text-5xl mb-4">📦</div>
+              <h3 className="font-semibold text-gray-900 mb-2">No products found</h3>
+              <p className="text-sm text-gray-500">Try a different search term or remove filters</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map(p => <ProductCard key={p.id} p={p} />)}
+              </div>
+              <div ref={productSentinelRef} className="h-10 flex items-center justify-center mt-8">
+                {productLoadingMore && (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Loader2 size={16} className="animate-spin" style={{ color:'#1D9E75' }} />
+                    Loading more products…
+                  </div>
+                )}
+                {!productHasMore && products.length > 0 && (
+                  <p className="text-xs text-gray-400">Showing all {productTotal} product{productTotal !== 1 ? 's' : ''}</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Businesses tab content */}
+      {activeTab === 'businesses' && (
+      <>
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Category</label>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map(c => (
+                  <button key={c.id} onClick={() => setCat(cat === c.id ? '' : c.id)}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors"
+                    style={cat === c.id
+                      ? { background:'#1D9E75', borderColor:'#1D9E75', color:'white' }
+                      : { borderColor:'#E5E7EB', color:'#374151' }
+                    }>
+                    {c.icon} {c.name}
+                  </button>
                 ))}
               </div>
-              <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#1D9E75' }} />
-              </div>
-              <span className="text-[11px] text-gray-400 w-4 text-right">{s}+</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="border-t border-gray-100" />
-
-      {/* Country */}
-      <div>
-        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Country of origin</p>
-        <div className="space-y-0.5">
-          {COUNTRIES.map(c => {
-            const cnt = businesses.filter(b => b.country === c).length
-            return (
-              <button key={c} onClick={() => { setCountry(country === c ? '' : c); setPage(1) }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-sm transition-colors"
-                style={{
-                  background: country === c ? '#E1F5EE' : 'transparent',
-                  color:      country === c ? '#085041'  : '#374151',
-                  fontWeight: country === c ? 500 : 400,
-                }}>
-                <span>{FLAGS[c] ?? '🌍'} {c}</span>
-                <span className="text-[11px] px-1.5 py-0.5 rounded-full"
-                  style={{ background: country === c ? '#085041' : '#F3F4F6', color: country === c ? '#C5EADB' : '#6B7280' }}>
-                  {cnt}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="border-t border-gray-100" />
-
-      {/* Features */}
-      <div>
-        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Features</p>
-        <div className="space-y-1">
-          {([
-            ['Verified only',  verifiedOnly, (v: boolean) => { setVerifiedOnly(v); setPage(1) }],
-            ['Premium stores', premiumOnly,  (v: boolean) => { setPremiumOnly(v);  setPage(1) }],
-          ] as const).map(([label, val, set]) => (
-            <label key={label} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <span className="text-sm text-gray-700">{label}</span>
-              <input type="checkbox" checked={val} onChange={e => (set as (v: boolean) => void)(e.target.checked)}
-                className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {activeFilters.length > 0 && (
-        <button onClick={clearAll}
-          className="w-full text-xs text-gray-400 hover:text-red-500 transition-colors py-1 border-t border-gray-100 pt-3">
-          Clear all filters
-        </button>
-      )}
-    </aside>
-  )
-
-  // ── Page ────────────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen bg-gray-50">
-
-      {/* Sticky search bar */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2">
-
-          {/* Keyword search */}
-          <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
-            <Search size={15} className="text-gray-400 flex-shrink-0" />
-            <input
-              value={query}
-              onChange={e => { setQuery(e.target.value); setPage(1) }}
-              placeholder="Search businesses, products, or services..."
-              className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
-            />
-            {query && (
-              <button onClick={() => { setQuery(''); setPage(1) }}>
-                <X size={14} className="text-gray-400 hover:text-gray-600" />
-              </button>
-            )}
-          </div>
-
-          {/* City filter */}
-          <div className="hidden sm:flex items-center gap-1.5 border border-gray-200 rounded-xl px-3 py-2 bg-white focus-within:ring-2 focus-within:border-transparent transition-all">
-            <MapPin size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-            <input
-              value={city}
-              onChange={e => { setCity(e.target.value); setPage(1) }}
-              placeholder="City, state, or zip"
-              className="w-28 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
-            />
-            {city && (
-              <button onClick={() => { setCity(''); setPage(1) }}>
-                <X size={12} className="text-gray-400 hover:text-gray-600" />
-              </button>
-            )}
-          </div>
-
-          {/* Mobile filter toggle */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden flex items-center gap-1.5 px-3 py-2 border rounded-xl text-sm font-medium transition-colors"
-            style={{
-              background:  sidebarOpen ? '#1D9E75' : 'white',
-              borderColor: sidebarOpen ? '#1D9E75' : '#E5E7EB',
-              color:       sidebarOpen ? 'white'   : '#4B5563',
-            }}>
-            <SlidersHorizontal size={14} />
-            Filters
-            {activeFilters.length > 0 && (
-              <span className="text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full"
-                style={{ background: sidebarOpen ? 'rgba(255,255,255,0.3)' : '#1D9E75', color: 'white' }}>
-                {activeFilters.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-
-          {/* Desktop sidebar */}
-          <div className="hidden lg:block w-56 flex-shrink-0">
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 sticky top-36">
-              <Sidebar />
             </div>
-          </div>
 
-          {/* Mobile sidebar overlay */}
-          {sidebarOpen && (
-            <div className="lg:hidden fixed inset-0 z-40 flex">
-              <div className="flex-1 bg-black/30" onClick={() => setSidebarOpen(false)} />
-              <div className="w-72 bg-white h-full overflow-y-auto p-4 shadow-xl">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="font-semibold text-gray-900">Filters</p>
-                  <button onClick={() => setSidebarOpen(false)}>
-                    <X size={18} className="text-gray-500" />
-                  </button>
-                </div>
-                <Sidebar />
+            {/* Country */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Country of origin</label>
+              <select value={country} onChange={e => setCountry(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:border-transparent">
+                <option value="">All countries</option>
+                {COUNTRIES.map(c => (
+                  <option key={c} value={c}>{FLAGS[c] ?? '🌍'} {c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Price range */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Price range {price && <span className="font-bold ml-1" style={{ color:'#1D9E75' }}>{price}</span>}
+              </label>
+              <input
+                type="range" min={0} max={3}
+                value={['','$','$$','$$$'].indexOf(price) === -1 ? 0 : ['','$','$$','$$$'].indexOf(price)}
+                onChange={e => setPrice(['','$','$$','$$$'][Number(e.target.value)])}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                style={{ accentColor:'#1D9E75' }}
+              />
+              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                <span>Any</span><span>$</span><span>$$</span><span>$$$</span>
               </div>
             </div>
-          )}
 
-          {/* Main results */}
-          <div className="flex-1 min-w-0">
-
-            {/* Results bar */}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-gray-500">
-                <span className="font-medium text-gray-900">{filtered.length}</span>
-                {cat ? ` ${categories.find(c => c.id === cat)?.name ?? ''}` : ' businesses'}
-                {city ? ` in ${city}` : ' near you'}
-              </p>
-              <div className="flex items-center gap-2">
-                {/* View toggle */}
-                <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
-                  {(['grid', 'list'] as const).map(v => (
-                    <button key={v} onClick={() => setView(v)}
-                      className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
-                        view === v ? 'bg-white border border-gray-200 text-gray-900 shadow-sm' : 'text-gray-400'
-                      }`}>
-                      {v === 'grid' ? <LayoutGrid size={13} /> : <List size={13} />}
+            {/* Min rating + verified */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Min rating {minRating > 0 && <span className="font-bold ml-1" style={{ color:'#1D9E75' }}>{minRating}★+</span>}
+                </label>
+                <div className="flex gap-1">
+                  {[0,3,4,5].map(r => (
+                    <button key={r} onClick={() => setMinRating(minRating === r ? 0 : r)}
+                      className="flex-1 py-1.5 rounded-lg text-xs border transition-colors"
+                      style={minRating === r && r > 0
+                        ? { background:'#1D9E75', borderColor:'#1D9E75', color:'white' }
+                        : { borderColor:'#E5E7EB', color:'#374151' }
+                      }>
+                      {r === 0 ? 'Any' : `${r}★`}
                     </button>
                   ))}
-                  <Link href="/map"
-                    className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:bg-white hover:text-gray-900 transition-colors">
-                    <Map size={13} />
-                  </Link>
                 </div>
-                {/* Sort */}
-                <select value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 outline-none cursor-pointer">
-                  <option value="rating">Top rated</option>
-                  <option value="reviews">Most reviewed</option>
-                  <option value="name">A–Z</option>
-                </select>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)}
+                  className="rounded accent-green-600" />
+                <span className="text-sm text-gray-700 flex items-center gap-1">
+                  <BadgeCheck size={13} style={{ color:'#1D9E75' }} /> Verified only
+                </span>
+              </label>
             </div>
-
-            {/* Active filter pills */}
-            {activeFilters.length > 0 && (
-              <div className="flex gap-2 flex-wrap mb-4">
-                {cat && (
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>
-                    {categories.find(c => c.id === cat)?.name}
-                    <button onClick={() => { setCat(''); setPage(1) }}><X size={11} /></button>
-                  </span>
-                )}
-                {price && (
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>
-                    Price: {price} <button onClick={() => { setPrice(''); setPage(1) }}><X size={11} /></button>
-                  </span>
-                )}
-                {country && (
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>
-                    {FLAGS[country] ?? '🌍'} {country}
-                    <button onClick={() => { setCountry(''); setPage(1) }}><X size={11} /></button>
-                  </span>
-                )}
-                {verifiedOnly && (
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>
-                    Verified <button onClick={() => { setVerifiedOnly(false); setPage(1) }}><X size={11} /></button>
-                  </span>
-                )}
-                {premiumOnly && (
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>
-                    Premium <button onClick={() => { setPremiumOnly(false); setPage(1) }}><X size={11} /></button>
-                  </span>
-                )}
-                <button onClick={clearAll} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-                  Clear all
-                </button>
-              </div>
-            )}
-
-            {/* Results — empty state */}
-            {paginated.length === 0 ? (
-              <div className="text-center py-24">
-                <Search size={36} className="text-gray-200 mx-auto mb-4" />
-                <h3 className="font-medium text-gray-700 mb-1">No businesses found</h3>
-                <p className="text-sm text-gray-400 mb-4">Try adjusting your search or removing some filters</p>
-                <button onClick={clearAll} className="text-sm font-medium underline" style={{ color: '#1D9E75' }}>
-                  Clear all filters
-                </button>
-              </div>
-
-            ) : view === 'grid' ? (
-              /* Grid view */
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {paginated.map(b => <BusinessCard key={b.id} b={b} />)}
-              </div>
-
-            ) : (
-              /* List view */
-              <div className="space-y-3">
-                {paginated.map(b => (
-                  <div key={b.id}
-                    className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 hover:border-green-300 transition-colors">
-                    <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden">
-                      {b.cover_image
-                        ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full" style={{ background: GRADIENTS[b.category ?? ''] ?? GRADIENTS.services }} />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{b.name}</p>
-                          <p className="text-xs text-gray-400 mb-1">
-                            {b.subcategory ?? b.category} · {FLAGS[b.country ?? ''] ?? '🌍'} {b.country}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 flex-shrink-0">
-                          {b.featured && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500 text-white">Featured</span>}
-                          {b.premium  && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white" style={{ background: '#1D9E75' }}>Premium</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <StarRow rating={b.rating ?? 0} size={11} />
-                        <span className="text-xs font-medium text-gray-800">{(b.rating ?? 0).toFixed(1)}</span>
-                        <span className="text-xs text-gray-400">({b.review_count ?? 0})</span>
-                        {b.price_range && (
-                          <>
-                            <span className="text-xs text-gray-300 mx-1">·</span>
-                            <span className="text-xs text-gray-500">{b.price_range}</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
-                        <MapPin size={10} style={{ color: '#1D9E75' }} />
-                        {b.address}, {b.city}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-1">
-                          {(b.tags ?? []).slice(0, 3).map(t => (
-                            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>{t}</span>
-                          ))}
-                        </div>
-                        <div className="flex gap-1.5">
-                          <Link href={`/businesses/${b.id}`}
-                            className="text-xs font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
-                            style={{ background: '#1D9E75' }}>
-                            View
-                          </Link>
-                          {b.lat && b.lng && (
-                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="text-xs border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:border-green-300 hover:text-green-700 transition-colors flex items-center gap-1">
-                              <MapPin size={10} /> Map
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1 mt-8">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-500 hover:border-green-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronLeft size={15} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                  <button key={n} onClick={() => setPage(n)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-colors"
-                    style={{
-                      background:  page === n ? '#1D9E75' : 'white',
-                      borderColor: page === n ? '#1D9E75' : '#E5E7EB',
-                      color:       page === n ? 'white'   : '#4B5563',
-                    }}>
-                    {n}
-                  </button>
-                ))}
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-500 hover:border-green-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            )}
-
           </div>
+
+          {activeFilters > 0 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+              <span className="text-xs text-gray-400">{activeFilters} filter{activeFilters !== 1 ? 's' : ''} active</span>
+              <button onClick={clearAll} className="text-xs font-medium hover:underline" style={{ color:'#1D9E75' }}>
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Sort + results count */}
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-sm text-gray-500">
+          {loading ? 'Searching…' : (
+            <>
+              <span className="font-semibold text-gray-900">{total}</span>
+              {' '}business{total !== 1 ? 'es' : ''}
+              {cat     ? ` in ${categories.find(c => c.id === cat)?.name ?? cat}` : ''}
+              {city    ? ` near ${city}`   : ''}
+              {query   ? ` for "${query}"` : ''}
+            </>
+          )}
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 hidden sm:inline">Sort:</span>
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:border-transparent cursor-pointer">
+            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </div>
       </div>
+
+      {/* Results grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="h-44 bg-gray-200" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+              <div className="p-4 space-y-2">
+                <div className="h-5 w-2/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-3 w-1/2 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-3 w-1/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+              </div>
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{ __html:'@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
+        </div>
+      ) : businesses.length === 0 ? (
+        <div className="text-center py-24">
+          <div className="text-5xl mb-4">🔍</div>
+          <h3 className="font-semibold text-gray-900 mb-2">No businesses found</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Try a different search term, city, or remove some filters
+          </p>
+          {activeFilters > 0 && (
+            <button onClick={clearAll}
+              className="text-sm font-semibold text-white px-5 py-2.5 rounded-xl"
+              style={{ background:'#1D9E75' }}>
+              Clear all filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {businesses.map(b => <BizCard key={b.id} b={b} />)}
+          </div>
+
+          {/* Infinite scroll sentinel */}
+          <div ref={sentinelRef} className="h-10 flex items-center justify-center mt-8">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <Loader2 size={16} className="animate-spin" style={{ color:'#1D9E75' }} />
+                Loading more businesses…
+              </div>
+            )}
+            {!hasMore && businesses.length > 0 && (
+              <p className="text-xs text-gray-400">
+                Showing all {total} business{total !== 1 ? 'es' : ''}
+              </p>
+            )}
+          </div>
+        </>
+      )}
+      </>)}
     </div>
   )
 }

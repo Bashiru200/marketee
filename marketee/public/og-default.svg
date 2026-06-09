@@ -1,0 +1,55 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+
+  <rect width="1200" height="630" fill="#053528"/>
+
+  <defs>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#0a4535" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.6"/>
+
+  <rect x="0" y="0" width="6" height="630" fill="#1D9E75"/>
+
+  <circle cx="1100" cy="80" r="180" fill="#085041" opacity="0.5"/>
+  <circle cx="1100" cy="80" r="120" fill="#0F6E56" opacity="0.4"/>
+  <circle cx="120" cy="560" r="140" fill="#085041" opacity="0.4"/>
+
+  <!-- Logo -->
+  <rect x="80" y="80" width="72" height="72" rx="16" fill="#1D9E75"/>
+  <text x="116" y="132" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="42" font-weight="700" fill="white">M</text>
+  <text x="172" y="130" font-family="system-ui,-apple-system,sans-serif" font-size="44" font-weight="700" fill="white">Markeetee</text>
+
+  <rect x="80" y="186" width="480" height="3" rx="2" fill="#1D9E75" opacity="0.6"/>
+
+  <text x="80" y="270" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="700" fill="white">Africa is here.</text>
+  <text x="80" y="358" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="700" fill="#9FE1CB">Find it.</text>
+
+  <text x="80" y="430" font-family="system-ui,-apple-system,sans-serif" font-size="28" font-weight="400" fill="#7BC8AE">African-owned businesses across the USA</text>
+  <text x="80" y="468" font-family="system-ui,-apple-system,sans-serif" font-size="28" font-weight="400" fill="#7BC8AE">Discover · Connect · Support</text>
+
+  <rect x="80" y="508" width="148" height="44" rx="22" fill="#085041"/>
+  <text x="154" y="536" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#9FE1CB">420+ businesses</text>
+  <rect x="244" y="508" width="110" height="44" rx="22" fill="#085041"/>
+  <text x="299" y="536" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#9FE1CB">6 US cities</text>
+  <rect x="370" y="508" width="138" height="44" rx="22" fill="#085041"/>
+  <text x="439" y="536" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#9FE1CB">54 countries</text>
+
+  <circle cx="820" cy="240" r="64" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="820" y="260" text-anchor="middle" font-size="56">🇳🇬</text>
+  <circle cx="980" cy="200" r="52" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="980" y="218" text-anchor="middle" font-size="44">🇬🇭</text>
+  <circle cx="1100" cy="300" r="44" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="1100" y="316" text-anchor="middle" font-size="36">🇰🇪</text>
+  <circle cx="860" cy="390" r="44" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="860" y="406" text-anchor="middle" font-size="36">🇸🇳</text>
+  <circle cx="1000" cy="420" r="36" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="1000" y="434" text-anchor="middle" font-size="30">🇿🇦</text>
+  <circle cx="1110" cy="430" r="30" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="1110" y="442" text-anchor="middle" font-size="24">🇪🇹</text>
+  <circle cx="940" cy="310" r="30" fill="#085041" stroke="#1D9E75" stroke-width="2"/>
+  <text x="940" y="322" text-anchor="middle" font-size="24">🇨🇲</text>
+
+  <rect x="80" y="576" width="220" height="36" rx="8" fill="#0a4535"/>
+  <text x="190" y="600" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="500" fill="#5DCAA5">markeetee.com</text>
+</svg>
