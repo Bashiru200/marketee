@@ -26,7 +26,8 @@ export default function SaveButton({ businessId, size = 'md' }: Props) {
       .eq('user_id', user.id)
       .eq('business_id', businessId)
       .single()
-      .then(({ data }) => {
+      .then((result: any ) => {
+        const { data } = result
         if (data) { setSaved(true); setSaveId(data.id) }
       })
   }, [isLoggedIn, user, businessId])
