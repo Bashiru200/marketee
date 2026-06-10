@@ -27,7 +27,7 @@ const FAQS = [
   {
     section: 'General',
     items: [
-      { q: 'Which cities is Markeetee available in?', a: 'We launched in Houston, TX and are actively expanding. Businesses from any US city can list — we\'re building toward coverage in Atlanta, Dallas, New York, and Washington DC next.' },
+      { q: 'Which cities is Markeetee available in?', a: 'We are available in every cities and expanding to more smaller towns. Businesses from any US city can list — we\'re building toward coverage in all major cities.' },
       { q: 'How do I report an incorrect listing?', a: 'Use the Contact page to report any listing that appears incorrect, misleading, or inappropriate. We review all reports within 24 hours.' },
       { q: 'Can I list a business that ships nationwide?', a: 'Yes — you can list any African-owned business regardless of whether it has a physical location. Online-only businesses can be listed with their city of operation.' },
     ],

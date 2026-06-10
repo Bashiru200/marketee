@@ -39,7 +39,7 @@ export default function AboutPage() {
         <div className="space-y-4 text-gray-600 leading-relaxed">
           <p>Markeetee was born from a simple frustration shared by millions of Africans living in the United States — finding authentic African food, fashion, beauty services, and culture in a new city is harder than it should be.</p>
           <p>African-owned businesses exist in every major US city, but they're invisible online. They don't appear in general search results, they rely on word of mouth, and they lose customers every day simply because people can't find them.</p>
-          <p>We built Markeetee to change that. Starting in Houston, Texas — home to over 600,000 Nigerian-Americans — we're creating the dedicated platform that African businesses deserve and that diaspora communities need.</p>
+          <p>We built Markeetee to change that. Starting immediately with all cities — we're creating the dedicated platform that African businesses deserve and that diaspora communities need.</p>
         </div>
       </div>
 

@@ -74,7 +74,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-gray-400">
-            © {year} Markeetee · Made with ❤️ for the African diaspora
+            © {year} Markeetee · Solution Made for the African diaspora
           </p>
           <div className="flex items-center gap-4">
             <Link href="/terms"   className="text-xs text-gray-400 hover:text-green-600 transition-colors">Terms</Link>

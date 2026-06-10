@@ -209,10 +209,10 @@ export default function SignupPage() {
         {/* Left panel */}
         <div className="hidden lg:flex flex-col justify-between w-2/5 p-10" style={{ background: '#085041' }}>
           <div>
-            <Link href="/" className="flex items-center gap-2 mb-10">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
+            {/* <Link href="/" className="flex items-center gap-2 mb-10">
+              {/* <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
               <span className="text-white font-semibold text-lg">Markeetee</span>
-            </Link>
+            </Link> */}
             <h2 className="text-white text-2xl font-semibold leading-snug mb-3">{left.title}</h2>
             <p className="text-sm leading-relaxed mb-8" style={{ color: '#9FE1CB' }}>{left.sub}</p>
             <ul className="space-y-3">
@@ -232,10 +232,10 @@ export default function SignupPage() {
 
         {/* Right panel */}
         <div className="flex-1 flex flex-col justify-center p-8 lg:p-10 overflow-y-auto">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
+          {/* <div className="lg:hidden flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
             <span className="font-semibold text-lg text-gray-900">Markeetee</span>
-          </div>
+          </div> */}
 
           {step < 3 && !confirmationSent && (
             <div className="flex items-center justify-center gap-1.5 mb-6">
@@ -304,7 +304,7 @@ export default function SignupPage() {
                   <div className="relative">
                     <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="text" value={form.name} onChange={e => upd('name', e.target.value)}
-                      placeholder="Chisom Okafor" required className={`${inputCls} pl-9`} />
+                      placeholder="Enter your full name" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
                 <div>
@@ -312,7 +312,7 @@ export default function SignupPage() {
                   <div className="relative">
                     <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="email" value={form.email} onChange={e => upd('email', e.target.value)}
-                      placeholder="you@example.com" required className={`${inputCls} pl-9`} />
+                      placeholder="Enter your email" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
                 <div>
@@ -384,7 +384,7 @@ export default function SignupPage() {
                   <div className="relative">
                     <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="text" value={form.businessName} onChange={e => upd('businessName', e.target.value)}
-                      placeholder="Mama Titi African Kitchen" required className={`${inputCls} pl-9`} />
+                      placeholder="Enter your business name" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
 
@@ -413,7 +413,7 @@ export default function SignupPage() {
                   <div className="relative">
                     <Home size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="text" value={form.street} onChange={e => upd('street', e.target.value)}
-                      placeholder="4821 Main St" className={`${inputCls} pl-9`} />
+                      placeholder="Enter your street address" className={`${inputCls} pl-9`} />
                   </div>
                 </div>
 
@@ -421,17 +421,17 @@ export default function SignupPage() {
                   <div className="col-span-1">
                     <label className={labelCls}>City *</label>
                     <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
-                      placeholder="Houston" required className={inputCls} />
+                      placeholder="Enter your city" required className={inputCls} />
                   </div>
                   <div>
                     <label className={labelCls}>State *</label>
                     <input type="text" value={form.state} onChange={e => upd('state', e.target.value)}
-                      placeholder="TX" required maxLength={2} className={inputCls} />
+                      placeholder="Enter your state" required maxLength={2} className={inputCls} />
                   </div>
                   <div>
                     <label className={labelCls}>ZIP code</label>
                     <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-                      placeholder="77001" maxLength={10} className={inputCls} />
+                      placeholder="Enter your ZIP code" maxLength={10} className={inputCls} />
                   </div>
                 </div>
 
@@ -440,7 +440,7 @@ export default function SignupPage() {
                   <div className="relative">
                     <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)}
-                      placeholder="+1 (713) 555-0192" required className={`${inputCls} pl-9`} />
+                      placeholder="Enter your phone number" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
 
@@ -484,7 +484,7 @@ export default function SignupPage() {
                 <div className="relative">
                   <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
-                    placeholder="Houston, TX" className={`${inputCls} pl-9`} />
+                    placeholder="Enter your city" className={`${inputCls} pl-9`} />
                 </div>
               </div>
               <button type="button" onClick={handleSavePreferences}

@@ -27,9 +27,9 @@ export default function ContactPage() {
   }
 
   const contacts = [
-    { icon: Mail,         label: 'Email us',      value: 'hello@markeetee.com', href: 'mailto:hello@markeetee.com' },
-    { icon: MessageSquare,label: 'WhatsApp',       value: '+1 (713) 000-0000',   href: 'https://wa.me/17130000000' },
-    { icon: MapPin,       label: 'Based in',       value: 'Houston, TX, USA',    href: null },
+    { icon: Mail,         label: 'Email us',      value: 'markeetee0@gmail.com', href: 'mailto:hello@markeetee.com' },
+    { icon: MessageSquare,label: 'WhatsApp',       value: '+1 (704) 390-4207',   href: 'https://wa.me/17130000000' },
+    { icon: MapPin,       label: 'Based in',       value: 'Charlotte, NC, USA',    href: null },
   ]
 
   return (

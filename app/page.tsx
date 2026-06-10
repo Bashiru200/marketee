@@ -98,10 +98,10 @@ export default async function HomePage() {
 
         <div className="relative max-w-4xl mx-auto px-4 py-24 text-center">
           {/* Live badge */}
-          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm mb-6 border"
+          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xl mb-6 border"
             style={{ background:'rgba(255,255,255,0.1)', borderColor:'rgba(255,255,255,0.2)' }}>
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            Now live in Houston, TX · More cities coming soon
+            Now live in your city
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-5 tracking-tight">
@@ -110,8 +110,7 @@ export default async function HomePage() {
           </h1>
 
           <p className="text-xl mb-10 max-w-2xl mx-auto leading-relaxed" style={{ color:'rgba(255,255,255,0.8)' }}>
-            Discover Nigerian, Ghanaian, Kenyan and more African-owned grocery stores,
-            restaurants, fashion, beauty salons, and services — all in one place.
+            Discover African-owned grocery stores, restaurants, fashion, beauty salons, and services — all in one place.
           </p>
 
           {/* Algolia search bar */}
@@ -494,7 +493,7 @@ export default async function HomePage() {
         <div className="space-y-4">
           {[
             { q:'Is Markeetee free to use?',        a:'Yes — browsing, searching, and leaving reviews is completely free. Business listings are also free to create.' },
-            { q:'Which cities is Markeetee in?',    a:'We launched in Houston, TX and are expanding to Atlanta, Dallas, New York, and Washington DC next.' },
+            { q:'Which cities is Markeetee in?',    a:'We are available in every cities.' },
             { q:'How do I list my business?',       a:'Click "List your business", create a free owner account, and fill in your details. Your listing goes live immediately.' },
             { q:'How do customers contact me?',     a:'Via WhatsApp, phone call, email, or Google Maps directions — all directly from your listing page.' },
           ].map(({ q, a }) => (

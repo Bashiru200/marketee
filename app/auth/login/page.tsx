@@ -99,10 +99,10 @@ export default function LoginPage() {
 
         {/* Right form panel */}
         <div className="flex-1 flex flex-col justify-center p-8 lg:p-10">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
+          {/* <div className="lg:hidden flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
             <span className="font-semibold text-lg text-gray-900">Markeetee</span>
-          </div>
+          </div> */}
 
           <h1 className="text-xl font-semibold text-gray-900 mb-1">Sign in</h1>
           <p className="text-sm text-gray-500 mb-6">Access your Markeetee account</p>
@@ -129,7 +129,7 @@ export default function LoginPage() {
               <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Email address</label>
               <div className="relative">
                 <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" required
                   className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent transition-all" />
               </div>
             </div>

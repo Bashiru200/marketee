@@ -67,7 +67,7 @@ export default function Navbar() {
             <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
           </div> */}
           <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
-          {/* <span className="font-bold text-xl text-gray-900">Markeetee</span> */}
+            <span className="font-bold text-xl text-gray-900">Markeetee</span>
         </Link>
 
         {/* Desktop nav */}
