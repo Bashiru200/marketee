@@ -14,6 +14,15 @@ export const metadata: Metadata = {
     template: '%s — Markeetee',
   },
   description: 'Discover African-owned grocery stores, restaurants, fashion, beauty salons, and more across the USA. Built for the African diaspora.',
+  icons: {
+    icon: '/favicon.ico',
+    //   { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    //   { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    // ],
+    // apple: [
+    //   { url: '/apple-touch-icon.png', sizes: '180x180' },
+    // ],
+  },
   metadataBase: new URL(APP_URL),
   openGraph: {
     siteName:    'Markeetee',
@@ -34,15 +43,6 @@ export const metadata: Metadata = {
     'African food Houston', 'African restaurant', 'African grocery store',
     'African fashion', 'African beauty salon', 'African market',
   ],
-  icons: {
-    icon: [
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180' },
-    ],
-  },
 }
 
 
