@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { LIMITS, getClientIp, rateLimitResponse } from '@/lib/rateLimit'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-
 export async function POST(req: NextRequest) {
   // Rate limit — 5 per hour per IP
   const ip    = getClientIp(req)
@@ -12,6 +10,8 @@ export async function POST(req: NextRequest) {
   if (!limit.success) {
     return rateLimitResponse(limit.resetAt)
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY!)
 
   try {
     const { name, email, subject, message } = await req.json()

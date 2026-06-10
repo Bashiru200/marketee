@@ -3,13 +3,13 @@ import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
 import { LIMITS, getClientIp, rateLimitResponse } from '@/lib/rateLimit'
 
-const resend   = new Resend(process.env.RESEND_API_KEY!)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: NextRequest) {
+  const resend   = new Resend(process.env.RESEND_API_KEY!)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // Rate limit webhook — 30 per minute per IP
   const ip    = getClientIp(req)
   const limit = LIMITS.search(ip) // reuse search limit for webhooks
