@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { algoliasearch } from 'algoliasearch'
 
-const client = algoliasearch(
-  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
-  process.env.ALGOLIA_ADMIN_KEY!
-)
-
 const INDEX = 'businesses'
 
 export async function POST(req: NextRequest) {
+  
+  const appId =process.env.NEXT_PUBLIC_ALGOLIA_APP_ID
+  const apiKey = process.env.ALGOLIA_ADMIN_KEY
+
+  if(!appId || !apiKey) {
+    throw new Error('Algolia credentials are not set')
+  }
+  const client = algoliasearch(appId, apiKey)
+  
   try {
     const { type, record, old_record } = await req.json()
 
@@ -48,4 +52,5 @@ export async function POST(req: NextRequest) {
     console.error('[Algolia webhook]', err)
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 })
   }
+  
 }
