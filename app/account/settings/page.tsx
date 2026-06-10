@@ -8,6 +8,8 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 export default function AccountSettingsPage() {
   const router   = useRouter()
   const supabase = createClient()

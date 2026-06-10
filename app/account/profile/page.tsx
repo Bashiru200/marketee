@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import ImageUpload from '@/components/ui/ImageUpload'
 
+export const dynamic = 'force-dynamic'
+
 interface Stats {
   reviews: number
   saved:   number

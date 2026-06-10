@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -37,8 +38,9 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                style={{ background: '#1D9E75' }}>M</div>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
+              </div>
               <span className="font-bold text-xl text-gray-900">Markeetee</span>
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-4">

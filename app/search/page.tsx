@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import SearchClient from './SearchClient'
 import SearchLoading from './loading'
 
+export const dynamic = 'force-dynamic'
 const PAGE_SIZE = 12
 
 const CATEGORIES = [

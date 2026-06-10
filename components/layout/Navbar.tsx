@@ -63,9 +63,11 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-            style={{ background: '#1D9E75' }}>M</div>
-          <span className="font-bold text-xl text-gray-900">Markeetee</span>
+          {/* <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+            <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
+          </div> */}
+          <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
+          {/* <span className="font-bold text-xl text-gray-900">Markeetee</span> */}
         </Link>
 
         {/* Desktop nav */}

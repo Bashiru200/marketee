@@ -6,6 +6,8 @@ import { Heart, MapPin, Star, Loader2, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 interface SavedBusiness {
   id: string
   business_id: string

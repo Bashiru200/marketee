@@ -25,6 +25,8 @@ import BroadcastEmail          from '@/components/admin/BroadcastEmail'
 import BusinessClaimsManager  from '@/components/admin/BusinessClaimsManager'
 import ReportsQueue           from '@/components/admin/ReportsQueue'
 
+export const dynamic = 'force-dynamic'
+
 // ── Types ─────────────────────────────────────────────────────────────────
 type Plan      = 'free' | 'premium' | 'storefront'
 type FilterTab = 'all' | 'unverified' | 'verified' | 'premium' | 'storefront'

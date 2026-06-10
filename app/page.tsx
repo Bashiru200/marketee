@@ -6,6 +6,8 @@ import BusinessCard from '@/components/businesses/BusinessCard'
 import AlgoliaSearchBar from '@/components/search/AlgoliaSearchBar'
 import ListBusinessButton from '@/components/ui/ListBusinessButton'
 
+
+export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 const CATEGORIES = [
