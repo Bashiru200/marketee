@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import BusinessCard from '@/components/businesses/BusinessCard'
 import AlgoliaSearchBar from '@/components/search/AlgoliaSearchBar'
 import ListBusinessButton from '@/components/ui/ListBusinessButton'
+import HeroSlideshow      from '@/components/ui/HeroSlideshow'
 
-
-export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 const CATEGORIES = [
@@ -89,54 +88,7 @@ export default async function HomePage() {
   return (
     <div>
 
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden text-white"
-        style={{ background:'linear-gradient(135deg,#053528,#085041,#0F6E56)' }}>
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage:"url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-
-        <div className="relative max-w-4xl mx-auto px-4 py-24 text-center">
-          {/* Live badge */}
-          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xl mb-6 border"
-            style={{ background:'rgba(255,255,255,0.1)', borderColor:'rgba(255,255,255,0.2)' }}>
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            Now live in your city
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-5 tracking-tight">
-            Africa is here.{' '}
-            <span style={{ color:'#9FE1CB' }}>Find it.</span>
-          </h1>
-
-          <p className="text-xl mb-10 max-w-2xl mx-auto leading-relaxed" style={{ color:'rgba(255,255,255,0.8)' }}>
-            Discover African-owned grocery stores, restaurants, fashion, beauty salons, and services — all in one place.
-          </p>
-
-          {/* Algolia search bar */}
-          <div className="max-w-2xl mx-auto mb-6">
-            <AlgoliaSearchBar />
-          </div>
-
-          {/* Quick search tags */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {['Jollof Rice','Ankara Fabric','Hair Braiding','Palm Oil','Egusi Soup','Shea Butter'].map(t => (
-              <Link key={t} href={`/search?tab=products&q=${encodeURIComponent(t)}`}
-                className="text-xs px-4 py-1.5 rounded-full border transition-all hover:bg-white/20"
-                style={{ background:'rgba(255,255,255,0.08)', borderColor:'rgba(255,255,255,0.2)', color:'#9FE1CB' }}>
-                {t}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom wave */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 60L1440 60L1440 0C1200 40 960 60 720 60C480 60 240 40 0 0L0 60Z" fill="#FAFAF9"/>
-          </svg>
-        </div>
-      </section>
+      <HeroSlideshow />
 
       {/* ── Stats bar ── */}
       <section style={{ background:'#053528' }} className="-mt-1">
@@ -493,7 +445,7 @@ export default async function HomePage() {
         <div className="space-y-4">
           {[
             { q:'Is Markeetee free to use?',        a:'Yes — browsing, searching, and leaving reviews is completely free. Business listings are also free to create.' },
-            { q:'Which cities is Markeetee in?',    a:'We are available in every cities.' },
+            { q:'Which cities is Markeetee in?',    a:'We launched in Houston, TX and are expanding to Atlanta, Dallas, New York, and Washington DC next.' },
             { q:'How do I list my business?',       a:'Click "List your business", create a free owner account, and fill in your details. Your listing goes live immediately.' },
             { q:'How do customers contact me?',     a:'Via WhatsApp, phone call, email, or Google Maps directions — all directly from your listing page.' },
           ].map(({ q, a }) => (
