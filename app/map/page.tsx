@@ -1,4 +1,5 @@
-/// <reference types="@types/google.maps" />
+// <reference types="google.maps" />
+
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -96,7 +97,7 @@ function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => vo
 
   return (
     <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all w-52 sm:w-60">
-      <Navigation size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
+      <Navigation size={14} className="flex-shrink-0" style={{ color: '#9e1d1d' }} />
       <input
         ref={inputRef}
         type="text"
@@ -254,8 +255,8 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="hidden md:flex flex-col w-72 bg-white border-l border-gray-100">
+        {/* Sidebar hidden */}
+        <div className="hidden">
           <div className="p-4 border-b border-gray-100">
             <div className="h-4 w-32 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
           </div>
@@ -287,7 +288,7 @@ export default function MapPage() {
             <div className="flex-1 min-w-0 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
               <Search size={14} className="text-gray-400 flex-shrink-0" />
               <input
-                
+                value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search businesses, food, fashion…"
                 className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400 min-w-0"
@@ -365,19 +366,16 @@ export default function MapPage() {
         {/* ── Content ── */}
         <div className="flex-1 overflow-hidden">
           {view === 'map' ? (
-            <div className="h-full flex">
+            <div className="h-full">
 
-              {/* ── Google Map ── */}
-              <div className="flex-1 relative">
+              {/* ── Google Map — pins only ── */}
+              <div className="relative h-full">
                 <Map
                   mapId="markeetee-map"
                   defaultCenter={DEFAULT_CENTER}
                   defaultZoom={DEFAULT_ZOOM}
                   gestureHandling="greedy"
-                  disableDefaultUI={false}
-                  mapTypeControl={false}
-                  streetViewControl={false}
-                  fullscreenControl={false}
+                  disableDefaultUI={true}
                   style={{ width: '100%', height: '100%' }}
                 >
                   <MapController center={mapCenter} zoom={mapZoom} />
@@ -406,8 +404,8 @@ export default function MapPage() {
                         zIndex={selectedId === b.id ? 10 : 1}
                       >
                         <Pin
-                          background={selectedId === b.id ? '#085041' : '#1D9E75'}
-                          borderColor={selectedId === b.id ? '#053528' : '#0F6E56'}
+                          background={selectedId === b.id ? '#085041' : '#cf2525'}
+                          borderColor={selectedId === b.id ? '#053528' : '#ac1818'}
                           glyphColor="white"
                           scale={selectedId === b.id ? 1.3 : 1}
                         />
@@ -422,66 +420,43 @@ export default function MapPage() {
                       onCloseClick={() => setSelectedId(null)}
                       pixelOffset={[0, -40]}
                     >
-                      <div style={{ width: '220px', fontFamily: 'system-ui, sans-serif' }}>
-                        {/* Cover */}
-                        <div style={{ height: '100px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
-                          {selected.cover_image ? (
-                            <img src={selected.cover_image} alt={selected.name}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ width: '100%', height: '100%', background: GRADIENTS[selected.category ?? ''] ?? GRADIENTS.services }} />
-                          )}
-                        </div>
-                        {/* Info */}
-                        <p style={{ fontWeight: 600, fontSize: '13px', marginBottom: '3px', color: '#111' }}>
+                      <div style={{ minWidth: '200px', maxWidth: '240px', fontFamily: 'system-ui, sans-serif', padding: '2px 4px 4px' }}>
+                        <p style={{ fontWeight: 700, fontSize: '14px', margin: '0 0 4px', color: '#111827' }}>
                           {selected.name}
                         </p>
-                        <p style={{ fontSize: '11px', color: '#6B7280', marginBottom: '4px' }}>
-                          {[selected.address, selected.city, selected.state].filter(Boolean).join(', ')}
+                        <p style={{ fontSize: '11px', color: '#6B7280', margin: '0 0 2px' }}>
+                          {selected.city}{selected.state ? `, ${selected.state}` : ''}
                         </p>
                         {selected.rating > 0 && (
-                          <p style={{ fontSize: '11px', color: '#6B7280', marginBottom: '10px' }}>
-                            ⭐ {selected.rating.toFixed(1)} · {selected.review_count} reviews
-                            {selected.price_range ? ` · ${selected.price_range}` : ''}
+                          <p style={{ fontSize: '11px', color: '#F59E0B', margin: '0 0 10px' }}>
+                            {'★'.repeat(Math.round(selected.rating))} {selected.rating.toFixed(1)}
+                            <span style={{ color: '#6B7280' }}> ({selected.review_count})</span>
                           </p>
                         )}
-                        {/* Actions */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <a href={`/businesses/${selected.id}`}
+                            style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
+                            View
+                          </a>
                           {selected.phone && (
-                            <a
-                              href={`https://wa.me/${selected.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I found your business on Markeetee — ${selected.name}.`)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#25D366', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
-                              💬 WhatsApp
+                            <a href={`https://wa.me/${selected.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hi! I found you on Markeetee.')}`}
+                              target="_blank" rel="noopener noreferrer"
+                              style={{ flex: 1, textAlign: 'center', background: '#25D366', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
+                              WhatsApp
                             </a>
                           )}
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <a href={`/businesses/${selected.id}`}
-                              style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '6px 0', borderRadius: '8px', textDecoration: 'none' }}>
-                              View Store
-                            </a>
-                            <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 500, padding: '6px 10px', borderRadius: '8px', border: '1px solid #E5E7EB', color: '#374151', textDecoration: 'none' }}>
-                              Directions
-                            </a>
-                          </div>
+                          <a href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ flex: 1, textAlign: 'center', background: '#F3F4F6', color: '#374151', fontSize: '12px', fontWeight: 500, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
+                            Directions
+                          </a>
                         </div>
                       </div>
                     </InfoWindow>
                   )}
                 </Map>
 
-                {/* Stats overlay */}
-                <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl px-4 py-2 shadow-md z-10">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Markeetee</p>
-                  <p className="text-sm font-bold text-gray-800">
-                    {filtered.length} business{filtered.length !== 1 ? 'es' : ''} on map
-                  </p>
-                </div>
+
 
                 {/* No coords warning */}
                 {businesses.length > 0 && filtered.length === 0 && (
@@ -495,8 +470,8 @@ export default function MapPage() {
                 )}
               </div>
 
-              {/* ── Sidebar list ── */}
-              <div className="hidden md:flex flex-col w-72 bg-white border-l border-gray-100 overflow-y-auto">
+              {/* Sidebar removed — pins only mode */}
+              <div className="hidden">
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                   <p className="text-sm font-semibold text-gray-700">
                     {filtered.length} business{filtered.length !== 1 ? 'es' : ''}
