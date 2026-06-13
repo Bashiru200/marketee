@@ -1,4 +1,4 @@
-// <reference types="google.maps" />
+/// <reference types="@types/google.maps" />
 
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
