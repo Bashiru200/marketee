@@ -5,6 +5,7 @@ import Footer from '@/components/layout/Footer'
 import { AuthProvider } from '@/lib/auth'
 import AnnouncementBanner  from '@/components/ui/AnnouncementBanner'
 import MobileBottomNav     from '@/components/ui/MobileBottomNav'
+import LocationPrompt      from '@/components/ui/LocationPrompt'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
 
@@ -16,12 +17,6 @@ export const metadata: Metadata = {
   description: 'Discover African-owned grocery stores, restaurants, fashion, beauty salons, and more across the USA. Built for the African diaspora.',
   icons: {
     icon: '/favicon.ico',
-    //   { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-    //   { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    // ],
-    // apple: [
-    //   { url: '/apple-touch-icon.png', sizes: '180x180' },
-    // ],
   },
   metadataBase: new URL(APP_URL),
   openGraph: {
@@ -44,7 +39,6 @@ export const metadata: Metadata = {
     'African fashion', 'African beauty salon', 'African market',
   ],
 }
-
 
 // Inline script runs synchronously before first paint —
 // reads localStorage and applies dark class before React hydrates.
@@ -72,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main>{children}</main>
           <Footer />
           <MobileBottomNav />
+          <LocationPrompt />
         </AuthProvider>
       </body>
     </html>

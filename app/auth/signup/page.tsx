@@ -25,15 +25,16 @@ const CATEGORIES = [
 ]
 
 const COUNTRIES = [
-  { code:'NG', flag:'🇳🇬', name:'Nigeria' },
-  { code:'GH', flag:'🇬🇭', name:'Ghana' },
-  { code:'KE', flag:'🇰🇪', name:'Kenya' },
-  { code:'SN', flag:'🇸🇳', name:'Senegal' },
-  { code:'ZA', flag:'🇿🇦', name:'South Africa' },
-  { code:'ET', flag:'🇪🇹', name:'Ethiopia' },
-  { code:'CM', flag:'🇨🇲', name:'Cameroon' },
-  { code:'CI', flag:'🇨🇮', name:"Côte d'Ivoire" },
-  { code:'OTHER', flag:'🌍', name:'Other African country' },
+  { code:'NG',          flag:'🇳🇬', name:'Nigeria'                },
+  { code:'GH',          flag:'🇬🇭', name:'Ghana'                  },
+  { code:'KE',          flag:'🇰🇪', name:'Kenya'                  },
+  { code:'SN',          flag:'🇸🇳', name:'Senegal'                },
+  { code:'ZA',          flag:'🇿🇦', name:'South Africa'           },
+  { code:'ET',          flag:'🇪🇹', name:'Ethiopia'               },
+  { code:'CM',          flag:'🇨🇲', name:'Cameroon'               },
+  { code:'CI',          flag:'🇨🇮', name:"Côte d'Ivoire"          },
+  { code:'OTHER',       flag:'🌍', name:'Other African country'   },
+  { code:'NON_AFRICAN', flag:'🌐', name:'Not of African origin'   },
 ]
 
 const INTERESTS = [
@@ -60,6 +61,9 @@ export default function SignupPage() {
     businessName:'', category:'', country:'',
     street:'', city:'', state:'', zip:'', phone:'',
     cover_image:'',
+    // ── new fields ──
+    gender:'',
+    origin:'african',
   })
 
   function upd(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
@@ -68,7 +72,22 @@ export default function SignupPage() {
     setInterests(p => p.includes(label) ? p.filter(i => i !== label) : [...p, label])
   }
 
-  // Step 1 → 2: create Supabase auth user
+  // ── Auth event logger ─────────────────────────────────────────────────
+  async function logAuthEvent(
+    userId: string,
+    eventType: string,
+    metadata?: Record<string, unknown>
+  ) {
+    try {
+      await fetch('/api/auth-event', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ userId, eventType, metadata }),
+      })
+    } catch {} // never block signup for logging failures
+  }
+
+  // ── Step 1 → 2: create Supabase auth user ────────────────────────────
   async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -100,18 +119,37 @@ export default function SignupPage() {
     }
 
     if (data.user && !data.session) {
+      // Email confirmation required
       setConfirmationSent(true)
       setLoading(false)
       setStep(2)
+
+      // Log signup event even without session
+      await logAuthEvent(data.user.id, 'signup', {
+        role,
+        origin:  form.origin,
+        gender:  form.gender  || null,
+        country: form.country || null,
+        requires_confirmation: true,
+      })
       return
     }
 
     if (data.user && data.session) {
       await supabase.from('profiles').upsert({
-        id:    data.user.id,
-        name:  form.name,
-        email: form.email,
+        id:     data.user.id,
+        name:   form.name,
+        email:  form.email,
         role,
+        gender: form.gender  || null,
+        origin: form.origin  || 'african',
+      })
+
+      await logAuthEvent(data.user.id, 'signup', {
+        role,
+        origin:  form.origin,
+        gender:  form.gender  || null,
+        country: form.country || null,
       })
     }
 
@@ -119,13 +157,12 @@ export default function SignupPage() {
     setStep(2)
   }
 
-  // Step 2 (owner): save business with geocoding
+  // ── Step 2 (owner): save business with geocoding ──────────────────────
   async function handleSaveBusiness(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    // Geocode address to lat/lng
     let lat: number | null = null
     let lng: number | null = null
     const addressStr = [form.street, form.city, form.state, form.zip, 'USA'].filter(Boolean).join(', ')
@@ -174,7 +211,7 @@ export default function SignupPage() {
     setStep(3)
   }
 
-  // Step 2 (customer): save preferences
+  // ── Step 2 (customer): save preferences ──────────────────────────────
   async function handleSavePreferences() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user && (interests.length > 0 || form.city)) {
@@ -206,13 +243,9 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 py-10">
       <div className="w-full max-w-4xl bg-white border border-gray-100 rounded-2xl overflow-hidden flex" style={{ minHeight: '620px' }}>
 
-        {/* Left panel */}
+        {/* ── Left panel ── */}
         <div className="hidden lg:flex flex-col justify-between w-2/5 p-10" style={{ background: '#085041' }}>
           <div>
-            {/* <Link href="/" className="flex items-center gap-2 mb-10">
-              {/* <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
-              <span className="text-white font-semibold text-lg">Markeetee</span>
-            </Link> */}
             <h2 className="text-white text-2xl font-semibold leading-snug mb-3">{left.title}</h2>
             <p className="text-sm leading-relaxed mb-8" style={{ color: '#9FE1CB' }}>{left.sub}</p>
             <ul className="space-y-3">
@@ -230,12 +263,8 @@ export default function SignupPage() {
           <p className="text-xs" style={{ color: '#085041' }}>© 2025 Markeetee</p>
         </div>
 
-        {/* Right panel */}
+        {/* ── Right panel ── */}
         <div className="flex-1 flex flex-col justify-center p-8 lg:p-10 overflow-y-auto">
-          {/* <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
-            <span className="font-semibold text-lg text-gray-900">Markeetee</span>
-          </div> */}
 
           {step < 3 && !confirmationSent && (
             <div className="flex items-center justify-center gap-1.5 mb-6">
@@ -298,25 +327,82 @@ export default function SignupPage() {
               </button>
               <h1 className="text-xl font-semibold text-gray-900 mb-1">Your details</h1>
               <p className="text-sm text-gray-500 mb-5">Create your Markeetee account</p>
+
               <form onSubmit={handleCreateAccount} className="space-y-3">
+
+                {/* Full name */}
                 <div>
-                  <label className={labelCls}>Full name</label>
+                  <label className={labelCls}>Full name *</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="text" value={form.name} onChange={e => upd('name', e.target.value)}
                       placeholder="Enter your full name" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
+
+                {/* Gender + Background in a row */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Gender */}
+                  <div>
+                    <label className={labelCls}>Gender</label>
+                    <select value={form.gender} onChange={e => upd('gender', e.target.value)}
+                      className={inputCls}>
+                      <option value="">Prefer not to say</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="non_binary">Non-binary</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Country of origin (for non-owner step 1) */}
+                  <div>
+                    <label className={labelCls}>Country of origin</label>
+                    <select value={form.country} onChange={e => upd('country', e.target.value)}
+                      className={inputCls}>
+                      <option value="">Select country</option>
+                      {COUNTRIES.map(c => (
+                        <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Background toggle */}
                 <div>
-                  <label className={labelCls}>Email address</label>
+                  <label className={labelCls}>Background</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value:'african',     label:'African / diaspora', icon:'🌍' },
+                      { value:'non_african', label:'Non-African',         icon:'🌐' },
+                    ].map(o => (
+                      <button key={o.value} type="button"
+                        onClick={() => upd('origin', o.value)}
+                        className="flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-medium transition-all text-left"
+                        style={form.origin === o.value
+                          ? { borderColor:'#1D9E75', background:'#f0faf6', color:'#085041' }
+                          : { borderColor:'#E5E7EB', color:'#6B7280' }
+                        }>
+                        <span className="text-xl">{o.icon}</span>
+                        <span className="text-xs leading-tight">{o.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className={labelCls}>Email address *</label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type="email" value={form.email} onChange={e => upd('email', e.target.value)}
                       placeholder="Enter your email" required className={`${inputCls} pl-9`} />
                   </div>
                 </div>
+
+                {/* Password */}
                 <div>
-                  <label className={labelCls}>Password</label>
+                  <label className={labelCls}>Password *</label>
                   <div className="relative">
                     <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type={showPass ? 'text' : 'password'} value={form.password}
@@ -329,8 +415,10 @@ export default function SignupPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Confirm password */}
                 <div>
-                  <label className={labelCls}>Confirm password</label>
+                  <label className={labelCls}>Confirm password *</label>
                   <div className="relative">
                     <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
@@ -351,6 +439,7 @@ export default function SignupPage() {
                     </p>
                   )}
                 </div>
+
                 <button type="submit" disabled={loading || form.password !== form.confirmPassword}
                   className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                   style={{ background: '#1D9E75' }}>
@@ -371,7 +460,6 @@ export default function SignupPage() {
               <p className="text-sm text-gray-500 mb-4">Tell us about your African business</p>
               <form onSubmit={handleSaveBusiness} className="space-y-3">
 
-                {/* Cover image */}
                 <ImageUpload bucket="businesses"
                   folder={form.email.replace(/[@.]/g, '_')}
                   currentUrl={form.cover_image || null}
@@ -407,7 +495,6 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                {/* Address fields */}
                 <div>
                   <label className={labelCls}>Street address</label>
                   <div className="relative">
@@ -421,17 +508,17 @@ export default function SignupPage() {
                   <div className="col-span-1">
                     <label className={labelCls}>City *</label>
                     <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
-                      placeholder="Enter your city" required className={inputCls} />
+                      placeholder="City" required className={inputCls} />
                   </div>
                   <div>
                     <label className={labelCls}>State *</label>
                     <input type="text" value={form.state} onChange={e => upd('state', e.target.value)}
-                      placeholder="Enter your state" required maxLength={2} className={inputCls} />
+                      placeholder="TX" required maxLength={2} className={inputCls} />
                   </div>
                   <div>
                     <label className={labelCls}>ZIP code</label>
                     <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-                      placeholder="Enter your ZIP code" maxLength={10} className={inputCls} />
+                      placeholder="77001" maxLength={10} className={inputCls} />
                   </div>
                 </div>
 
@@ -529,7 +616,11 @@ export default function SignupPage() {
               </p>
               {role === 'owner' && (
                 <div className="space-y-2 text-left mb-6">
-                  {[['Business listed','Your store is now live on Markeetee'],['Map pin added','Customers can find and navigate to you'],['Ready for reviews','Share your link to collect your first review']].map(([title, sub]) => (
+                  {[
+                    ['Business listed',   'Your store is now live on Markeetee'],
+                    ['Map pin added',     'Customers can find and navigate to you'],
+                    ['Ready for reviews', 'Share your link to collect your first review'],
+                  ].map(([title, sub]) => (
                     <div key={title} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#f0faf6' }}>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#E1F5EE' }}>
                         <Check size={12} style={{ color: '#0F6E56' }} />
@@ -553,6 +644,7 @@ export default function SignupPage() {
               </p>
             </div>
           )}
+
         </div>
       </div>
     </div>

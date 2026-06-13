@@ -6,6 +6,8 @@ import BusinessCard from '@/components/businesses/BusinessCard'
 import AlgoliaSearchBar from '@/components/search/AlgoliaSearchBar'
 import ListBusinessButton from '@/components/ui/ListBusinessButton'
 import HeroSlideshow      from '@/components/ui/HeroSlideshow'
+import CategoryGrid       from '@/components/ui/CategoryGrid'
+import CountriesBar       from '@/components/ui/CountriesBar'
 
 export const revalidate = 60
 
@@ -103,7 +105,8 @@ export default async function HomePage() {
       </section>
 
       {/* ── Countries we serve ── */}
-      <section className="bg-white border-b border-gray-100 py-5">
+      <CountriesBar />
+      <section className="hidden">
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -119,7 +122,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Categories ── */}
+     {/* ── Categories ── */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -130,17 +133,7 @@ export default async function HomePage() {
             View all <ArrowRight size={15} />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {CATEGORIES.map(cat => (
-            <Link key={cat.id} href={`/search?category=${cat.id}`}
-              className="group bg-white rounded-2xl p-5 border border-gray-100 hover:border-green-300 hover:shadow-md transition-all text-center">
-              <div className="text-3xl mb-2">{cat.icon}</div>
-              <div className="font-semibold text-sm text-gray-900 group-hover:text-green-700 transition-colors">
-                {cat.name}
-              </div>
-            </Link>
-          ))}
-        </div>
+        <CategoryGrid />
       </section>
 
       {/* ── Featured businesses ── */}

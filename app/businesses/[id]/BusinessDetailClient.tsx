@@ -16,6 +16,7 @@ import ReviewForm from '@/components/reviews/ReviewForm'
 import SaveButton from '@/components/ui/SaveButton'
 import ClaimBusinessModal from '@/components/ui/ClaimBusinessModal'
 import ReportButton       from '@/components/ui/ReportButton'
+import SendEmailModal     from '@/components/ui/SendEmailModal'
 
 const FLAGS: Record<string, string> = {
   Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',

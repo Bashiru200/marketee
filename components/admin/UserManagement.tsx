@@ -8,7 +8,9 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuditLog } from '@/lib/useAuditLog'
+import { useAuth } from '@/lib/auth'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface UserRow {
   id:          string
@@ -36,6 +38,12 @@ type FilterTab = 'all' | 'owners' | 'customers' | 'admins' | 'banned'
 export default function UserManagement() {
   const supabase = createClient()
   const { log }  = useAuditLog()
+  const { user: adminUser } = useAuth()
+  const [emailTarget,   setEmailTarget]   = useState<UserRow | null>(null)
+  const [emailSubject,  setEmailSubject]  = useState('')
+  const [emailBody,     setEmailBody]     = useState('')
+  const [emailSending,  setEmailSending]  = useState(false)
+  const [emailDone,     setEmailDone]     = useState(false)
   const [users,    setUsers]    = useState<UserRow[]>([])
   const [stats,    setStats]    = useState<Stats>({ total:0, owners:0, customers:0, admins:0, banned:0 })
   const [loading,  setLoading]  = useState(true)
@@ -52,6 +60,32 @@ export default function UserManagement() {
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
+  }
+
+  async function sendEmailToUser() {
+    if (!emailTarget || !emailSubject.trim() || !emailBody.trim()) return
+    setEmailSending(true)
+
+    const res = await fetch('/api/admin-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        toEmail:  emailTarget.email,
+        toName:   emailTarget.name ?? emailTarget.email,
+        subject:  emailSubject.trim(),
+        body:     emailBody.trim(),
+        adminId:  adminUser?.id,
+      }),
+    })
+
+    if (res.ok) {
+      setEmailDone(true)
+      showToast(`Email sent to ${emailTarget.name ?? emailTarget.email}`)
+    } else {
+      const data = await res.json()
+      showToast(`Error: ${data.error ?? 'Failed to send'}`)
+    }
+    setEmailSending(false)
   }
 
   async function loadUsers() {
@@ -325,6 +359,16 @@ export default function UserManagement() {
                           </Link>
                         )}
 
+                        {/* Send email */}
+                        <button
+                          onClick={() => { setEmailTarget(u); setEmailSubject(''); setEmailBody(''); setEmailDone(false); setMenuOpen(null) }}
+                          disabled={!u.email}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40"
+                        >
+                          <Mail size={14} className="text-gray-400" />
+                          Send email
+                        </button>
+
                         {/* Password reset */}
                         <button
                           onClick={() => sendPasswordReset(u)}
@@ -382,6 +426,70 @@ export default function UserManagement() {
           <p className="text-xs text-gray-400">Showing {filtered.length} of {users.length} users</p>
         </div>
       </div>
+
+      {/* Send email modal */}
+      {emailTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background:'rgba(0,0,0,0.5)' }}
+          onClick={() => setEmailTarget(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#E1F5EE' }}>
+                  <Mail size={16} style={{ color:'#085041' }} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Send email</h3>
+                  <p className="text-xs text-gray-400">To: {emailTarget.name ?? emailTarget.email} · {emailTarget.email}</p>
+                </div>
+              </div>
+              <button onClick={() => setEmailTarget(null)} className="text-gray-400 hover:text-gray-600">
+                <XIcon size={16} />
+              </button>
+            </div>
+            {emailDone ? (
+              <div className="p-10 text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background:'#E1F5EE' }}>
+                  <Send size={20} style={{ color:'#1D9E75' }} />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-2">Email sent!</h4>
+                <p className="text-sm text-gray-500 mb-4">Message delivered to {emailTarget.email}</p>
+                <button onClick={() => setEmailTarget(null)}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-700">Close</button>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Subject *</label>
+                  <input type="text" value={emailSubject} onChange={e => setEmailSubject(e.target.value)}
+                    placeholder="e.g. Important update about your account"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Message *</label>
+                  <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)}
+                    placeholder="Write your message here…"
+                    rows={6}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none" />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={sendEmailToUser}
+                    disabled={emailSending || !emailSubject.trim() || !emailBody.trim()}
+                    className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white py-2.5 rounded-xl disabled:opacity-50"
+                    style={{ background:'#1D9E75' }}>
+                    {emailSending ? 'Sending…' : <><Send size={14} /> Send email</>}
+                  </button>
+                  <button onClick={() => setEmailTarget(null)}
+                    className="px-4 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Ban confirmation modal */}
       {confirmBan && (

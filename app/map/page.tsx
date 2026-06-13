@@ -1,3 +1,4 @@
+/// <reference types="@types/google.maps" />
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -9,12 +10,34 @@ import { createClient } from '@/lib/supabase/client'
 import { BusinessRow } from '@/lib/queries'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!
 
 // Houston, TX default center
 const DEFAULT_CENTER = { lat: 29.7604, lng: -95.3698 }
 const DEFAULT_ZOOM   = 11
+
+// Haversine formula — distance in miles between two lat/lng points
+function distanceMiles(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R    = 3958.8 // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a    = Math.sin(dLat/2) ** 2 +
+               Math.cos(lat1 * Math.PI / 180) *
+               Math.cos(lat2 * Math.PI / 180) *
+               Math.sin(dLng/2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+const RADIUS_OPTIONS = [
+  { label: '10 mi',  value: 10  },
+  { label: '20 mi',  value: 20  },
+  { label: '50 mi',  value: 50  },
+  { label: '100 mi', value: 100 },
+  { label: 'All',    value: 0   },
+]
 
 const FLAGS: Record<string, string> = {
   Nigeria: '🇳🇬', Ghana: '🇬🇭', Kenya: '🇰🇪',
@@ -46,9 +69,9 @@ const CATEGORIES = [
 
 // ── Location search box (uses Places Autocomplete) ──────────────────────────
 function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => void }) {
-  const inputRef    = useRef<HTMLInputElement>(null)
-  const placesLib   = useMapsLibrary('places')
-  const acRef       = useRef<google.maps.places.Autocomplete | null>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const placesLib = useMapsLibrary('places')
+  const acRef     = useRef<google.maps.places.Autocomplete | null>(null)
 
   useEffect(() => {
     if (!placesLib || !inputRef.current) return
@@ -72,12 +95,12 @@ function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => vo
   }, [placesLib, onPlace])
 
   return (
-    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white focus-within:ring-2 focus-within:border-transparent transition-all w-52">
+    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all w-52 sm:w-60">
       <Navigation size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
       <input
         ref={inputRef}
         type="text"
-        placeholder="Search location..."
+        placeholder="City or area…"
         className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400 min-w-0"
       />
     </div>
@@ -107,6 +130,32 @@ export default function MapPage() {
   const [view,             setView]             = useState<'map' | 'list'>('map')
   const [mapCenter,        setMapCenter]        = useState(DEFAULT_CENTER)
   const [mapZoom,          setMapZoom]          = useState(DEFAULT_ZOOM)
+  const [userLocation,     setUserLocation]     = useState<{ lat: number; lng: number } | null>(null)
+  const [radius,           setRadius]           = useState(20) // miles
+
+  // ── Read saved location from LocationPrompt on mount ──────────────────
+  useEffect(() => {
+    function applyStoredLocation() {
+      try {
+        const lat  = parseFloat(localStorage.getItem('user_lat')  ?? '')
+        const lng  = parseFloat(localStorage.getItem('user_lng')  ?? '')
+        const city = localStorage.getItem('user_city') ?? ''
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setMapCenter({ lat, lng })
+          setMapZoom(12)
+          setUserLocation({ lat, lng })
+          if (city) setSearch(city)
+        }
+      } catch {}
+    }
+
+    // Run on mount
+    applyStoredLocation()
+
+    // Also listen for live updates when user clicks Allow on the prompt
+    window.addEventListener('storage', applyStoredLocation)
+    return () => window.removeEventListener('storage', applyStoredLocation)
+  }, [])
 
   // ── Fetch businesses ───────────────────────────────────────────────────
   useEffect(() => {
@@ -114,10 +163,20 @@ export default function MapPage() {
       setLoading(true)
       const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, category, subcategory, address, city, state, cover_image, rating, review_count, price_range, tags, lat, lng, verified, premium, featured, country')
+        .select(`
+          id, name, category, subcategory, description,
+          address, street, city, state, zip, country,
+          cover_image, logo_url, rating, review_count,
+          price_range, tags, lat, lng,
+          verified, premium, featured, plan, slug,
+          phone, email, website,
+          hours_open, days_open
+        `)
         .not('lat', 'is', null)
         .not('lng', 'is', null)
+        .order('plan',     { ascending: false })
         .order('featured', { ascending: false })
+        .order('rating',   { ascending: false })
       if (error) console.error('[MapPage]', error)
       setBusinesses(data ?? [])
       setLoading(false)
@@ -130,9 +189,15 @@ export default function MapPage() {
     const q  = search.toLowerCase()
     const ms = !search ||
       b.name.toLowerCase().includes(q) ||
+      (b.city ?? '').toLowerCase().includes(q) ||
       (b.tags ?? []).some(t => t.toLowerCase().includes(q))
     const mc = !selectedCategory || b.category === selectedCategory
-    return ms && mc
+
+    // Radius filter — only apply when we have a user/map center location
+    const mr = radius === 0 || !b.lat || !b.lng ? true :
+      distanceMiles(mapCenter.lat, mapCenter.lng, b.lat, b.lng) <= radius
+
+    return ms && mc && mr
   })
 
   const selected = businesses.find(b => b.id === selectedId) ?? null
@@ -219,22 +284,22 @@ export default function MapPage() {
           <div className="max-w-7xl mx-auto flex items-center gap-2 flex-wrap">
 
             {/* Keyword search */}
-            <div className="flex-1 min-w-48 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
-              <Search size={15} className="text-gray-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
+              <Search size={14} className="text-gray-400 flex-shrink-0" />
               <input
-                value={search}
+                
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search businesses..."
-                className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
+                placeholder="Search businesses, food, fashion…"
+                className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400 min-w-0"
               />
               {search && (
                 <button onClick={() => setSearch('')}>
-                  <X size={13} className="text-gray-400 hover:text-gray-600" />
+                  <X size={12} className="text-gray-400 hover:text-gray-600" />
                 </button>
               )}
             </div>
 
-            {/* Location search */}
+            {/* Location search — Places autocomplete in its own input */}
             <LocationSearch onPlace={handlePlace} />
 
             {/* Map / List toggle */}
@@ -251,8 +316,25 @@ export default function MapPage() {
             </div>
           </div>
 
-          {/* Category pills */}
+          {/* Radius + Category filter pills */}
           <div className="max-w-7xl mx-auto flex gap-2 mt-2 overflow-x-auto pb-1">
+
+            {/* Radius filters */}
+            <div className="flex gap-1 flex-shrink-0 border-r border-gray-200 pr-2 mr-1">
+              {RADIUS_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setRadius(opt.value)}
+                  className="flex-shrink-0 text-xs px-3 py-1 rounded-full font-medium transition-colors"
+                  style={{
+                    background: radius === opt.value ? '#085041' : '#F3F4F6',
+                    color:      radius === opt.value ? 'white'   : '#4B5563',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => setSelectedCategory('')}
               className="flex-shrink-0 text-xs px-3 py-1 rounded-full font-medium transition-colors"
@@ -260,7 +342,7 @@ export default function MapPage() {
                 background: !selectedCategory ? '#1D9E75' : '#F3F4F6',
                 color:      !selectedCategory ? 'white'   : '#4B5563',
               }}>
-              All ({businesses.length})
+              All ({filtered.length}/{businesses.length})
             </button>
             {CATEGORIES.filter(cat => businesses.some(b => b.category === cat.id)).map(cat => {
               const count    = businesses.filter(b => b.category === cat.id).length
@@ -299,6 +381,20 @@ export default function MapPage() {
                   style={{ width: '100%', height: '100%' }}
                 >
                   <MapController center={mapCenter} zoom={mapZoom} />
+
+                  {/* User location blue dot */}
+                  {userLocation && (
+                    <AdvancedMarker position={userLocation}>
+                      <div style={{
+                        width:       '18px',
+                        height:      '18px',
+                        borderRadius:'50%',
+                        background:  '#4285F4',
+                        border:      '3px solid white',
+                        boxShadow:   '0 2px 8px rgba(66,133,244,0.6)',
+                      }} title="Your location" />
+                    </AdvancedMarker>
+                  )}
 
                   {/* Business pins */}
                   {filtered.map(b => (
