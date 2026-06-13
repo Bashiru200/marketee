@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import {
-  Users, Search, X, Shield, ShieldOff,
+  Users, Search, X, Shield, Send, ShieldOff,
   Mail, Building2, User, Crown, Loader2,
   ChevronDown, MoreVertical, Ban, Key,
   CheckCircle2, XCircle, Eye
@@ -445,7 +445,7 @@ export default function UserManagement() {
                 </div>
               </div>
               <button onClick={() => setEmailTarget(null)} className="text-gray-400 hover:text-gray-600">
-                <XIcon size={16} />
+                <X size={16} />
               </button>
             </div>
             {emailDone ? (
