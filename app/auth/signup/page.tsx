@@ -4,38 +4,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Mail, Lock, Eye, EyeOff, User, Building2,
-  MapPin, Phone, ChevronLeft, Check, Home
+  MapPin, ChevronLeft, Check
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import ImageUpload from '@/components/ui/ImageUpload'
+import BusinessDetailsForm, {
+  BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
+} from '@/components/businesses/BusinessDetailsForm'
 
 type Role = 'customer' | 'owner' | null
 type Step = 0 | 1 | 2 | 3
-
-const CATEGORIES = [
-  { id: 'food',       label: 'Food & Groceries'  },
-  { id: 'restaurant', label: 'Restaurant'         },
-  { id: 'fashion',    label: 'Fashion & Fabric'   },
-  { id: 'beauty',     label: 'Beauty & Hair'      },
-  { id: 'herbs',      label: 'Herbs & Wellness'   },
-  { id: 'music',      label: 'Music & Arts'       },
-  { id: 'crafts',     label: 'Crafts & Decor'     },
-  { id: 'services',   label: 'Services'           },
-  { id: 'nightlife',  label: 'Bars & Nightlife'   },
-]
-
-const COUNTRIES = [
-  { code:'NG',          flag:'🇳🇬', name:'Nigeria'                },
-  { code:'GH',          flag:'🇬🇭', name:'Ghana'                  },
-  { code:'KE',          flag:'🇰🇪', name:'Kenya'                  },
-  { code:'SN',          flag:'🇸🇳', name:'Senegal'                },
-  { code:'ZA',          flag:'🇿🇦', name:'South Africa'           },
-  { code:'ET',          flag:'🇪🇹', name:'Ethiopia'               },
-  { code:'CM',          flag:'🇨🇲', name:'Cameroon'               },
-  { code:'CI',          flag:'🇨🇮', name:"Côte d'Ivoire"          },
-  { code:'OTHER',       flag:'🌍', name:'Other African country'   },
-  { code:'NON_AFRICAN', flag:'🌐', name:'Not of African origin'   },
-]
 
 const INTERESTS = [
   { icon:'🍲', label:'Food & Groceries' }, { icon:'🍽️', label:'Restaurants' },
@@ -95,7 +72,7 @@ export default function SignupPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://markeetee.com/auth/callback?intent=signup&role=${chosenRole}`,
+        redirectTo: `${location.origin}/auth/callback?intent=signup&role=${chosenRole}`,
       },
     })
   }
@@ -171,14 +148,14 @@ export default function SignupPage() {
   }
 
   // ── Step 2 (owner): save business with geocoding ──────────────────────
-  async function handleSaveBusiness(e: React.FormEvent) {
-    e.preventDefault()
+  // Receives the full BusinessFormValues from <BusinessDetailsForm>
+  async function handleSaveBusiness(values: BusinessFormValues) {
     setError('')
     setLoading(true)
 
     let lat: number | null = null
     let lng: number | null = null
-    const addressStr = [form.street, form.city, form.state, form.zip, 'USA'].filter(Boolean).join(', ')
+    const addressStr = [values.street, values.city, values.state, values.zip, 'USA'].filter(Boolean).join(', ')
     if (addressStr && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
       try {
         const geoRes  = await fetch(
@@ -192,25 +169,37 @@ export default function SignupPage() {
       } catch { /* Geocoding optional */ }
     }
 
+    const tagsArray = values.tags.split(',').map(t => t.trim()).filter(Boolean)
+
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: biz } = await supabase.from('businesses').insert({
         owner_id:    user.id,
-        name:        form.businessName,
-        category:    form.category,
-        country:     form.country,
-        address:     form.street || null,
-        street:      form.street || null,
-        city:        form.city,
-        state:       form.state,
-        zip:         form.zip   || null,
-        phone:       form.phone,
-        cover_image: form.cover_image || null,
+        name:        values.name,
+        category:    values.category,
+        subcategory: values.subcategory || null,
+        description: values.description || null,
+        country:     values.country,
+        address:     values.street || null,
+        street:      values.street || null,
+        city:        values.city,
+        state:       values.state,
+        zip:         values.zip || null,
+        phone:       values.phone,
+        email:       values.email || null,
+        website:     values.website || null,
+        price_range: values.price_range || null,
+        tags:        tagsArray.length ? tagsArray : null,
+        days_open:   values.days_open.length ? values.days_open : null,
+        hours_open:  values.hours_open || null,
+        cover_image: values.cover_image || null,
+        logo_url:    values.logo_url || null,
         lat,
         lng,
         verified:    false,
         premium:     false,
         featured:    false,
+        plan:        'free',
       }).select().single()
 
       if (biz) {
@@ -483,86 +472,22 @@ export default function SignupPage() {
                 <ChevronLeft size={14} /> Back
               </button>
               <h1 className="text-xl font-semibold text-gray-900 mb-1">Your business</h1>
-              <p className="text-sm text-gray-500 mb-4">Tell us about your African business</p>
-              <form onSubmit={handleSaveBusiness} className="space-y-3">
+              <p className="text-sm text-gray-500 mb-4">
+                Tell us about your African business. Fields marked * are required —
+                everything else can be added or edited later from your dashboard.
+              </p>
 
-                <ImageUpload bucket="businesses"
-                  folder={form.email.replace(/[@.]/g, '_')}
-                  currentUrl={form.cover_image || null}
-                  onUpload={url => upd('cover_image', url)}
-                  onRemove={() => upd('cover_image', '')}
-                  label="Business cover photo (optional)" />
-
-                <div>
-                  <label className={labelCls}>Business name *</label>
-                  <div className="relative">
-                    <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="text" value={form.businessName} onChange={e => upd('businessName', e.target.value)}
-                      placeholder="Enter your business name" required className={`${inputCls} pl-9`} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelCls}>Category *</label>
-                    <select value={form.category} onChange={e => upd('category', e.target.value)} required
-                      className={inputCls}>
-                      <option value="">Select category</option>
-                      {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Country of origin *</label>
-                    <select value={form.country} onChange={e => upd('country', e.target.value)} required
-                      className={inputCls}>
-                      <option value="">Select country</option>
-                      {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelCls}>Street address</label>
-                  <div className="relative">
-                    <Home size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="text" value={form.street} onChange={e => upd('street', e.target.value)}
-                      placeholder="Enter your street address" className={`${inputCls} pl-9`} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-1">
-                    <label className={labelCls}>City *</label>
-                    <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
-                      placeholder="City" required className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>State *</label>
-                    <input type="text" value={form.state} onChange={e => upd('state', e.target.value)}
-                      placeholder="TX" required maxLength={2} className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>ZIP code</label>
-                    <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-                      placeholder="77001" maxLength={10} className={inputCls} />
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelCls}>Phone number *</label>
-                  <div className="relative">
-                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)}
-                      placeholder="Enter your phone number" required className={`${inputCls} pl-9`} />
-                  </div>
-                </div>
-
-                <button type="submit" disabled={loading}
-                  className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60"
-                  style={{ background: '#1D9E75' }}>
-                  {loading ? 'Saving…' : 'List my business'}
-                </button>
-              </form>
+              <BusinessDetailsForm
+                initialValues={{
+                  ...EMPTY_BUSINESS_FORM,
+                  country:    form.country,
+                  cover_image: form.cover_image,
+                }}
+                onSubmit={handleSaveBusiness}
+                loading={loading}
+                submitLabel="List my business"
+                imageFolder={form.email.replace(/[@.]/g, '_')}
+              />
             </>
           )}
 

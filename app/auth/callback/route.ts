@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
   const code   = searchParams.get('code')
   const next   = searchParams.get('next')
   const intent = searchParams.get('intent') // 'login' | 'signup' | null
-  const role   = searchParams.get('role')   // 'customer' | 'owner' | null
 
   if (code) {
     const supabase = await createClient()
@@ -20,26 +19,28 @@ export async function GET(req: NextRequest) {
         // Check if a profile already exists for this user
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id, role')
+          .select('id, role, business_id')
           .eq('id', user.id)
           .single()
 
         // ── Existing user — route by role as normal ──────────────────────
         if (profile) {
           if (next) return NextResponse.redirect(`${origin}${next}`)
-          return NextResponse.redirect(
-            `${origin}${profile.role === 'owner' ? '/dashboard' : '/search'}`
-          )
+
+          if (profile.role === 'owner') {
+            // Owner without a business yet → send to setup
+            if (!profile.business_id) {
+              return NextResponse.redirect(`${origin}/business/new`)
+            }
+            return NextResponse.redirect(`${origin}/dashboard`)
+          }
+          return NextResponse.redirect(`${origin}/search`)
         }
 
-        // ── No profile found — this is a brand-new Google sign-in ────────
-        if (intent === 'login') {
-          // User tried to SIGN IN but has no account yet
-          return NextResponse.redirect(`${origin}/auth/welcome?new=true`)
-        }
-
-        // intent === 'signup' (or no intent) — create the account now
-        const chosenRole = role === 'owner' ? 'owner' : 'customer'
+        // ── No profile found — brand-new Google sign-in ──────────────────
+        // Every Google sign-in (login OR signup) creates an OWNER account
+        // with the ability to list a business, edit it, and manage
+        // subscription/plan from the dashboard.
         const fullName =
           (user.user_metadata?.full_name as string | undefined) ??
           (user.user_metadata?.name as string | undefined) ??
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
           id:     user.id,
           name:   fullName,
           email:  user.email,
-          role:   chosenRole,
+          role:   'owner',
           origin: 'african',
         })
 
@@ -58,17 +59,17 @@ export async function GET(req: NextRequest) {
           await supabase.from('auth_events').insert({
             user_id:    user.id,
             event_type: 'signup',
-            metadata:   { role: chosenRole, via: 'google', origin: 'african' },
+            metadata:   {
+              role: 'owner',
+              via:  'google',
+              first_login_no_account: intent === 'login',
+            },
           })
         } catch {}
 
-        if (chosenRole === 'owner') {
-          return NextResponse.redirect(`${origin}/dashboard?setup=business`)
-        }
-        return NextResponse.redirect(`${origin}/auth/welcome?onboarding=1`)
+        // Send to business setup — they can fill it in now or skip to dashboard
+        return NextResponse.redirect(`${origin}/business/new?welcome=1`)
       }
-
-      // No user on session somehow — fall through to error
     }
 
     console.error('[auth/callback]', error?.message)

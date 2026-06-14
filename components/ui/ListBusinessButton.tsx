@@ -1,7 +1,10 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/client'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 
 interface Props {
@@ -11,10 +14,13 @@ interface Props {
 }
 
 export default function ListBusinessButton({ className, style, children }: Props) {
-  const { isOwner, isLoggedIn, profile } = useAuth()
+  const router   = useRouter()
+  const supabase = createClient()
+  const { isOwner, isLoggedIn, profile, user } = useAuth()
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [upgrading,   setUpgrading]   = useState(false)
 
-  // Not logged in → go to signup
+  // ── Not logged in → go to signup ──────────────────────────────────────
   if (!isLoggedIn) {
     return (
       <Link href="/auth/signup" className={className} style={style}>
@@ -23,41 +29,70 @@ export default function ListBusinessButton({ className, style, children }: Props
     )
   }
 
-  // Logged in as owner → show upgrade modal if not premium
-  if (isOwner) {
-    const isPremium = (profile as any)?.premium === true
-    if (!isPremium) {
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => setShowUpgrade(true)}
-            className={className}
-            style={style}
-          >
-            {children ?? 'Upgrade your listing'}
-          </button>
-          {showUpgrade && (
-            <UpgradeModal
-              onClose={() => setShowUpgrade(false)}
-              businessName={profile?.name ?? undefined}
-            />
-          )}
-        </>
-      )
+  // ── Logged in as customer → upgrade to owner, then go add a business ──
+  if (!isOwner) {
+    async function handleUpgrade() {
+      if (!user) return
+      setUpgrading(true)
+      await supabase.from('profiles')
+        .update({ role: 'owner' })
+        .eq('id', user.id)
+      router.push('/business/new')
+      router.refresh()
     }
-    // Already premium → go to dashboard
+
     return (
-      <Link href="/dashboard" className={className} style={style}>
-        {children ?? 'Go to dashboard'}
+      <button
+        type="button"
+        onClick={handleUpgrade}
+        disabled={upgrading}
+        className={className}
+        style={style}
+      >
+        {upgrading
+          ? <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Setting up…</span>
+          : (children ?? 'List your business')
+        }
+      </button>
+    )
+  }
+
+  // ── Logged in as owner, no business yet → go straight to setup form ──
+  if (!profile?.business_id) {
+    return (
+      <Link href="/business/new" className={className} style={style}>
+        {children ?? 'List your business'}
       </Link>
     )
   }
 
-  // Logged in as customer → go to signup as owner
+  // ── Owner with a business, not premium → show upgrade modal ──────────
+  const isPremium = (profile as any)?.premium === true
+  if (!isPremium) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setShowUpgrade(true)}
+          className={className}
+          style={style}
+        >
+          {children ?? 'Upgrade your listing'}
+        </button>
+        {showUpgrade && (
+          <UpgradeModal
+            onClose={() => setShowUpgrade(false)}
+            businessName={profile?.name ?? undefined}
+          />
+        )}
+      </>
+    )
+  }
+
+  // ── Owner, has business, already premium → go to dashboard ───────────
   return (
-    <Link href="/auth/signup" className={className} style={style}>
-      {children ?? 'List your business'}
+    <Link href="/dashboard" className={className} style={style}>
+      {children ?? 'Go to dashboard'}
     </Link>
   )
 }
