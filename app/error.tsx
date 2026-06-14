@@ -14,6 +14,8 @@ export default function Error({
     console.error(error)
   }, [error])
 
+  console.error('[auth/callback]', error?.message)
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
       <div className="text-6xl mb-6">⚠️</div>
@@ -34,3 +36,4 @@ export default function Error({
     </div>
   )
 }
+
