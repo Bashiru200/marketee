@@ -95,7 +95,7 @@ export default function SignupPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${location.origin}/auth/callback?intent=signup&role=${chosenRole}`,
+        redirectTo: `https://markeetee.com/auth/callback?intent=signup&role=${chosenRole}`,
       },
     })
   }
