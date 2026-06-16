@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const code   = searchParams.get('code')
   const next   = searchParams.get('next')
   const intent = searchParams.get('intent') // 'login' | 'signup' | null
+  const roleParam = searchParams.get('role') // 'customer' | 'owner' | null
 
   if (code) {
     const supabase = await createClient()
@@ -38,9 +39,12 @@ export async function GET(req: NextRequest) {
         }
 
         // ── No profile found — brand-new Google sign-in ──────────────────
-        // Every Google sign-in (login OR signup) creates an OWNER account
-        // with the ability to list a business, edit it, and manage
-        // subscription/plan from the dashboard.
+        // Respect the role chosen on the signup screen. Defaults to
+        // 'customer' only if no role was passed at all (e.g. someone
+        // hits this route directly without going through our signup flow).
+        const chosenRole: 'customer' | 'owner' =
+          roleParam === 'owner' ? 'owner' : 'customer'
+
         const fullName =
           (user.user_metadata?.full_name as string | undefined) ??
           (user.user_metadata?.name as string | undefined) ??
@@ -50,7 +54,7 @@ export async function GET(req: NextRequest) {
           id:     user.id,
           name:   fullName,
           email:  user.email,
-          role:   'owner',
+          role:   chosenRole,
           origin: 'african',
         })
 
@@ -60,15 +64,18 @@ export async function GET(req: NextRequest) {
             user_id:    user.id,
             event_type: 'signup',
             metadata:   {
-              role: 'owner',
+              role: chosenRole,
               via:  'google',
               first_login_no_account: intent === 'login',
             },
           })
         } catch {}
 
-        // Send to business setup — they can fill it in now or skip to dashboard
-        return NextResponse.redirect(`${origin}/business/new?welcome=1`)
+        // ── Route based on the chosen role ────────────────────────────────
+        if (chosenRole === 'owner') {
+          return NextResponse.redirect(`${origin}/business/new?welcome=1`)
+        }
+        return NextResponse.redirect(`${origin}/search?welcome=1`)
       }
     }
 
