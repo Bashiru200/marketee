@@ -3,12 +3,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Settings, Loader2, Save, LogOut, Trash2,
-  Moon, Sun, Bell, BellOff, Shield, ChevronRight
+  Moon, Sun, Bell, BellOff, Shield, ChevronRight,
+  Mail, X, Check
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
-
-export const dynamic = 'force-dynamic'
 
 export default function AccountSettingsPage() {
   const router   = useRouter()
@@ -26,6 +25,11 @@ export default function AccountSettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleting,      setDeleting]      = useState(false)
   const [resetSent,     setResetSent]     = useState(false)
+  const [showEmailModal,setShowEmailModal]= useState(false)
+  const [newEmail,      setNewEmail]      = useState('')
+  const [emailSaving,   setEmailSaving]   = useState(false)
+  const [emailSent,     setEmailSent]     = useState(false)
+  const [emailError,    setEmailError]    = useState('')
 
   useEffect(() => {
     if (authLoading) return
@@ -36,7 +40,7 @@ export default function AccountSettingsPage() {
       setDarkMode(true)
       document.documentElement.classList.add('dark')
     }
-  }, [authLoading, isLoggedIn])
+  }, [authLoading, isLoggedIn, user])
 
   function toggleDarkMode() {
     const next = !darkMode
@@ -57,6 +61,32 @@ export default function AccountSettingsPage() {
     setTimeout(() => setResetSent(false), 5000)
   }
 
+  async function handleChangeEmail(e: React.FormEvent) {
+    e.preventDefault()
+    setEmailError('')
+    if (!newEmail || newEmail === user?.email) {
+      setEmailError('Enter a different email address')
+      return
+    }
+    setEmailSaving(true)
+
+    // Supabase sends a confirmation email to the NEW address.
+    // The account email only updates once that link is clicked.
+    const { error } = await supabase.auth.updateUser(
+      { email: newEmail },
+      { emailRedirectTo: `${window.location.origin}/auth/callback?next=/account/settings` }
+    )
+
+    if (error) {
+      setEmailError(error.message)
+      setEmailSaving(false)
+      return
+    }
+
+    setEmailSent(true)
+    setEmailSaving(false)
+  }
+
   async function handleDeleteAccount() {
     if (deleteConfirm !== 'DELETE') return
     setDeleting(true)
@@ -72,8 +102,35 @@ export default function AccountSettingsPage() {
   }
 
   if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
+    <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-6 h-6 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+        <div className="h-7 w-28 bg-gray-200 rounded-lg" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+      </div>
+      <div className="space-y-4">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="h-3 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+            </div>
+            <div className="divide-y divide-gray-50">
+              {[1,2].map(j => (
+                <div key={j} className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-200 rounded-lg" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-32 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                      <div className="h-3 w-48 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                    </div>
+                  </div>
+                  <div className="h-6 w-11 bg-gray-200 rounded-full" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
     </div>
   )
 
@@ -155,6 +212,25 @@ export default function AccountSettingsPage() {
                 {resetSent ? '✓ Sent!' : 'Reset'}
               </button>
             </div>
+
+            {/* Change email */}
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#E1F5EE' }}>
+                  <Mail size={15} style={{ color: '#085041' }} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Change email address</p>
+                  <p className="text-xs text-gray-400">Current: {user?.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowEmailModal(true); setEmailSent(false); setNewEmail('') }}
+                className="text-sm font-medium px-4 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-700 transition-colors"
+              >
+                Change
+              </button>
+            </div>
           </div>
         </div>
 
@@ -231,6 +307,80 @@ export default function AccountSettingsPage() {
           <p className="text-xs text-gray-300 mt-1">Made with ❤️ for the African diaspora</p>
         </div>
       </div>
+
+      {/* ── Change email modal ── */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowEmailModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#E1F5EE' }}>
+                  <Mail size={16} style={{ color: '#085041' }} />
+                </div>
+                <h3 className="font-bold text-gray-900">Change email address</h3>
+              </div>
+              <button onClick={() => setShowEmailModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+
+            {emailSent ? (
+              <div className="p-8 text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: '#E1F5EE' }}>
+                  <Check size={20} style={{ color: '#1D9E75' }} />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-2">Confirmation sent!</h4>
+                <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+                  We sent a confirmation link to <strong>{newEmail}</strong>.
+                  Click it to finish changing your email — your current email
+                  stays active until then.
+                </p>
+                <button onClick={() => setShowEmailModal(false)}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-700">
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleChangeEmail} className="p-6 space-y-4">
+                {emailError && (
+                  <div className="px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100">{emailError}</div>
+                )}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                    Current email
+                  </label>
+                  <p className="text-sm text-gray-500 px-3 py-2.5 bg-gray-50 rounded-xl">{user?.email}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                    New email address
+                  </label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                  />
+                </div>
+                <button type="submit" disabled={emailSaving}
+                  className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                  style={{ background: '#1D9E75' }}>
+                  {emailSaving ? 'Sending…' : 'Send confirmation link'}
+                </button>
+                <p className="text-xs text-gray-400 text-center">
+                  We'll email a confirmation link to your new address.
+                  Your account keeps using {user?.email} until you confirm.
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

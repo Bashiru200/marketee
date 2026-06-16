@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import { useAuditLog } from '@/lib/useAuditLog'
 import { ADMIN_PERMISSIONS, PERMISSION_LABELS, AdminPermission } from '@/lib/permissions'
+import { Mail as MailIcon, Send } from 'lucide-react'
 
 interface AdminUser {
   id:                 string
@@ -40,6 +41,11 @@ export default function AdminManagement() {
   const [updating,  setUpdating]  = useState<string | null>(null)
   const [expanded,  setExpanded]  = useState<string | null>(null)
   const [showAdd,   setShowAdd]   = useState(false)
+  const [showInvite,    setShowInvite]    = useState(false)
+  const [inviteEmail,   setInviteEmail]   = useState('')
+  const [inviteSending, setInviteSending] = useState(false)
+  const [inviteSent,    setInviteSent]    = useState(false)
+  const [inviteError,   setInviteError]   = useState('')
   const [newEmail,  setNewEmail]  = useState('')
   const [adding,    setAdding]    = useState(false)
   const [addError,  setAddError]  = useState('')
@@ -200,6 +206,33 @@ export default function AdminManagement() {
     </div>
   )
 
+  async function sendAdminInvite() {
+    if (!inviteEmail.trim()) return
+    setInviteSending(true)
+    setInviteError('')
+
+    const res = await fetch('/api/send-invite', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        email:     inviteEmail.trim(),
+        roleLabel: 'admin',
+        invitedBy: user?.id,
+      }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      setInviteError(data.error ?? 'Failed to send invite')
+      setInviteSending(false)
+      return
+    }
+
+    setInviteSent(true)
+    setInviteSending(false)
+    showToast(`Invite sent to ${inviteEmail}`)
+  }
+
   return (
     <div className="space-y-6">
 
@@ -220,15 +253,81 @@ export default function AdminManagement() {
           </p>
         </div>
         {isSuperAdmin && (
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-            style={{ background:'#085041' }}
-          >
-            <Plus size={15} /> Add admin
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowInvite(true); setInviteSent(false); setInviteEmail('') }}
+              className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 hover:opacity-90 transition-opacity"
+              style={{ borderColor:'#085041', color:'#085041' }}
+            >
+              <MailIcon size={15} /> Invite by email
+            </button>
+            <button
+              onClick={() => setShowAdd(!showAdd)}
+              className="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+              style={{ background:'#085041' }}
+            >
+              <Plus size={15} /> Add admin
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Invite by email modal */}
+      {showInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background:'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowInvite(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#E1F5EE' }}>
+                  <MailIcon size={16} style={{ color:'#085041' }} />
+                </div>
+                <h3 className="font-bold text-gray-900">Invite a new admin</h3>
+              </div>
+              <button onClick={() => setShowInvite(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+
+            {inviteSent ? (
+              <div className="p-8 text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background:'#E1F5EE' }}>
+                  <Send size={20} style={{ color:'#1D9E75' }} />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-2">Invite sent!</h4>
+                <p className="text-sm text-gray-500 mb-5">
+                  {inviteEmail} will receive an email with instructions to join as an admin.
+                </p>
+                <button onClick={() => setShowInvite(false)}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-700">Close</button>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-500">
+                  Unlike "Add admin" (which requires an existing account), this sends an
+                  email invitation to someone who doesn't have a Markeetee account yet.
+                </p>
+                {inviteError && (
+                  <div className="px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100">{inviteError}</div>
+                )}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Email address</label>
+                  <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                    placeholder="newadmin@example.com"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent" />
+                </div>
+                <button onClick={sendAdminInvite} disabled={inviteSending || !inviteEmail.trim()}
+                  className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-2.5 rounded-xl disabled:opacity-50"
+                  style={{ background:'#1D9E75' }}>
+                  {inviteSending ? <><Loader2 size={14} className="animate-spin" /> Sending…</> : <><Send size={14} /> Send invite</>}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Add admin form */}
       {showAdd && (
