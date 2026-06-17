@@ -24,6 +24,7 @@ function WelcomeContent() {
   const [creating,    setCreating]    = useState(false)
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
+  const [chosenRole,  setChosenRole]   = useState<'customer' | 'owner'>('customer')
 
   // Onboarding fields
   const [origin,    setOrigin]    = useState<'african' | 'non_african'>('african')
@@ -36,18 +37,40 @@ function WelcomeContent() {
   )
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: any) => {
+    async function loadUserAndPrefill() {
+      const { data } = await supabase.auth.getUser()
       setUser(data.user)
+
+      // Pre-fill from any previously saved profile data rather than blank —
+      // covers the case where a user already has partial data saved.
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('city, origin, interests')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profile) {
+          if (profile.city)   setCity(profile.city)
+          if (profile.origin) setOrigin(profile.origin as 'african' | 'non_african')
+          if (profile.interests?.length) setInterests(profile.interests)
+        }
+      }
+
       setLoadingUser(false)
-    })
+    }
+
+    loadUserAndPrefill()
   }, [])
 
   function toggleInterest(label: string) {
     setInterests(p => p.includes(label) ? p.filter(i => i !== label) : [...p, label])
   }
 
-  // ── Create a free customer account for a Google sign-in with no profile ──
-  async function createCustomerAccount() {
+  // ── Create an account for a Google sign-in that had no profile ──────────
+  // Respects whichever role they choose on this screen (Customer or
+  // Business owner), since the original login click had no role context.
+  async function createAccount() {
     if (!user) return
     setCreating(true)
     setError('')
@@ -59,7 +82,7 @@ function WelcomeContent() {
       id:     user.id,
       name:   fullName,
       email:  user.email,
-      role:   'customer',
+      role:   chosenRole,
       origin: 'african',
     })
 
@@ -77,12 +100,18 @@ function WelcomeContent() {
         body:    JSON.stringify({
           userId:    user.id,
           eventType: 'signup',
-          metadata:  { role: 'customer', via: 'google', recovered_from_login: true },
+          metadata:  { role: chosenRole, via: 'google', recovered_from_login: true },
         }),
       })
     } catch {}
 
     setCreating(false)
+
+    // Owners go straight to the business form, not customer onboarding
+    if (chosenRole === 'owner') {
+      router.push('/business/new?welcome=1')
+      return
+    }
     setStage('onboarding')
   }
 
@@ -135,17 +164,37 @@ function WelcomeContent() {
             <p className="text-sm font-semibold text-gray-900 text-center mb-6">
               {user?.email}
             </p>
-            <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+            <p className="text-sm text-gray-500 text-center mb-4 leading-relaxed">
               It looks like this is your first time signing in with Google.
-              Would you like to create a free account?
+              How would you like to use Markeetee?
             </p>
+
+            {/* Role picker */}
+            <div className="grid grid-cols-2 gap-2 mb-5">
+              {[
+                { value:'customer', label:'Customer',       desc:'Browse businesses', icon:'🛍️' },
+                { value:'owner',    label:'Business owner', desc:'List my business',  icon:'🏪' },
+              ].map(r => (
+                <button key={r.value} type="button"
+                  onClick={() => setChosenRole(r.value as 'customer' | 'owner')}
+                  className="flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 text-center transition-all"
+                  style={chosenRole === r.value
+                    ? { borderColor:'#1D9E75', background:'#f0faf6' }
+                    : { borderColor:'#E5E7EB' }
+                  }>
+                  <span className="text-2xl">{r.icon}</span>
+                  <span className="text-sm font-semibold text-gray-900">{r.label}</span>
+                  <span className="text-xs text-gray-400">{r.desc}</span>
+                </button>
+              ))}
+            </div>
 
             {error && (
               <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100">{error}</div>
             )}
 
             <button
-              onClick={createCustomerAccount}
+              onClick={createAccount}
               disabled={creating}
               className="w-full py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 transition-colors mb-3"
               style={{ background: '#1D9E75' }}
@@ -159,13 +208,6 @@ function WelcomeContent() {
             >
               Not you? Sign out
             </button>
-
-            <p className="text-center text-xs text-gray-400 mt-5">
-              Want to list a business instead?{' '}
-              <Link href="/auth/signup" className="font-semibold" style={{ color: '#0F6E56' }}>
-                Sign up as an owner
-              </Link>
-            </p>
           </>
         )}
 

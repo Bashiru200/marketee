@@ -4,10 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
 
-  const code   = searchParams.get('code')
-  const next   = searchParams.get('next')
-  const intent = searchParams.get('intent') // 'login' | 'signup' | null
-  const roleParam = searchParams.get('role') // 'customer' | 'owner' | null
+  const code       = searchParams.get('code')
+  const next       = searchParams.get('next')
+  const intent     = searchParams.get('intent') // 'login' | 'signup' | null
+  const roleParam  = searchParams.get('role')   // 'customer' | 'owner' | null
 
   if (code) {
     const supabase = await createClient()
@@ -38,10 +38,15 @@ export async function GET(req: NextRequest) {
           return NextResponse.redirect(`${origin}/search`)
         }
 
-        // ── No profile found — brand-new Google sign-in ──────────────────
-        // Respect the role chosen on the signup screen. Defaults to
-        // 'customer' only if no role was passed at all (e.g. someone
-        // hits this route directly without going through our signup flow).
+        // ── No profile found ──────────────────────────────────────────────
+        // If they came from the LOGIN page (not signup), don't silently
+        // create an account. Send them to /auth/welcome to confirm first —
+        // this is the "no account found, want to create one?" prompt.
+        if (intent === 'login') {
+          return NextResponse.redirect(`${origin}/auth/welcome?new=true`)
+        }
+
+        // ── Came from SIGNUP with a role already chosen → create now ─────
         const chosenRole: 'customer' | 'owner' =
           roleParam === 'owner' ? 'owner' : 'customer'
 
@@ -63,11 +68,7 @@ export async function GET(req: NextRequest) {
           await supabase.from('auth_events').insert({
             user_id:    user.id,
             event_type: 'signup',
-            metadata:   {
-              role: chosenRole,
-              via:  'google',
-              first_login_no_account: intent === 'login',
-            },
+            metadata:   { role: chosenRole, via: 'google' },
           })
         } catch {}
 
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
         if (chosenRole === 'owner') {
           return NextResponse.redirect(`${origin}/business/new?welcome=1`)
         }
-        return NextResponse.redirect(`${origin}/search?welcome=1`)
+        return NextResponse.redirect(`${origin}/account/onboarding?welcome=1`)
       }
     }
 

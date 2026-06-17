@@ -19,16 +19,67 @@ function NewBusinessContent() {
   const [user,        setUser]        = useState<any>(null)
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
+  const [prefill,     setPrefill]     = useState<Partial<BusinessFormValues>>(EMPTY_BUSINESS_FORM)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: { data: { user: any | null } }) => {
+    async function loadUserAndPrefill() {
+      const { data } = await supabase.auth.getUser()
+
       if (!data.user) {
         router.push('/auth/login')
         return
       }
       setUser(data.user)
+
+      // ── Pre-fill from saved profile / previous business data ───────────
+      // Covers returning owners (e.g. re-listing after a previous business
+      // was removed) so the form doesn't start completely blank.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('city, country, business_id')
+        .eq('id', data.user.id)
+        .single()
+
+      const merged: Partial<BusinessFormValues> = { ...EMPTY_BUSINESS_FORM }
+
+      if (profile?.city)    merged.city    = profile.city
+      if (profile?.country) merged.country = profile.country
+
+      // If they have (or had) a linked business, pull its details too
+      if (profile?.business_id) {
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('name, category, subcategory, description, country, street, city, state, zip, phone, email, website, price_range, tags, days_open, hours_open, cover_image, logo_url')
+          .eq('id', profile.business_id)
+          .single()
+
+        if (biz) {
+          merged.name        = biz.name ?? ''
+          merged.category    = biz.category ?? ''
+          merged.subcategory = biz.subcategory ?? ''
+          merged.description = biz.description ?? ''
+          merged.country     = biz.country ?? merged.country ?? ''
+          merged.street       = biz.street ?? ''
+          merged.city         = biz.city ?? merged.city ?? ''
+          merged.state        = biz.state ?? ''
+          merged.zip          = biz.zip ?? ''
+          merged.phone        = biz.phone ?? ''
+          merged.email        = biz.email ?? ''
+          merged.website      = biz.website ?? ''
+          merged.price_range  = biz.price_range ?? ''
+          merged.tags         = (biz.tags ?? []).join(', ')
+          merged.days_open    = biz.days_open ?? []
+          merged.hours_open   = biz.hours_open ?? ''
+          merged.cover_image  = biz.cover_image ?? ''
+          merged.logo_url     = biz.logo_url ?? ''
+        }
+      }
+
+      setPrefill(merged)
       setLoadingUser(false)
-    })
+    }
+
+    loadUserAndPrefill()
   }, [])
 
   async function handleSubmit(values: BusinessFormValues) {
@@ -159,7 +210,7 @@ function NewBusinessContent() {
           )}
 
           <BusinessDetailsForm
-            initialValues={EMPTY_BUSINESS_FORM}
+            initialValues={prefill}
             onSubmit={handleSubmit}
             loading={saving}
             submitLabel="List my business"
