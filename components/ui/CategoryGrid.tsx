@@ -98,19 +98,25 @@ export default function CategoryGrid() {
             style={{ fontSize: '22px', lineHeight: '1.4' }}
             aria-hidden
           >
-            {Array.from({ length: 18 }).map((_, i) => (
-              <span
-                key={i}
-                className="inline-block"
-                style={{
-                  animation:        `float${i % 3} ${3 + (i % 3)}s ease-in-out infinite`,
-                  animationDelay:   `${(i * 0.3) % 2}s`,
-                  transform:        `rotate(${(i * 15) % 30 - 15}deg)`,
-                }}
-              >
-                {cat.pattern.split('').filter(c => c.trim())[i % cat.pattern.split('').filter(c => c.trim()).length]}
-              </span>
-            ))}
+            {(() => {
+              // Array.from correctly splits multi-byte emoji characters
+              // (unlike .split('') which breaks surrogate pairs and causes
+              // server/client hydration mismatches)
+              const emojis = Array.from(cat.pattern).filter(c => c.trim())
+              return Array.from({ length: 18 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="inline-block"
+                  style={{
+                    animation:        `float${i % 3} ${3 + (i % 3)}s ease-in-out infinite`,
+                    animationDelay:   `${(i * 0.3) % 2}s`,
+                    transform:        `rotate(${(i * 15) % 30 - 15}deg)`,
+                  }}
+                >
+                  {emojis[i % emojis.length]}
+                </span>
+              ))
+            })()}
           </div>
 
           {/* Content */}
