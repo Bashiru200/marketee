@@ -48,7 +48,7 @@ function NewBusinessContent() {
       // If they have (or had) a linked business, pull its details too
       if (profile?.business_id) {
         const { data: biz } = await supabase
-          .from('business')
+          .from('businesses')
           .select('name, category, subcategory, description, country, street, city, state, zip, phone, email, website, price_range, tags, days_open, hours_open, cover_image, logo_url')
           .eq('id', profile.business_id)
           .single()
