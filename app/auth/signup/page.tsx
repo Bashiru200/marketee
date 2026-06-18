@@ -173,7 +173,7 @@ export default function SignupPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data: biz } = await supabase.from('business').insert({
+      const { data: biz } = await supabase.from('businesses').insert({
         owner_id:    user.id,
         name:        values.name,
         category:    values.category,
