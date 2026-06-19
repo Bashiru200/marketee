@@ -62,7 +62,7 @@ export default function ListBusinessButton({ className, style, children }: Props
   // ── Logged in as owner, no business yet → go straight to setup form ──
   if (!profile?.business_id) {
     return (
-      <Link href="/business/new" className={className} style={style}>
+      <Link href="/businesses/new" className={className} style={style}>
         {children ?? 'List your business'}
       </Link>
     )
