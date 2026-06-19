@@ -112,7 +112,7 @@ function NewBusinessContent() {
       .filter(Boolean)
 
     const { data: biz, error: insertError } = await supabase
-      .from('business')
+      .from('businesses')
       .insert({
         owner_id:    user.id,
         name:        values.name,
