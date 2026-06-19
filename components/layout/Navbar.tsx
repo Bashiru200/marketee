@@ -64,8 +64,9 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-            style={{ background: '#1D9E75' }}>M</div>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm style={{ background: '#085041' }}">
+            <Image src="/logo1.png" alt="Markeetee" width={32} height={32} />
+          </div>
           <span className="font-bold text-xl text-gray-900">Markeetee</span>
         </Link>
 

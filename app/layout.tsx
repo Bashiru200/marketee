@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import FooterWrapper from '@/components/layout/FooterWrapper'
 import { AuthProvider } from '@/lib/auth'
 import AnnouncementBanner  from '@/components/ui/AnnouncementBanner'
 import MobileBottomNav     from '@/components/ui/MobileBottomNav'
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
           <AnnouncementBanner />
           <main>{children}</main>
-          <Footer />
+          <FooterWrapper />
           <MobileBottomNav />
           <LocationPrompt />
         </AuthProvider>

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import CountriesBar from '@/components/ui/CountriesBar'
 import { Mail, Lock, Eye, EyeOff, Sparkles, Loader2, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -97,16 +98,9 @@ export default function LoginPage() {
         {/* Left brand panel */}
         <div className="hidden lg:flex flex-col justify-between w-2/5 p-10" style={{ background: '#085041' }}>
           <div>
-            <Link href="/" className="flex items-center gap-2 mb-10">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
-              <span className="text-white font-semibold text-lg">Markeetee</span>
-            </Link>
             <h2 className="text-white text-2xl font-semibold leading-snug mb-3">
               Welcome back to Africa's diaspora marketplace
             </h2>
-            <p className="text-sm leading-relaxed mb-8" style={{ color: '#9FE1CB' }}>
-              Connect with thousands of African-owned businesses across the USA.
-            </p>
             <ul className="space-y-3">
               {[
                 'Find African businesses near you',
@@ -120,19 +114,13 @@ export default function LoginPage() {
                 </li>
               ))}
             </ul>
-            <div className="flex gap-2 mt-8 text-xl">
-              {['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦'].map(f => <span key={f}>{f}</span>)}
-            </div>
+             <CountriesBar />
           </div>
           <p className="text-xs" style={{ color: '#085041' }}>© 2025 Markeetee</p>
         </div>
 
         {/* Right form panel */}
         <div className="flex-1 flex flex-col justify-center p-8 lg:p-10">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-sm" style={{ background: '#1D9E75' }}>M</div>
-            <span className="font-semibold text-lg text-gray-900">Markeetee</span>
-          </div>
 
           <h1 className="text-xl font-semibold text-gray-900 mb-1">Sign in</h1>
           <p className="text-sm text-gray-500 mb-6">Access your Markeetee account</p>

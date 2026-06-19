@@ -1,11 +1,12 @@
 /// <reference types="google.maps" />
+
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   APIProvider, Map, AdvancedMarker, Pin,
   InfoWindow, useMap, useMapsLibrary
 } from '@vis.gl/react-google-maps'
-import { Search, X, MapPin, List, LayoutGrid, Loader2, Navigation } from 'lucide-react'
+import { Search, X, MapPin, List, LayoutGrid, Loader2, Navigation, Map as MapIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { BusinessRow } from '@/lib/queries'
 import Link from 'next/link'
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic'
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!
 
 // Houston, TX default center
-const DEFAULT_CENTER = { lat: 29.7604, lng: -95.3698 }
+const DEFAULT_CENTER = { lat: 37.0902, lng: -95.7129 }
 const DEFAULT_ZOOM   = 11
 
 // Haversine formula — distance in miles between two lat/lng points
@@ -120,7 +121,6 @@ function MapController({ center, zoom }: { center: google.maps.LatLngLiteral; zo
   return null
 }
 
-
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function MapPage() {
   const supabase = createClient()
@@ -131,6 +131,7 @@ export default function MapPage() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [search,           setSearch]           = useState('')
   const [view,             setView]             = useState<'map' | 'list'>('map')
+  const [mobileView,       setMobileView]       = useState<'map' | 'list'>('map')
   const [mapCenter,        setMapCenter]        = useState(DEFAULT_CENTER)
   const [mapZoom,          setMapZoom]          = useState(DEFAULT_ZOOM)
   const [userLocation,     setUserLocation]     = useState<{ lat: number; lng: number } | null>(null)
@@ -211,7 +212,7 @@ export default function MapPage() {
     setMapZoom(13)
   }, [])
 
-  // ── Click a pin — pan map + scroll sidebar card into view ────────────
+  // ── Click a pin / business card ──────────────────────────────────────
   function handlePinClick(b: BusinessRow) {
     const newId = b.id === selectedId ? null : b.id
     setSelectedId(newId)
@@ -219,7 +220,11 @@ export default function MapPage() {
       setMapCenter({ lat: b.lat, lng: b.lng })
       setMapZoom(15)
     }
-    // Scroll the sidebar card into view
+    // On mobile: clicking a business card switches to map view to see the pin
+    if (newId && window.innerWidth < 768) {
+      setMobileView('map')
+    }
+    // On desktop: scroll the sidebar card into view
     if (newId) {
       setTimeout(() => {
         document.getElementById(`biz-${newId}`)?.scrollIntoView({
@@ -283,10 +288,10 @@ export default function MapPage() {
         {/* ── Content ── */}
         <div className="h-[calc(100vh-4rem)] relative">
           {view === 'map' ? (
-            <div className="h-full flex">
+            <div className="h-full flex flex-col md:flex-row">
 
-              {/* ── Google Map ── */}
-              <div className="relative flex-1">
+              {/* ── Google Map — hidden on mobile when list view active ── */}
+              <div className={`relative flex-1 ${mobileView === 'map' ? 'flex' : 'hidden'} md:flex flex-col`}>
                 <Map
                   mapId="markeetee-map"
                   defaultCenter={DEFAULT_CENTER}
@@ -387,8 +392,11 @@ export default function MapPage() {
                 )}
               </div>
 
-              {/* ── Left sidebar — business list ── */}
-              <div className="w-72 xl:w-80 flex-shrink-0 flex flex-col bg-white border-r border-gray-100 overflow-hidden">
+              {/* ── Left sidebar — hidden on mobile, always shown on desktop ── */}
+              <div className={`
+                w-full md:w-72 xl:w-80 flex-shrink-0 flex flex-col bg-white border-r border-gray-100 overflow-hidden
+                ${mobileView === 'list' ? 'flex' : 'hidden'} md:flex
+              `}>
 
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
@@ -489,8 +497,8 @@ export default function MapPage() {
               </div>
             </div>
 
-          ) : (
-            /* ── List view ── */
+          ) : ( <>
+            {/* ── List view ── */}
             <div className="overflow-y-auto h-full p-4">
               <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.length === 0 ? (
@@ -522,7 +530,40 @@ export default function MapPage() {
                 ))}
               </div>
             </div>
-          )}
+
+            {/* ── Mobile toggle bar — only visible on mobile ── */}
+            <div className="md:hidden flex-shrink-0 border-t border-gray-100 bg-white safe-area-bottom">
+              <div className="flex">
+                <button
+                  onClick={() => setMobileView('map')}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors"
+                  style={mobileView === 'map'
+                    ? { color: '#085041', borderBottom: '2px solid #1D9E75' }
+                    : { color: '#9CA3AF', borderBottom: '2px solid transparent' }
+                  }
+                >
+                  <MapIcon size={16} />
+                  Map
+                </button>
+                <button
+                  onClick={() => setMobileView('list')}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors"
+                  style={mobileView === 'list'
+                    ? { color: '#085041', borderBottom: '2px solid #1D9E75' }
+                    : { color: '#9CA3AF', borderBottom: '2px solid transparent' }
+                  }
+                >
+                  <List size={16} />
+                  Businesses
+                  {filtered.length > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: '#E1F5EE', color: '#085041' }}>
+                      {filtered.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </> )}
         </div>
       </div>
     </APIProvider>

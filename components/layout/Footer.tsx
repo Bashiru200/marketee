@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
+import CountriesBar from '@/components/ui/CountriesBar'
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -37,20 +38,10 @@ export default function Footer() {
 
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
-              </div>
-              <span className="font-bold text-xl text-gray-900">Markeetee</span>
-            </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-4">
               Africa is here. Find it. The African business directory for the diaspora.
             </p>
-            <div className="flex gap-2 text-lg">
-              {['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦'].map(f => (
-                <span key={f}>{f}</span>
-              ))}
-            </div>
+            <Image src="/Cartography_of_Africa.png" alt="Countries" width={200} height={100} />
           </div>
 
           {/* Link columns */}
@@ -73,8 +64,8 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-gray-400">
-            © {year} Markeetee · Solution Made for the African diaspora
+          <p className="text-xs text-gray-400 flex gap-2">
+            © {year} <span><Image src="/android-chrome-512x512.png" alt="Markeetee" width={15} height={15} /> </span>Markeetee · Solution Made for the African diaspora
           </p>
           <div className="flex items-center gap-4">
             <Link href="/terms"   className="text-xs text-gray-400 hover:text-green-600 transition-colors">Terms</Link>

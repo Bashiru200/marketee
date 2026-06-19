@@ -18,6 +18,56 @@ export const CATEGORIES = [
   { id: 'nightlife',  label: 'Bars & Nightlife'   },
 ]
 
+export const SUBCATEGORIES: Record<string, string[]> = {
+  food: [
+    'Grocery store', 'African market', 'Online grocery',
+    'Meal prep & delivery', 'Catering', 'Spices & herbs',
+    'Butcher / halal meat', 'Snacks & confectionery',
+  ],
+  restaurant: [
+    'Nigerian cuisine', 'Ghanaian cuisine', 'Ethiopian cuisine',
+    'Senegalese cuisine', 'Cameroonian cuisine', 'Pan-African',
+    'Fast food / takeaway', 'Fine dining', 'Café & brunch',
+    'Food truck', 'Suya & grills', 'Jollof & rice dishes',
+  ],
+  fashion: [
+    'African print / Ankara', 'Traditional attire', 'Ready-to-wear',
+    'Custom tailoring', 'Accessories & jewellery', 'Footwear',
+    'Online boutique', 'Fabric & textiles', 'Kids fashion',
+  ],
+  beauty: [
+    'Hair braiding', 'Locs & dreadlocks', 'Wigs & extensions',
+    'Natural hair salon', 'Barbershop', 'Nail technician',
+    'Skincare & facials', 'Makeup artistry', 'Spa & massage',
+  ],
+  herbs: [
+    'Traditional herbal medicine', 'Wellness supplements',
+    'Natural skincare products', 'Aromatherapy', 'Holistic therapy',
+    'African black soap', 'Shea butter & oils',
+  ],
+  music: [
+    'Afrobeats & Afropop', 'Highlife', 'Amapiano', 'Gospel',
+    'DJ services', 'Live band / performance', 'Music lessons',
+    'Recording studio', 'Event entertainment',
+  ],
+  crafts: [
+    'Home décor', 'African sculptures & art', 'Handmade jewellery',
+    'Pottery & ceramics', 'Kente & woven goods', 'Paintings & prints',
+    'Gift & souvenir shop', 'Interior design',
+  ],
+  services: [
+    'Accounting & tax', 'Legal services', 'Real estate',
+    'Immigration consultant', 'IT & tech support', 'Tutoring & education',
+    'Cleaning services', 'Photography', 'Event planning',
+    'Shipping & logistics', 'Financial services', 'Translation',
+  ],
+  nightlife: [
+    'African bar & lounge', 'Nightclub', 'Sports bar',
+    'Restaurant & bar combo', 'Live music venue', 'Shisha lounge',
+  ],
+}
+
+
 export const COUNTRIES = [
   { code:'NG',          flag:'🇳🇬', name:'Nigeria'                },
   { code:'GH',          flag:'🇬🇭', name:'Ghana'                  },
@@ -136,7 +186,7 @@ export default function BusinessDetailsForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Category *</label>
-          <select value={form.category} onChange={e => upd('category', e.target.value)} required
+          <select value={form.category} onChange={e => { upd('category', e.target.value); upd('subcategory', '') }} required
             className={inputCls}>
             <option value="">Select category</option>
             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
@@ -144,8 +194,27 @@ export default function BusinessDetailsForm({
         </div>
         <div>
           <label className={labelCls}>Subcategory <span className="font-normal normal-case text-gray-400">(optional)</span></label>
-          <input type="text" value={form.subcategory} onChange={e => upd('subcategory', e.target.value)}
-            placeholder="e.g. Nigerian cuisine" className={inputCls} />
+          {form.category && SUBCATEGORIES[form.category]?.length ? (
+            <select
+              value={form.subcategory}
+              onChange={e => upd('subcategory', e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Select subcategory</option>
+              {SUBCATEGORIES[form.category].map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={form.subcategory}
+              onChange={e => upd('subcategory', e.target.value)}
+              placeholder={form.category ? 'Enter subcategory' : 'Select a category first'}
+              disabled={!form.category}
+              className={`${inputCls} ${!form.category ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
+          )}
         </div>
       </div>
 
@@ -186,12 +255,12 @@ export default function BusinessDetailsForm({
         <div>
           <label className={labelCls}>State *</label>
           <input type="text" value={form.state} onChange={e => upd('state', e.target.value)}
-            placeholder="TX" required maxLength={2} className={inputCls} />
+            placeholder="State" required maxLength={2} className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>ZIP code <span className="font-normal normal-case text-gray-400">(optional)</span></label>
           <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-            placeholder="77001" maxLength={10} className={inputCls} />
+            placeholder="ZIP code" maxLength={10} className={inputCls} />
         </div>
       </div>
 
@@ -257,7 +326,7 @@ export default function BusinessDetailsForm({
         <div className="relative">
           <Tag size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input type="text" value={form.tags} onChange={e => upd('tags', e.target.value)}
-            placeholder="jollof, catering, halal" className={`${inputCls} pl-9`} />
+            placeholder="catering, hairdressing, afterhours" className={`${inputCls} pl-9`} />
         </div>
       </div>
 

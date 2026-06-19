@@ -6,6 +6,7 @@ import {
   Mail, Lock, Eye, EyeOff, User, Building2,
   MapPin, ChevronLeft, Check
 } from 'lucide-react'
+import CountriesBar from '@/components/ui/CountriesBar'
 import { createClient } from '@/lib/supabase/client'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
@@ -258,9 +259,7 @@ export default function SignupPage() {
                 </li>
               ))}
             </ul>
-            <div className="flex gap-2 mt-8 text-xl">
-              {['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦'].map(f => <span key={f}>{f}</span>)}
-            </div>
+            <CountriesBar />
           </div>
           <p className="text-xs" style={{ color: '#085041' }}>© 2025 Markeetee</p>
         </div>
