@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
-import SignupPage from '@/app/auth/signup/page'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 
 interface Props {
@@ -38,7 +37,7 @@ export default function ListBusinessButton({ className, style, children }: Props
       await supabase.from('profiles')
         .update({ role: 'owner' })
         .eq('id', user.id)
-      router.push('/businesses/new')
+      router.push('/business/new')
       router.refresh()
     }
 
