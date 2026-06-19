@@ -1,8 +1,7 @@
 import Link from 'next/link'
+import ListBusinessButton from '@/components/ui/ListBusinessButton'
 
 export const metadata = { title: 'About Markeetee' }
-
-export const dynamic = 'force-dynamic'
 
 export default function AboutPage() {
   const stats = [
@@ -41,7 +40,7 @@ export default function AboutPage() {
         <div className="space-y-4 text-gray-600 leading-relaxed">
           <p>Markeetee was born from a simple frustration shared by millions of Africans living in the United States — finding authentic African food, fashion, beauty services, and culture in a new city is harder than it should be.</p>
           <p>African-owned businesses exist in every major US city, but they're invisible online. They don't appear in general search results, they rely on word of mouth, and they lose customers every day simply because people can't find them.</p>
-          <p>We built Markeetee to change that. Starting immediately with all cities — we're creating the dedicated platform that African businesses deserve and that diaspora communities need.</p>
+          <p>We built Markeetee to change that. Starting in Houston, Texas — home to over 600,000 Nigerian-Americans — we're creating the dedicated platform that African businesses deserve and that diaspora communities need.</p>
         </div>
       </div>
 
@@ -61,9 +60,7 @@ export default function AboutPage() {
           <Link href="/search" className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl" style={{ background:'#1D9E75' }}>
             Explore businesses
           </Link>
-          <Link href="/auth/signup" className="inline-block text-sm font-semibold px-6 py-3 rounded-xl border border-gray-200 text-gray-700 hover:border-green-300 transition-colors">
-            List your business
-          </Link>
+          <ListBusinessButton className="inline-block text-sm font-semibold px-6 py-3 rounded-xl border border-gray-200 text-gray-700 hover:border-green-300 transition-colors" />
         </div>
       </div>
     </div>

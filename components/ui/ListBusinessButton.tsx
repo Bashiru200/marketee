@@ -7,8 +7,6 @@ import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 
-export const dynamic = 'force-dynamic'
-
 interface Props {
   className?: string
   style?:     React.CSSProperties
@@ -23,6 +21,8 @@ export default function ListBusinessButton({ className, style, children }: Props
   const [upgrading,   setUpgrading]   = useState(false)
 
   // ── Not logged in → go to signup ──────────────────────────────────────
+  // Label stays "List your business" — user hasn't signed up yet so this
+  // is the right call to action to attract them.
   if (!isLoggedIn) {
     return (
       <Link href="/auth/signup" className={className} style={style}>
@@ -31,7 +31,9 @@ export default function ListBusinessButton({ className, style, children }: Props
     )
   }
 
-  // ── Logged in as customer → upgrade to owner, then go add a business ──
+  // ── Logged in as customer → upgrade role then go to business form ─────
+  // Label changes to "Upgrade your business" since they already have an
+  // account — they're upgrading, not signing up for the first time.
   if (!isOwner) {
     async function handleUpgrade() {
       if (!user) return
@@ -39,7 +41,7 @@ export default function ListBusinessButton({ className, style, children }: Props
       await supabase.from('profiles')
         .update({ role: 'owner' })
         .eq('id', user.id)
-      router.push('/businesses/new')
+      router.push('/business/new')
       router.refresh()
     }
 
@@ -53,22 +55,24 @@ export default function ListBusinessButton({ className, style, children }: Props
       >
         {upgrading
           ? <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Setting up…</span>
-          : (children ?? 'List your business')
+          : (children ?? 'Upgrade your business')
         }
       </button>
     )
   }
 
-  // ── Logged in as owner, no business yet → go straight to setup form ──
+  // ── Owner, no business listed yet → go straight to setup form ─────────
+  // Label says "Add your business" — they're an owner but haven't listed
+  // their business yet, so "add" is more accurate than "list" or "upgrade".
   if (!profile?.business_id) {
     return (
-      <Link href="/businesses/new" className={className} style={style}>
-        {children ?? 'List your business'}
+      <Link href="/business/new" className={className} style={style}>
+        {children ?? 'Add your business'}
       </Link>
     )
   }
 
-  // ── Owner with a business, not premium → show upgrade modal ──────────
+  // ── Owner with a business, not premium → show upgrade modal ───────────
   const isPremium = (profile as any)?.premium === true
   if (!isPremium) {
     return (
@@ -91,7 +95,7 @@ export default function ListBusinessButton({ className, style, children }: Props
     )
   }
 
-  // ── Owner, has business, already premium → go to dashboard ───────────
+  // ── Owner, has business, already premium → go to dashboard ────────────
   return (
     <Link href="/dashboard" className={className} style={style}>
       {children ?? 'Go to dashboard'}

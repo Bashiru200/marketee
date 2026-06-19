@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import ListBusinessButton from '@/components/ui/ListBusinessButton'
 import {
   Search, Menu, X, MapPin, LayoutDashboard,
   User, Settings, LogOut, ChevronDown,
@@ -63,11 +64,9 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          {/* <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
-          </div> */}
-          <Image src="/android-chrome-512x512.png" alt="Markeetee" width={80} height={80} />
-            <span className="font-bold text-xl text-gray-900">Markeetee</span>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+            style={{ background: '#1D9E75' }}>M</div>
+          <span className="font-bold text-xl text-gray-900">Markeetee</span>
         </Link>
 
         {/* Desktop nav */}
@@ -143,6 +142,17 @@ export default function Navbar() {
                         {label}
                       </Link>
                     ))}
+                    {!isOwner && (
+                      <ListBusinessButton
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors text-left"
+                        style={{ color: '#085041' }}
+                      >
+                        <span className="flex items-center gap-3">
+                          <Building2 size={15} style={{ color: '#1D9E75' }} className="flex-shrink-0" />
+                          Upgrade your business
+                        </span>
+                      </ListBusinessButton>
+                    )}
                   </div>
 
                   {/* Sign out */}
@@ -228,6 +238,17 @@ export default function Navbar() {
                     <Icon size={14} className="text-gray-400" /> {label}
                   </Link>
                 ))}
+                {!isOwner && (
+                  <ListBusinessButton
+                    className="w-full flex items-center gap-2 py-2.5 text-sm font-medium border-b border-gray-50 text-left"
+                    style={{ color: '#085041' }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building2 size={14} style={{ color: '#1D9E75' }} />
+                      Upgrade your business
+                    </span>
+                  </ListBusinessButton>
+                )}
                 <button onClick={handleSignOut}
                   className="w-full flex items-center gap-2 py-2.5 text-sm text-red-500 mt-1">
                   <LogOut size={14} /> Sign out

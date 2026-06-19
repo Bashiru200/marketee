@@ -122,7 +122,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-     {/* ── Categories ── */}
+      {/* ── Categories ── */ }
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -153,9 +153,7 @@ export default async function HomePage() {
             <div className="text-center py-16 text-gray-400">
               <div className="text-5xl mb-4">🏪</div>
               <p className="text-sm mb-2">No featured businesses yet.</p>
-              <Link href="/auth/signup" className="text-sm font-medium" style={{ color:'#1D9E75' }}>
-                List your business →
-              </Link>
+              <ListBusinessButton className="text-sm font-medium" style={{ color:'#1D9E75' }} />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -234,11 +232,9 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <Link href="/auth/signup"
+            <ListBusinessButton
               className="mt-6 w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-3 rounded-xl hover:opacity-90 transition-opacity"
-              style={{ background:'#085041' }}>
-              List your business free →
-            </Link>
+              style={{ background:'#085041' }} />
           </div>
         </div>
       </section>
@@ -382,9 +378,7 @@ export default async function HomePage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <ListBusinessButton
                   className="inline-flex items-center justify-center gap-2 bg-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm"
-                  style={{ color:'#085041' }}>
-                  List your business — it&apos;s free
-                </ListBusinessButton>
+                  style={{ color:'#085041' }} />
                 <Link href="/how-it-works"
                   className="inline-flex items-center justify-center gap-2 border font-medium px-6 py-3 rounded-xl hover:opacity-80 transition-opacity text-sm"
                   style={{ borderColor:'rgba(255,255,255,0.3)', color:'#9FE1CB' }}>

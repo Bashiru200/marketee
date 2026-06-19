@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import ListBusinessButton from '@/components/ui/ListBusinessButton'
 
 export const metadata = { title: 'How Markeetee Works' }
 
@@ -64,15 +65,14 @@ export default function HowItWorksPage() {
           ))}
         </div>
         <div className="mt-6 text-center">
-          <Link href="/auth/signup" className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl" style={{ background:'#085041' }}>
-            List your business free →
-          </Link>
+          <ListBusinessButton className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl" style={{ background:'#085041' }} />
         </div>
       </div>
 
       {/* Pricing */}
       <div className="rounded-2xl p-8 text-center" style={{ background:'#f0faf6' }}>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Free to list. Upgrade when you're ready to grow</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Simple, transparent pricing</h2>
+        <p className="text-gray-500 mb-6">Free to list. Upgrade when you're ready to grow.</p>
         <div className="flex flex-wrap justify-center gap-4">
           {[['Free','$0/mo','Basic listing, map pin, contact info'],['Premium','$29/mo','Photos, featured placement, products'],['Storefront','$49/mo','Online enquiry, WhatsApp, custom URL']].map(([name,price,desc]) => (
             <div key={name} className="bg-white rounded-xl border border-gray-100 p-5 text-left min-w-48">
