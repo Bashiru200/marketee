@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 import { BusinessRow } from '@/lib/queries'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!
 
 // Houston, TX default center
