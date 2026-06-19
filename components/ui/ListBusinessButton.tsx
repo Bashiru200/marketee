@@ -7,6 +7,8 @@ import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   className?: string
   style?:     React.CSSProperties

@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const FAQS = [
   {
     section: 'For customers',

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Check, MapPin, User } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 const INTERESTS = [
   { icon:'🍲', label:'Food & Groceries' }, { icon:'🍽️', label:'Restaurants' },
   { icon:'👗', label:'Fashion & Fabric' }, { icon:'💆', label:'Beauty & Hair' },

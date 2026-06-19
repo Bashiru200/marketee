@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 export const metadata = { title: 'About Markeetee' }
 
+export const dynamic = 'force-dynamic'
+
 export default function AboutPage() {
   const stats = [
     { num: '420+', label: 'African businesses' },

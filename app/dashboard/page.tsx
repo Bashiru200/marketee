@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth'
 import ImageUpload from '@/components/ui/ImageUpload'
 
 export const dynamic = 'force-dynamic'
+
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 
 const CATEGORIES = [
