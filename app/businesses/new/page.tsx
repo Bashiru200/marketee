@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2, Check, Building2 } from 'lucide-react'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM,
-} from '@/components/businesses/BusinessDetailsForm'
+} from '@/components/business/BusinessDetailsForm'
 
 function NewBusinessContent() {
   const router   = useRouter()

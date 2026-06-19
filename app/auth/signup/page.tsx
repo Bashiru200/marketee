@@ -9,7 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
-} from '@/components/businesses/BusinessDetailsForm'
+} from '@/components/business/BusinessDetailsForm'
 
 type Role = 'customer' | 'owner' | null
 type Step = 0 | 1 | 2 | 3
