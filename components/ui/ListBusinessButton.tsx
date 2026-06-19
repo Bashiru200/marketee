@@ -37,7 +37,7 @@ export default function ListBusinessButton({ className, style, children }: Props
       await supabase.from('profiles')
         .update({ role: 'owner' })
         .eq('id', user.id)
-      router.push('/business/new')
+      router.push('/businesses/new')
       router.refresh()
     }
 
