@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/auth'
 import AnnouncementBanner  from '@/components/ui/AnnouncementBanner'
 import MobileBottomNav     from '@/components/ui/MobileBottomNav'
 import LocationPrompt      from '@/components/ui/LocationPrompt'
+import CookieBanner from '@/components/ui/CookieBanner'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
 
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <FooterWrapper />
           <MobileBottomNav />
           <LocationPrompt />
+          <CookieBanner />
         </AuthProvider>
       </body>
     </html>

@@ -163,7 +163,7 @@ export default function HeroSlideshow() {
           style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.25)' }}
         >
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          Now live in Houston, TX · More cities coming soon
+          Now live · 
         </div>
 
         {/* Main headline */}
@@ -180,9 +180,8 @@ export default function HeroSlideshow() {
           className="text-xl mb-10 max-w-2xl leading-relaxed"
           style={{ color: 'rgba(255,255,255,0.85)', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}
         >
-          Discover Nigerian, Ghanaian, Kenyan and more African-owned
-          grocery stores, restaurants, fashion, beauty salons, and services
-          — all in one place.
+          Discover African-owned grocery stores, restaurants, fashion, 
+          beauty salons, and more — all in one place.
         </p>
 
         {/* Search bar */}

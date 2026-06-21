@@ -82,7 +82,7 @@ export default async function HomePage() {
 
   const STATS = [
     { num: totalBiz   > 0 ? `${totalBiz}+`   : '420+', label:'African businesses' },
-    { num: '6',                                          label:'US cities'         },
+    { num: '2',                                          label:'US cities'         },
     { num: '54',                                         label:'Countries'         },
     { num: totalUsers > 0 ? `${totalUsers.toLocaleString()}+` : '12k+', label:'Diaspora users' },
   ]
