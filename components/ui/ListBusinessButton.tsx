@@ -20,9 +20,7 @@ export default function ListBusinessButton({ className, style, children }: Props
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [upgrading,   setUpgrading]   = useState(false)
 
-  // ── Not logged in → go to signup ──────────────────────────────────────
-  // Label stays "List your business" — user hasn't signed up yet so this
-  // is the right call to action to attract them.
+  // ── Not logged in → go to signup ──
   if (!isLoggedIn) {
     return (
       <Link href="/auth/signup" className={className} style={style}>
@@ -41,7 +39,7 @@ export default function ListBusinessButton({ className, style, children }: Props
       await supabase.from('profiles')
         .update({ role: 'owner' })
         .eq('id', user.id)
-      router.push('/business/new')
+      router.push('/businesses/new')
       router.refresh()
     }
 

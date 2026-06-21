@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import CountriesBar from '@/components/ui/CountriesBar'
 import { createClient } from '@/lib/supabase/client'
+import { useFormValidation, validators } from '@/lib/useFormValidation'
+import FieldError from '@/components/ui/FieldError'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
 } from '@/components/business/BusinessDetailsForm'
@@ -46,6 +48,14 @@ export default function SignupPage() {
 
   function upd(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
 
+  // ── Form validation — inline UI errors instead of native browser popups ──
+  const { errors, validate, validateAll, clearError } = useFormValidation({
+    name:            { required: true, label: 'Full name' },
+    email:           { required: true, label: 'Email address', validator: validators.email },
+    password:        { required: true, label: 'Password', validator: validators.minLength(8, 'Password') },
+    confirmPassword: { required: true, label: 'Confirm password' },
+  })
+
   function toggleInterest(label: string) {
     setInterests(p => p.includes(label) ? p.filter(i => i !== label) : [...p, label])
   }
@@ -82,6 +92,23 @@ export default function SignupPage() {
   async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    // Run all field validations — populates inline UI errors, no native popups
+    const isValid = validateAll({
+      name:            form.name,
+      email:           form.email,
+      password:        form.password,
+      confirmPassword: form.confirmPassword,
+    })
+
+    if (!isValid) return
+
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    setLoading(true)
 
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match')

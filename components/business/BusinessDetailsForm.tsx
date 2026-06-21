@@ -5,6 +5,8 @@ import {
   Tag, DollarSign, Clock, Image as ImageIcon
 } from 'lucide-react'
 import ImageUpload from '@/components/ui/ImageUpload'
+import { useFormValidation } from '@/lib/useFormValidation'
+import FieldError from '@/components/ui/FieldError'
 
 export const CATEGORIES = [
   { id: 'food',       label: 'Food & Groceries'  },
@@ -142,6 +144,16 @@ export default function BusinessDetailsForm({
     setForm(f => ({ ...f, [key]: value }))
   }
 
+  // ── Inline UI validation — no native browser popups ─────────────────────
+  const { errors, validate, validateAll, clearError } = useFormValidation({
+    name:     { required: true, label: 'Business name' },
+    category: { required: true, label: 'Category' },
+    country:  { required: true, label: 'Country of origin' },
+    city:     { required: true, label: 'City' },
+    state:    { required: true, label: 'State' },
+    phone:    { required: true, label: 'Phone number' },
+  })
+
   function toggleDay(day: string) {
     setForm(f => ({
       ...f,
@@ -153,6 +165,11 @@ export default function BusinessDetailsForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const isValid = validateAll({
+      name: form.name, category: form.category, country: form.country,
+      city: form.city, state: form.state, phone: form.phone,
+    })
+    if (!isValid) return
     onSubmit(form)
   }
 
@@ -178,19 +195,25 @@ export default function BusinessDetailsForm({
         <label className={labelCls}>Business name *</label>
         <div className="relative">
           <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input type="text" value={form.name} onChange={e => upd('name', e.target.value)}
-            placeholder="Enter your business name" required className={`${inputCls} pl-9`} />
+          <input type="text" value={form.name}
+            onChange={e => { upd('name', e.target.value); clearError('name') }}
+            onBlur={() => validate('name', form.name)}
+            placeholder="Enter your business name" className={`${inputCls} pl-9`} />
         </div>
+        {errors.name && <FieldError message={errors.name} />}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Category *</label>
-          <select value={form.category} onChange={e => { upd('category', e.target.value); upd('subcategory', '') }} required
+          <select value={form.category}
+            onChange={e => { upd('category', e.target.value); upd('subcategory', ''); clearError('category') }}
+            onBlur={() => validate('category', form.category)}
             className={inputCls}>
             <option value="">Select category</option>
             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
+          {errors.category && <FieldError message={errors.category} />}
         </div>
         <div>
           <label className={labelCls}>Subcategory <span className="font-normal normal-case text-gray-400">(optional)</span></label>
@@ -227,11 +250,14 @@ export default function BusinessDetailsForm({
 
       <div>
         <label className={labelCls}>Country of origin *</label>
-        <select value={form.country} onChange={e => upd('country', e.target.value)} required
+        <select value={form.country}
+          onChange={e => { upd('country', e.target.value); clearError('country') }}
+          onBlur={() => validate('country', form.country)}
           className={inputCls}>
           <option value="">Select country</option>
           {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
         </select>
+        {errors.country && <FieldError message={errors.country} />}
       </div>
 
       {/* ══════════ Location ══════════ */}
@@ -249,18 +275,24 @@ export default function BusinessDetailsForm({
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-1">
           <label className={labelCls}>City *</label>
-          <input type="text" value={form.city} onChange={e => upd('city', e.target.value)}
-            placeholder="City" required className={inputCls} />
+          <input type="text" value={form.city}
+            onChange={e => { upd('city', e.target.value); clearError('city') }}
+            onBlur={() => validate('city', form.city)}
+            placeholder="City" className={inputCls} />
+          {errors.city && <FieldError message={errors.city} />}
         </div>
         <div>
           <label className={labelCls}>State *</label>
-          <input type="text" value={form.state} onChange={e => upd('state', e.target.value)}
-            placeholder="State" required maxLength={2} className={inputCls} />
+          <input type="text" value={form.state}
+            onChange={e => { upd('state', e.target.value); clearError('state') }}
+            onBlur={() => validate('state', form.state)}
+            placeholder="TX" maxLength={2} className={inputCls} />
+          {errors.state && <FieldError message={errors.state} />}
         </div>
         <div>
           <label className={labelCls}>ZIP code <span className="font-normal normal-case text-gray-400">(optional)</span></label>
           <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-            placeholder="ZIP code" maxLength={10} className={inputCls} />
+            placeholder="77001" maxLength={10} className={inputCls} />
         </div>
       </div>
 
@@ -271,9 +303,12 @@ export default function BusinessDetailsForm({
         <label className={labelCls}>Phone number *</label>
         <div className="relative">
           <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)}
-            placeholder="Used for WhatsApp & calls" required className={`${inputCls} pl-9`} />
+          <input type="tel" value={form.phone}
+            onChange={e => { upd('phone', e.target.value); clearError('phone') }}
+            onBlur={() => validate('phone', form.phone)}
+            placeholder="Used for WhatsApp & calls" className={`${inputCls} pl-9`} />
         </div>
+        {errors.phone && <FieldError message={errors.phone} />}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -326,7 +361,7 @@ export default function BusinessDetailsForm({
         <div className="relative">
           <Tag size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input type="text" value={form.tags} onChange={e => upd('tags', e.target.value)}
-            placeholder="catering, hairdressing, afterhours" className={`${inputCls} pl-9`} />
+            placeholder="jollof, catering, halal" className={`${inputCls} pl-9`} />
         </div>
       </div>
 
