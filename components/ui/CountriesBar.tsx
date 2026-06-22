@@ -10,17 +10,14 @@ interface AfricaShapeProps {
 function AfricaShape({ className, style }: AfricaShapeProps) {
   return (
     <Image
-      src="/Cartography_of_Africa.png"
-      alt="Africa continent"
-      width={200}
-      height={240}
-      className={className}
-      style={{
-        height: 'auto',
-        ...style,
-      }}
-      priority
-    />
+    src="/Cartography_of_Africa.png"
+    alt="Africa continent"
+    width={200}
+    height={240}
+    className="w-24 h-auto"
+    style={style}
+    priority
+  />
   )
 }
 

@@ -29,6 +29,9 @@ interface Product {
   image_url:    string | null
   available:    boolean
   business_id:  string
+  like_count?:   number
+  rating_avg?:   number
+  rating_count?: number
   businesses: {
     id:          string
     name:        string
@@ -40,6 +43,9 @@ interface Product {
     category:    string | null
   } | null
 }
+
+import ProductModal from '@/components/ui/ProductModal'
+import { Heart } from 'lucide-react'
 
 type SearchTab = 'businesses' | 'products'
 
@@ -152,7 +158,7 @@ function BizCard({ b }: { b: Business }) {
 
 
 // ── Product card ──────────────────────────────────────────────────────────
-function ProductCard({ p }: { p: Product }) {
+function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }) {
   const waMsg = p.businesses?.phone
     ? encodeURIComponent(`Hi ${p.businesses.name}! I'm interested in "${p.name}" ($${p.price?.toFixed(2)}) — is it available?`)
     : null
@@ -161,7 +167,8 @@ function ProductCard({ p }: { p: Product }) {
     : null
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col">
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col cursor-pointer"
+      onClick={() => onOpen(p)}>
       {/* Product image */}
       <div className="relative h-44 overflow-hidden bg-gray-50">
         {p.image_url ? (
@@ -179,6 +186,23 @@ function ProductCard({ p }: { p: Product }) {
             </span>
           </div>
         )}
+        {/* Likes + rating overlay */}
+        {((p.like_count ?? 0) > 0 || (p.rating_count ?? 0) > 0) && (
+          <div className="absolute bottom-2 left-2 flex gap-1.5">
+            {(p.rating_count ?? 0) > 0 && (
+              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full">
+                <Star size={10} fill="#F59E0B" style={{ color: '#F59E0B' }} />
+                <span className="text-[10px] font-semibold text-gray-700">{p.rating_avg?.toFixed(1)}</span>
+              </div>
+            )}
+            {(p.like_count ?? 0) > 0 && (
+              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full">
+                <Heart size={10} fill="#D4537E" style={{ color: '#D4537E' }} />
+                <span className="text-[10px] font-semibold text-gray-700">{p.like_count}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Info */}
@@ -194,6 +218,7 @@ function ProductCard({ p }: { p: Product }) {
         {/* Business info */}
         {p.businesses && (
           <Link href={`/businesses/${p.businesses.id}`}
+            onClick={e => e.stopPropagation()}
             className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 hover:opacity-80 transition-opacity">
             {p.businesses.cover_image ? (
               <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
@@ -226,12 +251,14 @@ function ProductCard({ p }: { p: Product }) {
         <div className="mt-3 flex gap-2">
           {waUrl ? (
             <a href={waUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
               className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-white py-2 rounded-lg hover:opacity-90 transition-opacity"
               style={{ background:'#25D366' }}>
               💬 Enquire
             </a>
           ) : (
             <Link href={`/businesses/${p.business_id}`}
+              onClick={e => e.stopPropagation()}
               className="flex-1 flex items-center justify-center text-xs font-semibold text-white py-2 rounded-lg hover:opacity-90 transition-opacity"
               style={{ background:'#1D9E75' }}>
               View store
@@ -240,7 +267,8 @@ function ProductCard({ p }: { p: Product }) {
         </div>
       </div>
     </div>
-  )}
+  )
+}
 
 // ── Main component ────────────────────────────────────────────────────────
 export default function SearchClient({
@@ -264,6 +292,7 @@ export default function SearchClient({
 
   // Product state
   const [products,      setProducts]      = useState<Product[]>([])
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [productTotal,  setProductTotal]  = useState(0)
   const [productPage,   setProductPage]   = useState(0)
   const [productHasMore,setProductHasMore]= useState(false)
@@ -349,6 +378,7 @@ export default function SearchClient({
       .from('products')
       .select(`
         id, name, price, description, image_url, available, business_id,
+        like_count, rating_avg, rating_count,
         businesses(id, name, city, state, cover_image, verified, phone, category)
       `, { count:'exact' })
       .eq('available', true)
@@ -466,7 +496,7 @@ export default function SearchClient({
           />
           {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400" /></button>}
         </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm sm:w-52">
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm sm:w-58">
           <MapPin size={14} style={{ color:'#1D9E75' }} className="flex-shrink-0" />
           <input
             value={city}
@@ -549,7 +579,7 @@ export default function SearchClient({
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map(p => <ProductCard key={p.id} p={p} />)}
+                {products.map(p => <ProductCard key={p.id} p={p} onOpen={setSelectedProduct} />)}
               </div>
               <div ref={productSentinelRef} className="h-10 flex items-center justify-center mt-8">
                 {productLoadingMore && (
@@ -735,7 +765,16 @@ export default function SearchClient({
           </div>
         </>
       )}
-      </>)}
-    </div>
+
+      {/* Product detail modal — opens on product card click */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          businessName={selectedProduct.businesses?.name ?? 'this business'}
+          businessPhone={selectedProduct.businesses?.phone ?? null}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}      </>
+      )}    </div>
   )
 }

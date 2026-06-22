@@ -1,22 +1,26 @@
 /// <reference types="google.maps" />
-
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   APIProvider, Map, AdvancedMarker, Pin,
   InfoWindow, useMap, useMapsLibrary
 } from '@vis.gl/react-google-maps'
-import { Search, X, MapPin, List, LayoutGrid, Loader2, Navigation, Map as MapIcon } from 'lucide-react'
+import { Search, X, MapPin, List, LayoutGrid, Loader2, Navigation } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { BusinessRow } from '@/lib/queries'
 import Link from 'next/link'
+import { getHoursStatus } from '@/lib/businessHours'
+import HoursBadge from '@/components/ui/HoursBadge'
 
-export const dynamic = 'force-dynamic'
+type BusinessRowWithHours = BusinessRow & {
+  hours_open?: string | null
+  days_open?: string[] | null
+}
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!
 
 // Houston, TX default center
-const DEFAULT_CENTER = { lat: 37.0902, lng: -95.7129 }
+const DEFAULT_CENTER = { lat: 29.7604, lng: -95.3698 }
 const DEFAULT_ZOOM   = 11
 
 // Haversine formula — distance in miles between two lat/lng points
@@ -125,13 +129,12 @@ function MapController({ center, zoom }: { center: google.maps.LatLngLiteral; zo
 export default function MapPage() {
   const supabase = createClient()
 
-  const [businesses,       setBusinesses]       = useState<BusinessRow[]>([])
+  const [businesses,       setBusinesses]       = useState<BusinessRowWithHours[]>([])
   const [loading,          setLoading]          = useState(true)
   const [selectedId,       setSelectedId]       = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [search,           setSearch]           = useState('')
   const [view,             setView]             = useState<'map' | 'list'>('map')
-  const [mobileView,       setMobileView]       = useState<'map' | 'list'>('map')
   const [mapCenter,        setMapCenter]        = useState(DEFAULT_CENTER)
   const [mapZoom,          setMapZoom]          = useState(DEFAULT_ZOOM)
   const [userLocation,     setUserLocation]     = useState<{ lat: number; lng: number } | null>(null)
@@ -220,10 +223,6 @@ export default function MapPage() {
       setMapCenter({ lat: b.lat, lng: b.lng })
       setMapZoom(15)
     }
-    // On mobile: clicking a business card switches to map view to see the pin
-    if (newId && window.innerWidth < 768) {
-      setMobileView('map')
-    }
     // On desktop: scroll the sidebar card into view
     if (newId) {
       setTimeout(() => {
@@ -288,10 +287,10 @@ export default function MapPage() {
         {/* ── Content ── */}
         <div className="h-[calc(100vh-4rem)] relative">
           {view === 'map' ? (
-            <div className="h-full flex flex-col md:flex-row">
+            <div className="h-full flex flex-col md:flex-row overflow-hidden">
 
               {/* ── Google Map — hidden on mobile when list view active ── */}
-              <div className={`relative flex-1 ${mobileView === 'map' ? 'flex' : 'hidden'} md:flex flex-col`}>
+              <div className="relative h-64 sm:h-80 md:h-full md:flex-1 flex flex-col">
                 <Map
                   mapId="markeetee-map"
                   defaultCenter={DEFAULT_CENTER}
@@ -346,15 +345,29 @@ export default function MapPage() {
                         <p style={{ fontWeight: 700, fontSize: '14px', margin: '0 0 4px', color: '#111827' }}>
                           {selected.name}
                         </p>
-                        <p style={{ fontSize: '11px', color: '#6B7280', margin: '0 0 2px' }}>
+                        <p style={{ fontSize: '11px', color: '#6B7280', margin: '0 0 4px' }}>
                           {selected.city}{selected.state ? `, ${selected.state}` : ''}
                         </p>
                         {selected.rating > 0 && (
-                          <p style={{ fontSize: '11px', color: '#F59E0B', margin: '0 0 10px' }}>
+                          <p style={{ fontSize: '11px', color: '#F59E0B', margin: '0 0 6px' }}>
                             {'★'.repeat(Math.round(selected.rating))} {selected.rating.toFixed(1)}
                             <span style={{ color: '#6B7280' }}> ({selected.review_count})</span>
                           </p>
                         )}
+                        {/* Hours status */}
+                        {('hours_open' in selected) && selected.hours_open ? (() => {
+                          const h = getHoursStatus(String(selected.hours_open), (selected as any).days_open)
+                          if (h.status === 'unknown') return null
+                          const color = h.status === 'open' ? '#085041' : h.status === 'closing_soon' ? '#92400E' : '#6B7280'
+                          const bg    = h.status === 'open' ? '#f0faf6' : h.status === 'closing_soon' ? '#FEF3C7' : '#F9FAFB'
+                          const dot   = h.status === 'open' ? '#1D9E75' : h.status === 'closing_soon' ? '#F59E0B' : '#D1D5DB'
+                          return (
+                            <p style={{ fontSize: '11px', margin: '0 0 10px', display: 'inline-flex', alignItems: 'center', gap: '5px', background: bg, color, padding: '3px 8px', borderRadius: '20px', fontWeight: 500 }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
+                              {h.label}
+                            </p>
+                          )
+                        })() : null}
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <a href={`/businesses/${selected.id}`}
                             style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
@@ -392,11 +405,8 @@ export default function MapPage() {
                 )}
               </div>
 
-              {/* ── Left sidebar — hidden on mobile, always shown on desktop ── */}
-              <div className={`
-                w-full md:w-72 xl:w-80 flex-shrink-0 flex flex-col bg-white border-r border-gray-100 overflow-hidden
-                ${mobileView === 'list' ? 'flex' : 'hidden'} md:flex
-              `}>
+              {/* ── Left sidebar — below map on mobile, left column on desktop ── */}
+              <div className="flex-1 md:flex-none w-full md:w-72 xl:w-80 md:flex-shrink-0 flex flex-col bg-white border-t md:border-t-0 md:border-r border-gray-100 overflow-hidden">
 
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
@@ -481,6 +491,11 @@ export default function MapPage() {
                                 📍 {b.city}{b.state ? `, ${b.state}` : ''}
                               </p>
                             )}
+                            {b.hours_open && (
+                              <div className="mt-1">
+                                <HoursBadge hoursOpen={b.hours_open} daysOpen={b.days_open} />
+                              </div>
+                            )}
                           </div>
 
                           {/* Arrow indicator when selected */}
@@ -497,8 +512,8 @@ export default function MapPage() {
               </div>
             </div>
 
-          ) : ( <>
-            {/* ── List view ── */}
+          ) : (
+            /* ── List view ── */
             <div className="overflow-y-auto h-full p-4">
               <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.length === 0 ? (
@@ -531,39 +546,7 @@ export default function MapPage() {
               </div>
             </div>
 
-            {/* ── Mobile toggle bar — only visible on mobile ── */}
-            <div className="md:hidden flex-shrink-0 border-t border-gray-100 bg-white safe-area-bottom">
-              <div className="flex">
-                <button
-                  onClick={() => setMobileView('map')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors"
-                  style={mobileView === 'map'
-                    ? { color: '#085041', borderBottom: '2px solid #1D9E75' }
-                    : { color: '#9CA3AF', borderBottom: '2px solid transparent' }
-                  }
-                >
-                  <MapIcon size={16} />
-                  Map
-                </button>
-                <button
-                  onClick={() => setMobileView('list')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors"
-                  style={mobileView === 'list'
-                    ? { color: '#085041', borderBottom: '2px solid #1D9E75' }
-                    : { color: '#9CA3AF', borderBottom: '2px solid transparent' }
-                  }
-                >
-                  <List size={16} />
-                  Businesses
-                  {filtered.length > 0 && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: '#E1F5EE', color: '#085041' }}>
-                      {filtered.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </> )}
+          )}
         </div>
       </div>
     </APIProvider>

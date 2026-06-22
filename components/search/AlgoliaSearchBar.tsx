@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { algoliasearch } from 'algoliasearch'
-import { Search, X, Star, Loader2, MapPin } from 'lucide-react'
+import { Search, X, Star, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 const client = algoliasearch(
@@ -46,7 +46,7 @@ interface Hit {
 export default function AlgoliaSearchBar() {
   const router     = useRouter()
   const [query,    setQuery]    = useState('')
-  const [location, setLocation] = useState('')
+  const [loc,      setLocation] = useState('')
   const [hits,     setHits]     = useState<Hit[]>([])
   const [loading,  setLoading]  = useState(false)
   const [open,     setOpen]     = useState(false)
@@ -64,15 +64,14 @@ export default function AlgoliaSearchBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Debounced search — fires when query OR location changes
+  // Debounced search — fires when query changes
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current)
-    if (!query.trim() && !location.trim()) { setHits([]); setOpen(false); return }
+    if (!query.trim()) { setHits([]); setOpen(false); return }
 
     debounce.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const loc     = location.trim()
         const filters = loc
           ? `city:"${loc}" OR state:"${loc}" OR zip:"${loc}"`
           : undefined
@@ -97,13 +96,12 @@ export default function AlgoliaSearchBar() {
         setLoading(false)
       }
     }, 250)
-  }, [query, location])
+  }, [query])
 
   // Build search URL with both params
   function buildHref() {
     const params = new URLSearchParams()
     if (query.trim())    params.set('q',    query.trim())
-    if (location.trim()) params.set('city', location.trim())
     const qs = params.toString()
     return qs ? `/search?${qs}` : '/search'
   }
@@ -148,26 +146,6 @@ export default function AlgoliaSearchBar() {
           )}
         </div>
 
-        {/* Divider */}
-        <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
-
-        {/* Location */}
-        <div className="flex items-center gap-2 px-3 py-3 w-44 flex-shrink-0">
-          <MapPin size={15} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-          <input
-            type="text"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="City, state or zip"
-            className="flex-1 text-sm text-gray-700 outline-none bg-transparent placeholder-gray-400 min-w-0"
-          />
-          {location && (
-            <button onClick={() => setLocation('')} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-              <X size={13} />
-            </button>
-          )}
-        </div>
 
         {/* Search button */}
         <Link
@@ -224,7 +202,7 @@ export default function AlgoliaSearchBar() {
             <p className="text-xs text-gray-400">
               {hits.length} result{hits.length !== 1 ? 's' : ''}
               {query    && ` for "${query}"`}
-              {location && ` in ${location}`}
+
             </p>
             <Link
               href={buildHref()}
@@ -239,12 +217,11 @@ export default function AlgoliaSearchBar() {
       )}
 
       {/* No results */}
-      {open && (query || location) && hits.length === 0 && !loading && (
+      {open && query && hits.length === 0 && !loading && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 px-4 py-6 text-center z-50">
           <p className="text-sm text-gray-500 mb-1">
             No results
             {query    && ` for "${query}"`}
-            {location && ` in ${location}`}
           </p>
           <p className="text-xs text-gray-400">Try a different keyword or location</p>
         </div>

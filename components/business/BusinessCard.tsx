@@ -39,7 +39,11 @@ interface Business {
   lat?: number | null
   lng?: number | null
   country?: string | null
+  hours_open?: string | null
+  days_open?:  string[] | null
 }
+
+import HoursBadge from '@/components/ui/HoursBadge'
 
 export default function BusinessCard({ business: b }: { business: Business }) {
   const grad = GRADIENTS[b.category ?? ''] || GRADIENTS.services

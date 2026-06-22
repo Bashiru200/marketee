@@ -1,48 +1,27 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
-type Validator = (value: string) => string | null // returns error message or null if valid
+type Validator = (value: string) => string | null
 
 interface FieldConfig {
   required?:  boolean
   validator?: Validator
-  label?:     string // used in default required message, e.g. "Email is required"
+  label?:     string
 }
 
-/**
- * Lightweight form validation hook that replaces the browser's native
- * "Please fill out this field" tooltips with inline UI error messages.
- *
- * Usage:
- *   const { errors, validate, validateAll, clearError } = useFormValidation({
- *     email:    { required: true, label: 'Email' },
- *     password: { required: true, label: 'Password',
- *                 validator: v => v.length < 8 ? 'Password must be at least 8 characters' : null },
- *   })
- *
- *   // On submit, instead of relying on <input required>:
- *   function handleSubmit(e) {
- *     e.preventDefault()
- *     if (!validateAll(form)) return // errors are now populated, UI shows them
- *     // ...proceed
- *   }
- *
- *   // On the input itself (no `required` attribute, no native popups):
- *   <input
- *     value={form.email}
- *     onChange={e => { upd('email', e.target.value); clearError('email') }}
- *     onBlur={() => validate('email', form.email)}
- *   />
- *   {errors.email && <FieldError message={errors.email} />}
- */
 export function useFormValidation(config: Record<string, FieldConfig>) {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  function validate(field: string, value: string): boolean {
-    const cfg = config[field]
+  // Keep config in a ref so callbacks never go stale even as the component re-renders
+  const configRef = useRef(config)
+  configRef.current = config
+
+  
+  const validate = useCallback((field: string, value: string): boolean => {
+    const cfg = configRef.current[field]
     if (!cfg) return true
 
-    const trimmed = value?.trim() ?? ''
+    const trimmed = (value ?? '').trim()
 
     if (cfg.required && !trimmed) {
       setErrors(e => ({ ...e, [field]: `${cfg.label ?? field} is required` }))
@@ -57,30 +36,33 @@ export function useFormValidation(config: Record<string, FieldConfig>) {
       }
     }
 
+    // Field is valid — clear any existing error
     setErrors(e => {
+      if (!e[field]) return e
       const next = { ...e }
       delete next[field]
       return next
     })
     return true
-  }
+  }, [])
 
-  function validateAll(values: Record<string, string>): boolean {
+  const validateAll = useCallback((values: Record<string, string>): boolean => {
+    const cfg = configRef.current
     let allValid = true
     const newErrors: Record<string, string> = {}
 
-    for (const field of Object.keys(config)) {
-      const cfg = config[field]
+    for (const field of Object.keys(cfg)) {
+      const fieldCfg = cfg[field]
       const value = (values[field] ?? '').trim()
 
-      if (cfg.required && !value) {
-        newErrors[field] = `${cfg.label ?? field} is required`
+      if (fieldCfg.required && !value) {
+        newErrors[field] = `${fieldCfg.label ?? field} is required`
         allValid = false
         continue
       }
 
-      if (cfg.validator) {
-        const result = cfg.validator(value)
+      if (fieldCfg.validator) {
+        const result = fieldCfg.validator(value)
         if (result) {
           newErrors[field] = result
           allValid = false
@@ -90,20 +72,20 @@ export function useFormValidation(config: Record<string, FieldConfig>) {
 
     setErrors(newErrors)
     return allValid
-  }
+  }, [])
 
-  function clearError(field: string) {
+  const clearError = useCallback((field: string) => {
     setErrors(e => {
       if (!e[field]) return e
       const next = { ...e }
       delete next[field]
       return next
     })
-  }
+  }, [])
 
-  function clearAll() {
+  const clearAll = useCallback(() => {
     setErrors({})
-  }
+  }, [])
 
   return { errors, validate, validateAll, clearError, clearAll }
 }
@@ -123,7 +105,7 @@ export const validators = {
     v !== otherValue ? message : null,
 
   url: (v: string) => {
-    if (!v) return null // optional field
+    if (!v) return null
     try { new URL(v); return null } catch { return 'Enter a valid URL (include https://)' }
   },
 }

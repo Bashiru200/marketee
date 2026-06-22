@@ -6,10 +6,9 @@ import {
   Mail, Lock, Eye, EyeOff, User, Building2,
   MapPin, ChevronLeft, Check
 } from 'lucide-react'
-import CountriesBar from '@/components/ui/CountriesBar'
 import { createClient } from '@/lib/supabase/client'
-import { useFormValidation, validators } from '@/lib/useFormValidation'
 import FieldError from '@/components/ui/FieldError'
+import CountriesBar from '@/components/ui/CountriesBar'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
 } from '@/components/business/BusinessDetailsForm'
@@ -48,13 +47,43 @@ export default function SignupPage() {
 
   function upd(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
 
-  // ── Form validation — inline UI errors instead of native browser popups ──
-  const { errors, validate, validateAll, clearError } = useFormValidation({
-    name:            { required: true, label: 'Full name' },
-    email:           { required: true, label: 'Email address', validator: validators.email },
-    password:        { required: true, label: 'Password', validator: validators.minLength(8, 'Password') },
-    confirmPassword: { required: true, label: 'Confirm password' },
-  })
+  // ── Inline field errors — no native browser popups ──────────────────────
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  function setFieldError(field: string, msg: string) {
+    setFieldErrors(e => ({ ...e, [field]: msg }))
+  }
+  function clearError(field: string) {
+    setFieldErrors(e => { const n = { ...e }; delete n[field]; return n })
+  }
+  function validateField(field: string, value: string): boolean {
+    const v = value.trim()
+    if (field === 'name' && !v)
+      { setFieldError('name', 'Full name is required'); return false }
+    if (field === 'email') {
+      if (!v) { setFieldError('email', 'Email is required'); return false }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+        { setFieldError('email', 'Enter a valid email address'); return false }
+    }
+    if (field === 'password') {
+      if (!v) { setFieldError('password', 'Password is required'); return false }
+      if (v.length < 8)
+        { setFieldError('password', 'Password must be at least 8 characters'); return false }
+    }
+    if (field === 'confirmPassword' && !v)
+      { setFieldError('confirmPassword', 'Please confirm your password'); return false }
+    clearError(field)
+    return true
+  }
+  function validateAllFields(): boolean {
+    const results = [
+      validateField('name',            form.name),
+      validateField('email',           form.email),
+      validateField('password',        form.password),
+      validateField('confirmPassword', form.confirmPassword),
+    ]
+    return results.every(Boolean)
+  }
 
   function toggleInterest(label: string) {
     setInterests(p => p.includes(label) ? p.filter(i => i !== label) : [...p, label])
@@ -93,29 +122,11 @@ export default function SignupPage() {
     e.preventDefault()
     setError('')
 
-    // Run all field validations — populates inline UI errors, no native popups
-    const isValid = validateAll({
-      name:            form.name,
-      email:           form.email,
-      password:        form.password,
-      confirmPassword: form.confirmPassword,
-    })
-
-    if (!isValid) return
+    // Validate all fields — populates inline errors, no native browser popups
+    if (!validateAllFields()) return
 
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match')
-      return
-    }
-
-    setLoading(true)
-
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-    if (form.password.length < 8) {
-      setError('Password must be at least 8 characters')
       return
     }
 
@@ -273,23 +284,29 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 py-10">
       <div className="w-full max-w-4xl bg-white border border-gray-100 rounded-2xl overflow-hidden flex" style={{ minHeight: '620px' }}>
 
-        {/* ── Left panel ── */}
-        <div className="hidden lg:flex flex-col justify-between w-2/5 p-10" style={{ background: '#085041' }}>
-          <div>
-            <h2 className="text-white text-2xl font-semibold leading-snug mb-3">{left.title}</h2>
-            <p className="text-sm leading-relaxed mb-8" style={{ color: '#9FE1CB' }}>{left.sub}</p>
-            <ul className="space-y-3">
-              {left.features.map(f => (
-                <li key={f} className="flex items-center gap-3 text-sm" style={{ color: '#9FE1CB' }}>
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#5DCAA5' }} />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <CountriesBar />
-          </div>
-          <p className="text-xs" style={{ color: '#085041' }}>© 2025 Markeetee</p>
-        </div>
+       {/* ── Left brand panel ── */}
+               <div className="hidden lg:flex flex-col justify-between w-2/5 p-10" style={{ background: '#085041' }}>
+                 <div>
+                   <h2 className="text-white text-2xl font-semibold leading-snug mb-3">
+                     Welcome back to Africa&apos;s diaspora marketplace
+                   </h2>
+                   <ul className="space-y-3">
+                     {[
+                       'Find African businesses near you',
+                       'Browse products and get directions',
+                       'Leave reviews for your community',
+                       'Manage your business listing',
+                     ].map(f => (
+                       <li key={f} className="flex items-center gap-3 text-sm" style={{ color: '#9FE1CB' }}>
+                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#5DCAA5' }} />
+                         {f}
+                       </li>
+                     ))}
+                   </ul>
+                   <CountriesBar />
+                 </div>
+                 <p className="text-xs" style={{ color: '#085041' }}>© 2025 Markeetee</p>
+               </div>
 
         {/* ── Right panel ── */}
         <div className="flex-1 flex flex-col justify-center p-8 lg:p-10 overflow-y-auto">
@@ -376,9 +393,12 @@ export default function SignupPage() {
                   <label className={labelCls}>Full name *</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="text" value={form.name} onChange={e => upd('name', e.target.value)}
-                      placeholder="Enter your full name" required className={`${inputCls} pl-9`} />
+                    <input type="text" value={form.name}
+                      onChange={e => { upd('name', e.target.value); clearError('name') }}
+                      onBlur={() => validateField('name', form.name)}
+                      placeholder="Enter your full name" className={`${inputCls} pl-9`} />
                   </div>
+                  {fieldErrors.name && <FieldError message={fieldErrors.name} />}
                 </div>
 
                 {/* Gender + Background in a row */}
@@ -436,9 +456,12 @@ export default function SignupPage() {
                   <label className={labelCls}>Email address *</label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input type="email" value={form.email} onChange={e => upd('email', e.target.value)}
-                      placeholder="Enter your email" required className={`${inputCls} pl-9`} />
+                    <input type="email" value={form.email}
+                      onChange={e => { upd('email', e.target.value); clearError('email') }}
+                      onBlur={() => validateField('email', form.email)}
+                      placeholder="Enter your email" className={`${inputCls} pl-9`} />
                   </div>
+                  {fieldErrors.email && <FieldError message={fieldErrors.email} />}
                 </div>
 
                 {/* Password */}
@@ -447,14 +470,16 @@ export default function SignupPage() {
                   <div className="relative">
                     <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type={showPass ? 'text' : 'password'} value={form.password}
-                      onChange={e => upd('password', e.target.value)}
-                      placeholder="Min. 8 characters" required minLength={8}
+                      onChange={e => { upd('password', e.target.value); clearError('password') }}
+                      onBlur={() => validateField('password', form.password)}
+                      placeholder="Min. 8 characters"
                       className={`${inputCls} pl-9 pr-10`} />
                     <button type="button" onClick={() => setShowPass(!showPass)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
+                  {fieldErrors.password && <FieldError message={fieldErrors.password} />}
                 </div>
 
                 {/* Confirm password */}
@@ -463,8 +488,8 @@ export default function SignupPage() {
                   <div className="relative">
                     <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
-                      onChange={e => upd('confirmPassword', e.target.value)}
-                      placeholder="Repeat your password" required
+                      onChange={e => { upd('confirmPassword', e.target.value); clearError('confirmPassword') }}
+                      placeholder="Repeat your password"
                       className={`${inputCls} pl-9 pr-10`} />
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
