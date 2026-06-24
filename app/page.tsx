@@ -141,7 +141,7 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900">Featured stores</h2>
+              <h2 className="text-3xl font-bold" style={{ color:'#0F6E56' }}>Featured stores</h2>
               <p className="text-gray-500 mt-1">Top-rated African businesses near you</p>
             </div>
             <Link href="/search" className="hidden sm:flex items-center gap-1 text-sm font-medium hover:opacity-80 transition-opacity" style={{ color:'#0F6E56' }}>

@@ -1,4 +1,5 @@
 'use client'
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import { useEffect, useState, useCallback } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -18,10 +19,7 @@ import ClaimBusinessModal from '@/components/ui/ClaimBusinessModal'
 import ReportButton       from '@/components/ui/ReportButton'
 import SendEmailModal     from '@/components/ui/SendEmailModal'
 
-const FLAGS: Record<string, string> = {
-  Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
-  Senegal:'🇸🇳', 'South Africa':'🇿🇦', Ethiopia:'🇪🇹',
-}
+
 
 const GRADIENTS: Record<string, string> = {
   food:'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -218,7 +216,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
               <p className="text-2xl font-bold">{biz.name}</p>
               <p className="text-white/80 text-sm">
                 {biz.subcategory ?? biz.category}
-                {biz.country && ` · ${FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
+                {biz.country && ` · ${AFRICAN_FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
               </p>
             </div>
           </div>

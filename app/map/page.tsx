@@ -1,5 +1,6 @@
 /// <reference types="google.maps" />
 'use client'
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   APIProvider, Map, AdvancedMarker, Pin,
@@ -46,10 +47,7 @@ const RADIUS_OPTIONS = [
   { label: 'All',    value: 0   },
 ]
 
-const FLAGS: Record<string, string> = {
-  Nigeria: '🇳🇬', Ghana: '🇬🇭', Kenya: '🇰🇪',
-  Senegal: '🇸🇳', 'South Africa': '🇿🇦', Ethiopia: '🇪🇹',
-}
+
 
 const GRADIENTS: Record<string, string> = {
   food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -355,8 +353,8 @@ export default function MapPage() {
                           </p>
                         )}
                         {/* Hours status */}
-                        {('hours_open' in selected) && selected.hours_open ? (() => {
-                          const h = getHoursStatus(String(selected.hours_open), (selected as any).days_open)
+                        {selected.hours_open && (() => {
+                          const h = getHoursStatus(selected.hours_open, selected.days_open)
                           if (h.status === 'unknown') return null
                           const color = h.status === 'open' ? '#085041' : h.status === 'closing_soon' ? '#92400E' : '#6B7280'
                           const bg    = h.status === 'open' ? '#f0faf6' : h.status === 'closing_soon' ? '#FEF3C7' : '#F9FAFB'
@@ -367,7 +365,7 @@ export default function MapPage() {
                               {h.label}
                             </p>
                           )
-                        })() : null}
+                        })()}
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <a href={`/businesses/${selected.id}`}
                             style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
@@ -468,7 +466,7 @@ export default function MapPage() {
                               {b.name}
                             </p>
                             <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                              {FLAGS[b.country ?? ''] ?? '🌍'}
+                              {AFRICAN_FLAGS[b.country ?? ''] ?? '🌍'}
                               <span className="truncate capitalize">{b.subcategory ?? b.category}</span>
                             </p>
                             <div className="flex items-center gap-1.5 mt-1">

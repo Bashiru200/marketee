@@ -1,12 +1,10 @@
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Star, BadgeCheck } from 'lucide-react'
 import SaveButton from '@/components/ui/SaveButton'
 
-const FLAGS: Record<string, string> = {
-  Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
-  Senegal:'🇸🇳', 'South Africa':'🇿🇦', Ethiopia:'🇪🇹',
-}
+
 
 const GRADIENTS: Record<string, string> = {
   food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -70,7 +68,7 @@ export default function BusinessCard({ business: b }: { business: Business }) {
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
           <SaveButton businessId={b.id} size="sm" />
           <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm">
-            {FLAGS[b.country ?? ''] || '🌍'}
+            {AFRICAN_FLAGS[b.country ?? ''] || '🌍'}
           </div>
         </div>
         {b.price_range && (

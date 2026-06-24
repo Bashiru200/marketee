@@ -1,4 +1,5 @@
 'use client'
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
@@ -60,10 +61,7 @@ interface Props {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────
-const FLAGS: Record<string, string> = {
-  Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
-  Senegal:'🇸🇳', 'South Africa':'🇿🇦', Ethiopia:'🇪🇹', Cameroon:'🇨🇲',
-}
+
 
 const GRADIENTS: Record<string, string> = {
   food:'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -118,7 +116,7 @@ function BizCard({ b }: { b: Business }) {
           <SaveButton businessId={b.id} size="sm" />
           {b.country && (
             <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm shadow">
-              {FLAGS[b.country] ?? '🌍'}
+              {AFRICAN_FLAGS[b.country] ?? '🌍'}
             </div>
           )}
         </div>
@@ -496,7 +494,7 @@ export default function SearchClient({
           />
           {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400" /></button>}
         </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm sm:w-58">
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm sm:w-52">
           <MapPin size={14} style={{ color:'#1D9E75' }} className="flex-shrink-0" />
           <input
             value={city}
@@ -551,8 +549,8 @@ export default function SearchClient({
           {/* Results count */}
           <p className="text-sm text-gray-500 mb-5">
             {productLoading ? 'Searching…' : (
-              <><span className="font-semibold text-gray-900">{productTotal}</span> product{productTotal !== 1 ? 's' : ''}
-              {query ? ` for "${query}"` : ''}</>
+              <span><span className="font-semibold text-gray-900">{productTotal}</span> product{productTotal !== 1 ? 's' : ''}
+              {query ? ` for "${query}"` : ''}</span>
             )}
           </p>
 
@@ -577,7 +575,7 @@ export default function SearchClient({
               <p className="text-sm text-gray-500">Try a different search term or remove filters</p>
             </div>
           ) : (
-            <>
+            <div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map(p => <ProductCard key={p.id} p={p} onOpen={setSelectedProduct} />)}
               </div>
@@ -592,14 +590,14 @@ export default function SearchClient({
                   <p className="text-xs text-gray-400">Showing all {productTotal} product{productTotal !== 1 ? 's' : ''}</p>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
 
       {/* Businesses tab content */}
       {activeTab === 'businesses' && (
-      <>
+        <div>
       {/* Filter panel */}
       {showFilters && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 shadow-sm">
@@ -629,7 +627,7 @@ export default function SearchClient({
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:border-transparent">
                 <option value="">All countries</option>
                 {COUNTRIES.map(c => (
-                  <option key={c} value={c}>{FLAGS[c] ?? '🌍'} {c}</option>
+                  <option key={c} value={c}>{AFRICAN_FLAGS[c] ?? '🌍'} {c}</option>
                 ))}
               </select>
             </div>
@@ -774,7 +772,9 @@ export default function SearchClient({
           businessPhone={selectedProduct.businesses?.phone ?? null}
           onClose={() => setSelectedProduct(null)}
         />
-      )}      </>
-      )}    </div>
+      )}
+      </div>
+      )}
+    </div>
   )
 }
