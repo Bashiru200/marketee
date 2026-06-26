@@ -9,6 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import FieldError from '@/components/ui/FieldError'
 import CountriesBar from '@/components/ui/CountriesBar'
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
 } from '@/components/business/BusinessDetailsForm'
@@ -137,7 +138,7 @@ export default function SignupPage() {
       password: form.password,
       options: {
         data: { name: form.name, role },
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `$https://www.markeetee.com/auth/callback`,
       },
     })
 
@@ -419,13 +420,12 @@ export default function SignupPage() {
                   {/* Country of origin (for non-owner step 1) */}
                   <div>
                     <label className={labelCls}>Country of origin</label>
-                    <select value={form.country} onChange={e => upd('country', e.target.value)}
-                      className={inputCls}>
-                      <option value="">Select country</option>
-                      {COUNTRIES.map(c => (
-                        <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
-                      ))}
-                    </select>
+                    <select value={form.country} onChange={e => upd('country', e.target.value)} className={inputCls}>
+                  <option value="">Select country</option>
+                  {Object.entries(AFRICAN_FLAGS).map(([code, flag]) => (
+                    <option key={code} value={code}>{flag} {code}</option>
+                  ))}
+                </select>
                   </div>
                 </div>
 

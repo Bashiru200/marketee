@@ -9,19 +9,79 @@ const BASE_STYLES = `
 `
 
 const HEADER = (title: string, subtitle?: string) => `
-  <div style="background:#085041;padding:28px 32px;border-radius:12px 12px 0 0">
-    <img src="https://markeetee.com/markeetee-logo.png" alt="Markeetee" height="36" style="margin-bottom:12px" />
+  <div style="background:#085041;padding:28px 32px;border-radius:12px 12px 0 0;border-bottom:3px solid #1D9E75">
+    <img src="https://markeetee.com/logo1.png" alt="Markeetee" height="36" style="margin-bottom:12px" />
     <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">${title}</p>
     ${subtitle ? `<p style="margin:6px 0 0;font-size:13px;color:#9FE1CB">${subtitle}</p>` : ''}
   </div>
 `
 
-const FOOTER = `
-  <div style="padding:20px 32px;border-top:1px solid #f3f4f6">
-    <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6">
-      You received this email from Markeetee — the African business directory for the US diaspora.<br/>
-      <a href="https://markeetee.com" style="color:#1D9E75">markeetee.com</a>
-    </p>
+const FOOTER = (unsubscribeUrl?: string) => `
+  <!-- ══ Email Footer — mirrors markeetee.com website footer exactly ══ -->
+  <div style="background:#ffffff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;font-family:system-ui,-apple-system,sans-serif">
+
+    <!-- 4-column link grid (matches website footer columns) -->
+    <div style="padding:28px 32px 20px;border-bottom:1px solid #f3f4f6">
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+
+          <!-- Col 1: Brand description + Africa map placeholder -->
+          <td style="width:24%;vertical-align:top;padding-right:16px">
+            <p style="margin:0 0 10px;font-size:12px;color:#6B7280;line-height:1.6">
+              Africa is here. Find it.<br/>The African business directory for the diaspora.
+            </p>
+            <!-- Africa emoji flag row as map substitute for email -->
+            <div style="font-size:14px;line-height:2;letter-spacing:2px">
+            <img src="https://markeetee.com/Continent_of_Africa.png" alt="African-continent" height="36" style="margin-bottom:12px" />
+            </div>
+          </td>
+
+          <!-- Col 2: Discover -->
+          <td style="width:19%;vertical-align:top;padding-right:12px">
+            <p style="margin:0 0 10px;font-size:10px;font-weight:700;color:#111827;letter-spacing:1px;text-transform:uppercase">Discover</p>
+            <a href="https://markeetee.com/search" style="display:block;font-size:12px;color:#6B7280;text-decoration:none;margin-bottom:6px">Explore businesses</a>
+            <a href="https://markeetee.com/map" style="display:block;font-size:12px;color:#6B7280;text-decoration:none;margin-bottom:6px">Map view</a>
+            <a href="https://markeetee.com/how-it-works" style="display:block;font-size:12px;color:#6B7280;text-decoration:none">How it works</a>
+          </td>
+
+          <!-- Col 3: Business owners -->
+          <td style="width:19%;vertical-align:top;padding-right:12px">
+            <p style="margin:0 0 10px;font-size:10px;font-weight:700;color:#111827;letter-spacing:1px;text-transform:uppercase">Business owners</p>
+            <a href="https://markeetee.com/auth/signup" style="display:block;font-size:12px;color:#6B7280;text-decoration:none;margin-bottom:6px">List your business</a>
+            <a href="https://markeetee.com/dashboard" style="display:block;font-size:12px;color:#6B7280;text-decoration:none;margin-bottom:6px">Owner dashboard</a>
+            <a href="https://markeetee.com/how-it-works" style="display:block;font-size:12px;color:#6B7280;text-decoration:none">Pricing</a>
+          </td>
+
+          <!-- Col 4: Company -->
+          <td style="width:19%;vertical-align:top">
+            <p style="margin:0 0 10px;font-size:10px;font-weight:700;color:#111827;letter-spacing:1px;text-transform:uppercase">Company</p>
+            <a href="https://markeetee.com/about" style="display:block;font-size:12px;color:#6B7280;text-decoration:none;margin-bottom:6px">About us</a>
+            <a href="https://markeetee.com/contact" style="display:block;font-size:12px;color:#6B7280;text-decoration:none;margin-bottom:6px">Contact</a>
+            <a href="https://markeetee.com/faq" style="display:block;font-size:12px;color:#6B7280;text-decoration:none">FAQ</a>
+          </td>
+
+        </tr>
+      </table>
+    </div>
+
+    <!-- Bottom bar: copyright + legal links (matches website bottom bar) -->
+    <div style="padding:14px 32px;background:#f9fafb;border-radius:0 0 12px 12px">
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="vertical-align:middle">
+            <p style="margin:0;font-size:11px;color:#9CA3AF;line-height:1.5">
+              © 2025 Markeetee · Solution Made for the African diaspora
+            </p>
+          </td>
+          <td style="vertical-align:middle;text-align:right;white-space:nowrap">
+            <a href="https://markeetee.com/terms"   style="font-size:11px;color:#9CA3AF;text-decoration:none;margin-left:12px">Terms</a>
+            <a href="https://markeetee.com/privacy" style="font-size:11px;color:#9CA3AF;text-decoration:none;margin-left:12px">Privacy</a>
+            <a href="https://markeetee.com/contact" style="font-size:11px;color:#9CA3AF;text-decoration:none;margin-left:12px">Contact</a>
+          </td>
+        </tr>
+      </table>
+    </div>
+
   </div>
 `
 
@@ -52,7 +112,7 @@ export function emailConfirmationTemplate({
           you can safely ignore this email.
         </p>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }
@@ -65,6 +125,7 @@ export function reviewNotificationTemplate({
   body,
   businessId,
   appUrl,
+  unsubscribeToken,
 }: {
   ownerName:    string
   reviewerName: string
@@ -73,8 +134,11 @@ export function reviewNotificationTemplate({
   body:         string
   businessId:   string
   appUrl:       string
+  unsubscribeToken?: string
 }) {
   const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating)
+  const appUrl2 = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
+  const unsubUrl = unsubscribeToken ? `${appUrl2}/api/unsubscribe?token=${unsubscribeToken}&type=reviews` : undefined
   return `
     <div style="${BASE_STYLES}">
       ${HEADER(`New ${rating}★ review on ${businessName}`)}
@@ -93,7 +157,7 @@ export function reviewNotificationTemplate({
           View your listing →
         </a>
       </div>
-      ${FOOTER}
+      ${FOOTER(unsubUrl)}
     </div>
   `
 }
@@ -137,7 +201,7 @@ export function contactFormTemplate({
           </a>
         </div>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }
@@ -146,16 +210,20 @@ export function broadcastEmailTemplate({
   name,
   subject,
   body,
+  unsubscribeToken,
 }: {
   name:    string
   subject: string
   body:    string
+  unsubscribeToken?: string
 }) {
   const paragraphs = body
     .split('\n\n')
     .filter(Boolean)
     .map(p => `<p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7">${p.replace(/\n/g, '<br>')}</p>`)
     .join('')
+  const appUrl2 = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
+  const unsubUrl = unsubscribeToken ? `${appUrl2}/api/unsubscribe?token=${unsubscribeToken}&type=broadcast` : undefined
 
   return `
     <div style="${BASE_STYLES}">
@@ -164,7 +232,7 @@ export function broadcastEmailTemplate({
         <p style="margin:0 0 20px;font-size:15px;color:#111827">Hi <strong>${name}</strong>,</p>
         ${paragraphs}
       </div>
-      ${FOOTER}
+      ${FOOTER(unsubUrl)}
     </div>
   `
 }
@@ -198,7 +266,7 @@ export function adminToUserTemplate({
           </p>
         </div>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }
@@ -240,7 +308,7 @@ export function emailInviteTemplate({
           you can safely ignore this email.
         </p>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }
@@ -285,7 +353,7 @@ export function changeEmailTemplate({
           please contact us immediately and do not click the button above.
         </p>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }
@@ -321,7 +389,7 @@ export function resetPasswordTemplate({
           your password will not be changed.
         </p>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }
@@ -372,7 +440,7 @@ export function magicLinkTemplate({
           If you did not request this, you can safely ignore this email.
         </p>
       </div>
-      ${FOOTER}
+      ${FOOTER()}
     </div>
   `
 }

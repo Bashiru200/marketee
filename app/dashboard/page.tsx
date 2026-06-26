@@ -10,7 +10,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import ImageUpload from '@/components/ui/ImageUpload'
-
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 export const dynamic = 'force-dynamic'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
@@ -25,18 +25,6 @@ const CATEGORIES = [
   { id: 'crafts',     label: 'Crafts & Decor'     },
   { id: 'services',   label: 'Services'           },
   { id: 'nightlife',  label: 'Bars & Nightlife'   },
-]
-
-const COUNTRIES = [
-  { code:'NG', flag:'🇳🇬', name:'Nigeria'              },
-  { code:'GH', flag:'🇬🇭', name:'Ghana'                },
-  { code:'KE', flag:'🇰🇪', name:'Kenya'                },
-  { code:'SN', flag:'🇸🇳', name:'Senegal'              },
-  { code:'ZA', flag:'🇿🇦', name:'South Africa'         },
-  { code:'ET', flag:'🇪🇹', name:'Ethiopia'             },
-  { code:'CM', flag:'🇨🇲', name:'Cameroon'             },
-  { code:'CI', flag:'🇨🇮', name:"Côte d'Ivoire"       },
-  { code:'OTHER', flag:'🌍', name:'Other African country' },
 ]
 
 interface Business {
@@ -503,7 +491,9 @@ export default function DashboardPage() {
                 <label className={labelCls}>Country of origin</label>
                 <select value={form.country} onChange={e => upd('country', e.target.value)} className={inputCls}>
                   <option value="">Select country</option>
-                  {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
+                  {Object.entries(AFRICAN_FLAGS).map(([code, flag]) => (
+                    <option key={code} value={code}>{flag} {code}</option>
+                  ))}
                 </select>
               </div>
               <div className="sm:col-span-2">

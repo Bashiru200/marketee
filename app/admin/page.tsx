@@ -20,12 +20,11 @@ import RevenueDashboard  from '@/components/admin/RevenueDashboard'
 import AuditLog          from '@/components/admin/AuditLog'
 import AdminManagement      from '@/components/admin/AdminManagement'
 import AnnouncementManager  from '@/components/admin/AnnouncementManager'
-import FeatureFlagsManager  from '@/components/admin/FeatureFlagsManager'
+import Feature  from '@/components/admin/FeatureFlagsManager'
 import BroadcastEmail          from '@/components/admin/BroadcastEmail'
 import BusinessClaimsManager  from '@/components/admin/BusinessClaimsManager'
 import ReportsQueue           from '@/components/admin/ReportsQueue'
-
-export const dynamic = 'force-dynamic'
+import FeatureFlagsManager from '@/components/admin/FeatureFlagsManager'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 type Plan      = 'free' | 'premium' | 'storefront'
@@ -74,6 +73,7 @@ const NAV_TABS: {
   label: string
   icon: React.ElementType
   permission: AdminPermission | '__super_admin__'
+  flagKey?: string
 }[] = [
   { id: 'businesses', label: 'Businesses', icon: Building2,    permission: 'manage_businesses' },
   { id: 'users',      label: 'Users',      icon: Users,        permission: 'manage_users'      },
@@ -95,6 +95,7 @@ export default function AdminPage() {
   const supabase = createClient()
   const { log }  = useAuditLog()
   const { isLoggedIn, isAdmin, isSuperAdmin, hasPermission, loading: authLoading } = useAuth()
+  const enabledFlags = new Set<string>()
 
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [stats,      setStats]      = useState<Stats>({ totalBusinesses: 0, verifiedCount: 0, premiumCount: 0, storefrontCount: 0 })
@@ -187,10 +188,13 @@ export default function AdminPage() {
     setBulkLoading(false)
   }
 
-  function canSeeTab(permission: AdminPermission | '__super_admin__'): boolean {
+  function canSeeTab(tab: typeof NAV_TABS[0]): boolean {
+    // If the tab has a feature flag, check it's enabled
+    if (tab.flagKey && !enabledFlags.has(tab.flagKey)) return false
+    // Then check permission
     if (isSuperAdmin) return true
-    if (permission === '__super_admin__') return false
-    return hasPermission(permission)
+    if (tab.permission === '__super_admin__') return false
+    return hasPermission(tab.permission)
   }
 
   // ── Data loading ─────────────────────────────────────────────────────
@@ -358,7 +362,7 @@ export default function AdminPage() {
 
       {/* Navigation tabs — permission gated */}
       <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 mb-6 flex-wrap">
-        {NAV_TABS.filter(t => canSeeTab(t.permission)).map(({ id, label, icon: Icon }) => (
+        {NAV_TABS.filter(t => canSeeTab(t)).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}

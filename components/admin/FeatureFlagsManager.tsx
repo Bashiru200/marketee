@@ -4,7 +4,11 @@ import {
   Zap, RefreshCw, Loader2, Shield,
   Map, Star, MessageCircle, Heart,
   ShoppingBag, Search, UserPlus, Mail,
-  CreditCard, Building2
+  CreditCard, Building2,
+  Users, TrendingUp, DollarSign, ClipboardList,
+  Megaphone, Flag, Globe, Bell, Cookie,
+  Lock, BarChart2, FileText, Smartphone,
+  Settings, ToggleLeft, ToggleRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
@@ -22,32 +26,114 @@ interface Flag {
 }
 
 // Icon mapping per flag key
+// Custom Clock icon (not directly importable as a standalone in all versions)
+const Clock = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
+)
+
 const FLAG_ICONS: Record<string, React.ElementType> = {
-  map_view:         Map,
-  reviews:          Star,
-  whatsapp_button:  MessageCircle,
-  save_businesses:  Heart,
-  product_showcase: ShoppingBag,
-  algolia_search:   Search,
-  signup_enabled:   UserPlus,
-  owner_signup:     Building2,
-  weekly_emails:    Mail,
-  upgrade_modal:    CreditCard,
+  // Core features
+  map_view:              Map,
+  reviews:               Star,
+  whatsapp_button:       MessageCircle,
+  save_businesses:       Heart,
+  product_showcase:      ShoppingBag,
+  algolia_search:        Search,
+  business_hours:        Clock,
+  closing_soon_badge:    Bell,
+  product_likes:         Heart,
+  product_ratings:       Star,
+  i18n_french:           Globe,
+
+  // User acquisition
+  signup_enabled:        UserPlus,
+  owner_signup:          Building2,
+  upgrade_modal:         CreditCard,
+  google_auth:           Shield,
+  magic_link:            Zap,
+  email_invites:         Mail,
+
+  // Admin dashboard tabs
+  admin_businesses:      Building2,
+  admin_users:           Users,
+  admin_reviews:         Star,
+  admin_analytics:       TrendingUp,
+  admin_revenue:         DollarSign,
+  admin_audit_log:       ClipboardList,
+  admin_team:            Shield,
+  admin_announcements:   Megaphone,
+  admin_feature_flags:   Zap,
+  admin_broadcast_email: Mail,
+  admin_claims:          Building2,
+  admin_reports:         Flag,
+
+  // Admin actions
+  bulk_business_actions: Settings,
+  business_verify:       Shield,
+  business_claims:       FileText,
+  content_reports:       Flag,
+  user_ban:              Lock,
+  admin_invite:          Mail,
+  admin_one_to_one_email: Mail,
+
+  // Communications
+  weekly_emails:         Mail,
+  review_notifications:  Bell,
+  broadcast_emails:      Megaphone,
+  unsubscribe_system:    Mail,
+
+  // Compliance & UX
+  cookie_banner:         Cookie,
+  analytics_tracking:    BarChart2,
+  mobile_bottom_nav:     Smartphone,
+  location_prompt:       Map,
 }
 
 // Group flags by category
 const FLAG_GROUPS: { label: string; keys: string[] }[] = [
   {
     label: 'Core features',
-    keys: ['map_view', 'reviews', 'save_businesses', 'product_showcase', 'algolia_search'],
+    keys: [
+      'map_view', 'reviews', 'save_businesses', 'product_showcase',
+      'algolia_search', 'whatsapp_button', 'business_hours',
+      'closing_soon_badge', 'product_likes', 'product_ratings', 'i18n_french',
+    ],
   },
   {
     label: 'User acquisition',
-    keys: ['signup_enabled', 'owner_signup', 'upgrade_modal'],
+    keys: [
+      'signup_enabled', 'owner_signup', 'upgrade_modal',
+      'google_auth', 'magic_link', 'email_invites',
+    ],
+  },
+  {
+    label: 'Admin dashboard tabs',
+    keys: [
+      'admin_businesses', 'admin_users', 'admin_reviews', 'admin_analytics',
+      'admin_revenue', 'admin_audit_log', 'admin_team', 'admin_announcements',
+      'admin_feature_flags', 'admin_broadcast_email', 'admin_claims', 'admin_reports',
+    ],
+  },
+  {
+    label: 'Admin actions',
+    keys: [
+      'bulk_business_actions', 'business_verify', 'business_claims',
+      'content_reports', 'user_ban', 'admin_invite', 'admin_one_to_one_email',
+    ],
   },
   {
     label: 'Communications',
-    keys: ['whatsapp_button', 'weekly_emails'],
+    keys: [
+      'weekly_emails', 'review_notifications', 'broadcast_emails', 'unsubscribe_system',
+    ],
+  },
+  {
+    label: 'Compliance & UX',
+    keys: [
+      'cookie_banner', 'analytics_tracking', 'mobile_bottom_nav', 'location_prompt',
+    ],
   },
 ]
 

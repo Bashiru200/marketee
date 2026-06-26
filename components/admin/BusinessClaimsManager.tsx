@@ -11,7 +11,8 @@ import Link from 'next/link'
 interface Claim {
   id:          string
   status:      'pending' | 'approved' | 'rejected'
-  message:     string | null
+  message:       string | null
+  phone_verified: boolean
   created_at:  string
   reviewed_at: string | null
   businesses:  { id: string; name: string; city: string | null; cover_image: string | null; owner_id: string | null } | null
@@ -48,7 +49,7 @@ export default function BusinessClaimsManager() {
     const { data } = await supabase
       .from('business_claims')
       .select(`
-        id, status, message, created_at, reviewed_at,
+        id, status, message, phone_verified, created_at, reviewed_at,
         businesses(id, name, city, cover_image, owner_id),
         profiles(name, email, avatar_url)
       `)
@@ -252,6 +253,20 @@ export default function BusinessClaimsManager() {
                     )}
 
                     {/* View message */}
+                    {/* Phone verified badge */}
+                    {claim.phone_verified && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background:'#E1F5EE', color:'#085041' }}>
+                        📱 Phone verified
+                      </span>
+                    )}
+                    {!claim.phone_verified && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background:'#FEF3C7', color:'#92400E' }}>
+                        ⚠ Unverified
+                      </span>
+                    )}
+
                     {claim.message && (
                       <button
                         onClick={() => setExpanded(expanded === claim.id ? null : claim.id)}
