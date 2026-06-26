@@ -38,27 +38,19 @@ export default function ComingSoonPage() {
     { icon: '🎵', title: 'Music & Events',         desc: 'Afrobeats, DJs, studios and live entertainment near you.' },
   ]
 
-  // African city dots — positioned as abstract scatter on a dark canvas
   const cityDots = [
-    { top: '18%', left: '52%', delay: '0s',    size: 4, label: 'Lagos'       },
-    { top: '22%', left: '48%', delay: '0.3s',  size: 3, label: 'Accra'       },
-    { top: '15%', left: '44%', delay: '0.6s',  size: 3, label: 'Dakar'       },
-    { top: '28%', left: '55%', delay: '0.9s',  size: 3, label: 'Yaoundé'     },
-    { top: '35%', left: '62%', delay: '1.2s',  size: 4, label: 'Nairobi'     },
-    { top: '32%', left: '50%', delay: '1.5s',  size: 3, label: 'Kinshasa'    },
-    { top: '42%', left: '54%', delay: '1.8s',  size: 3, label: 'Dar es Salaam'},
-    { top: '48%', left: '50%', delay: '2.1s',  size: 4, label: 'Lusaka'      },
-    { top: '55%', left: '52%', delay: '2.4s',  size: 5, label: 'Johannesburg'},
-    { top: '25%', left: '58%', delay: '2.7s',  size: 3, label: 'Kampala'     },
-    { top: '12%', left: '55%', delay: '3.0s',  size: 3, label: 'Addis Ababa' },
-    { top: '10%', left: '50%', delay: '3.3s',  size: 3, label: 'Khartoum'    },
-    { top: '8%',  left: '46%', delay: '3.6s',  size: 4, label: 'Cairo'       },
-    { top: '6%',  left: '40%', delay: '3.9s',  size: 3, label: 'Tunis'       },
-    { top: '20%', left: '38%', delay: '4.2s',  size: 3, label: 'Abidjan'     },
-    { top: '14%', left: '42%', delay: '4.5s',  size: 3, label: 'Bamako'      },
-    { top: '18%', left: '60%', delay: '4.8s',  size: 3, label: 'Kampala'     },
-    { top: '44%', left: '46%', delay: '5.1s',  size: 3, label: 'Harare'      },
+    { label: 'New York',   top: '14%', left: '12%', size: 10, delay: '0.2s' },
+    { label: 'Atlanta',    top: '26%', left: '24%', size: 12, delay: '0.4s' },
+    { label: 'Houston',    top: '38%', left: '29%', size: 10, delay: '0.6s' },
+    { label: 'Washington', top: '20%', left: '18%', size: 9,  delay: '0.8s' },
+    { label: 'Chicago',    top: '24%', left: '34%', size: 11, delay: '1s' },
+    { label: 'Miami',      top: '52%', left: '30%', size: 9,  delay: '1.2s' },
+    { label: 'Los Angeles',top: '45%', left: '6%',  size: 12, delay: '1.4s' },
+    { label: 'Dallas',     top: '40%', left: '23%', size: 9,  delay: '1.6s' },
   ]
+
+  // African city dots — positioned as abstract scatter on a dark canvas
+  // (image should be rendered inside the returned JSX; do not place JSX directly in the component body)
 
   return (
     <>
@@ -535,21 +527,17 @@ export default function ComingSoonPage() {
 
           {/* Africa silhouette background */}
           <div className="cs-continent">
-            <svg viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg">
-              <path
-                fill="#9FE1CB"
-                d="M150,8 C138,8 124,14 112,26 C98,40 90,60 86,78
-                   C80,92 68,100 62,114 C54,130 52,150 54,170
-                   C56,188 64,204 68,222 C72,240 68,260 70,278
-                   C72,296 82,314 96,328 C108,340 124,350 150,358
-                   C176,350 192,340 204,328 C218,314 228,296 230,278
-                   C232,260 228,240 232,222 C236,204 244,188 246,170
-                   C248,150 246,130 238,114 C232,100 220,92 214,78
-                   C210,60 202,40 188,26 C176,14 162,8 150,8 Z"
-              />
-              {/* Madagascar */}
-              <ellipse cx="248" cy="260" rx="11" ry="26" fill="#9FE1CB" opacity="0.7" transform="rotate(-12 248 260)"/>
-            </svg>
+            <img
+              src="https://markeetee.com/categories/services.jpg"
+              alt="African services"
+              style={{
+                width: '100%',
+                height: '160px',
+                objectFit: 'cover',
+                borderRadius: '14px',
+                marginBottom: '20px',
+              }}
+            />
           </div>
 
           {/* City dots */}
@@ -578,8 +566,8 @@ export default function ComingSoonPage() {
           </h1>
 
           <p className="cs-sub">
-            Markeetee is the go-to directory for African-owned businesses in the US —
-            food, beauty, fashion, services and more. Built for the community that makes home feel like home.
+            Connecting the African diaspora
+            One platform. Thousands of African businesses. A place where culture, community, and commerce meet.
           </p>
 
           {submitted ? (
