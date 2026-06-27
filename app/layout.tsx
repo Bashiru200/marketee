@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import FooterWrapper from '@/components/layout/FooterWrapper'
@@ -9,6 +9,12 @@ import LocationPrompt      from '@/components/ui/LocationPrompt'
 import CookieBanner from '@/components/ui/CookieBanner'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
+
+export const viewport: Viewport = {
+  width:        'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export const metadata: Metadata = {
   title: {

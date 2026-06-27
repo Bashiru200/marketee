@@ -19,6 +19,9 @@ interface Product {
   like_count?: number
   rating_avg?: number
   rating_count?: number
+  sale_price?:  number | null
+  sale_active?: boolean
+  sale_label?:  string | null
 }
 
 interface Props {
@@ -232,14 +235,35 @@ export default function ProductModal({ product, businessName, businessPhone, onC
             <div className="flex items-start justify-between gap-4 mb-2">
               <h2 className="text-xl font-bold text-gray-900">{product.name}</h2>
               <div className="text-right flex-shrink-0">
-                <p className="text-2xl font-bold" style={{ color: '#1D9E75' }}>
-                  ${product.price?.toFixed(2)}
-                </p>
+                {product.sale_active && product.sale_price ? (
+                  <>
+                    <p className="text-sm text-gray-400 line-through">${product.price?.toFixed(2)}</p>
+                    <p className="text-2xl font-bold" style={{ color: '#1D9E75' }}>${product.sale_price.toFixed(2)}</p>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: '#FEF3C7', color: '#92400E' }}>
+                      {Math.round(((product.price - product.sale_price) / product.price) * 100)}% OFF
+                    </span>
+                  </>
+                ) : (
+                  <p className="text-2xl font-bold" style={{ color: '#1D9E75' }}>
+                    ${product.price?.toFixed(2)}
+                  </p>
+                )}
                 {!product.available && (
                   <span className="text-xs text-red-500 font-medium">Out of stock</span>
                 )}
               </div>
             </div>
+
+            {/* Sale label badge */}
+            {product.sale_active && product.sale_label && (
+              <div className="mb-2">
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: '#FEF3C7', color: '#92400E' }}>
+                  🏷️ {product.sale_label}
+                </span>
+              </div>
+            )}
 
             {/* Likes + rating summary row */}
             <div className="flex items-center gap-4 mb-4">

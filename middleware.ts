@@ -8,7 +8,7 @@ const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === 'true'
 
 // Routes that stay accessible even in coming soon mode
 const COMING_SOON_ALLOWED = [
-  '/coming-soon',
+  '/app',
   '/api/',
   '/auth/',
   '/admin',

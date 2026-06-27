@@ -12,7 +12,11 @@ import CountriesBar       from '@/components/ui/CountriesBar'
 export const revalidate = 60
 
 const CATEGORIES = [
-  { id:'food',       name:'Food & Groceries', icon:'🍲' },
+  { 
+    id:'food',       
+    name:'Food & Groceries',
+    icon:'🍲' ,
+  },
   { id:'restaurant', name:'Restaurants',       icon:'🍽️' },
   { id:'fashion',    name:'Fashion & Fabric',  icon:'👗' },
   { id:'beauty',     name:'Beauty & Hair',     icon:'💆' },
