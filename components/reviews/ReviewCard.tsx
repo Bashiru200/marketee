@@ -13,7 +13,7 @@ interface Review {
   created_at:  string
   helpful:     number
   verified:    boolean
-  user_id:     string
+  user_id?:    string          // optional — not all callers provide this
   images?:     string[] | null
   owner_reply?: string | null
   reply_at?:   string | null
@@ -49,7 +49,7 @@ export default function ReviewCard({ review: r, businessName, isOwner, onReply }
   const [replying,      setReplying]      = useState(false)
 
   async function markHelpful() {
-    if (votedHelpful || !user || r.user_id === user.id) return
+    if (votedHelpful || !user || r.user_id === user?.id) return
     setVotingHelpful(true)
     await supabase.from('reviews').update({ helpful: helpfulCount + 1 }).eq('id', r.id)
     setHelpfulCount(c => c + 1)
@@ -85,9 +85,7 @@ export default function ReviewCard({ review: r, businessName, isOwner, onReply }
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-semibold text-gray-900">{name}</p>
                 {r.verified && (
-                  <div title="Verified customer">
-                    <BadgeCheck size={14} style={{ color: '#1D9E75' }} />
-                  </div>
+                  <BadgeCheck size={14} style={{ color: '#1D9E75' }} aria-label="Verified customer" />
                 )}
               </div>
               <p className="text-xs text-gray-400">
@@ -131,7 +129,7 @@ export default function ReviewCard({ review: r, businessName, isOwner, onReply }
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-2">
           <button
             onClick={markHelpful}
-            disabled={votingHelpful || votedHelpful || !user || r.user_id === user?.id}
+            disabled={votingHelpful || votedHelpful || !user || (r.user_id != null && r.user_id === user?.id)}
             className={`flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-40
               ${votedHelpful ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'}`}>
             <ThumbsUp size={13} className={votedHelpful ? 'fill-current text-green-600' : ''} />
