@@ -10,8 +10,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import ImageUpload from '@/components/ui/ImageUpload'
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
-export const dynamic = 'force-dynamic'
+import GalleryUploader from '@/components/dashboard/GalleryUploader'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 
@@ -27,13 +26,25 @@ const CATEGORIES = [
   { id: 'nightlife',  label: 'Bars & Nightlife'   },
 ]
 
+const COUNTRIES = [
+  { code:'NG', flag:'🇳🇬', name:'Nigeria'              },
+  { code:'GH', flag:'🇬🇭', name:'Ghana'                },
+  { code:'KE', flag:'🇰🇪', name:'Kenya'                },
+  { code:'SN', flag:'🇸🇳', name:'Senegal'              },
+  { code:'ZA', flag:'🇿🇦', name:'South Africa'         },
+  { code:'ET', flag:'🇪🇹', name:'Ethiopia'             },
+  { code:'CM', flag:'🇨🇲', name:'Cameroon'             },
+  { code:'CI', flag:'🇨🇮', name:"Côte d'Ivoire"       },
+  { code:'OTHER', flag:'🌍', name:'Other African country' },
+]
+
 interface Business {
   id: string; name: string; description: string | null
   category: string | null; city: string | null; state: string | null
   street: string | null; address: string | null
   zip: string | null; phone: string | null; email: string | null
   website: string | null; country: string | null
-  cover_image: string | null; logo_url: string | null
+  cover_image: string | null; logo_url: string | null; images: string[] | null
   hours_open: string | null; days_open: string[] | null
   rating: number; review_count: number
   verified: boolean; premium: boolean; featured: boolean
@@ -155,7 +166,7 @@ export default function DashboardPage() {
   const [form, setForm] = useState({
     name:'', description:'', phone:'', email:'', website:'',
     street:'', city:'', state:'', zip:'',
-    cover_image:'', logo_url:'',
+    cover_image:'', logo_url:'', images:[] as string[],
     hours_open:'', days_open:[] as string[],
     category:'', country:'',
   })
@@ -202,6 +213,7 @@ export default function DashboardPage() {
         zip:         bizRes.data.zip         ?? '',
         cover_image: bizRes.data.cover_image ?? '',
         logo_url:    bizRes.data.logo_url    ?? '',
+        images:      bizRes.data.images ?? [],
         hours_open:  bizRes.data.hours_open  ?? '',
         days_open:   bizRes.data.days_open   ?? [],
         category:    bizRes.data.category    ?? '',
@@ -287,7 +299,7 @@ export default function DashboardPage() {
     setProducts(p => p.filter(x => x.id !== id))
   }
 
-  function upd(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
+  function upd(k: string, v: string | string[]) { setForm(f => ({ ...f, [k]: v })) }
   function updProduct(k: string, v: string) { setNewProduct(p => ({ ...p, [k]: v })) }
 
   const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all"
@@ -327,7 +339,7 @@ export default function DashboardPage() {
       <div className="text-5xl mb-4">🏪</div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">No business linked yet</h2>
       <p className="text-sm text-gray-500 mb-6">Register your business to get started.</p>
-      <Link href="/businesses/new" className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl" style={{ background:'#1D9E75' }}>
+      <Link href="/auth/signup" className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl" style={{ background:'#1D9E75' }}>
         Register your business
       </Link>
     </div>
@@ -452,9 +464,15 @@ export default function DashboardPage() {
 
           {/* Images */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ImageUpload bucket="businesses" folder={profile?.business_id ?? 'unknown'}
-              currentUrl={form.cover_image||null} onUpload={url => upd('cover_image', url)}
-              onRemove={() => upd('cover_image', '')} label="Cover image" />
+            <GalleryUploader
+              businessId={biz.id}
+              coverImage={form.cover_image || null}
+              images={form.images}
+              onChange={({ cover_image, images }) => {
+                upd('cover_image', cover_image ?? '')
+                upd('images', images)
+              }}
+            />
             <ImageUpload bucket="businesses" folder={`${profile?.business_id ?? 'unknown'}/logo`}
               currentUrl={form.logo_url||null} onUpload={url => upd('logo_url', url)}
               onRemove={() => upd('logo_url', '')} label="Logo / profile photo" />
@@ -491,9 +509,7 @@ export default function DashboardPage() {
                 <label className={labelCls}>Country of origin</label>
                 <select value={form.country} onChange={e => upd('country', e.target.value)} className={inputCls}>
                   <option value="">Select country</option>
-                  {Object.entries(AFRICAN_FLAGS).map(([code, flag]) => (
-                    <option key={code} value={code}>{flag} {code}</option>
-                  ))}
+                  {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
                 </select>
               </div>
               <div className="sm:col-span-2">

@@ -57,6 +57,9 @@ export default function ProductManager({ businessId }: Props) {
   const [notifyMsg,    setNotifyMsg]    = useState('')
   const [notifySending,setNotifySending]= useState(false)
   const [notifyResult, setNotifyResult] = useState<{ sent: number } | null>(null)
+  const [expandedId,   setExpandedId]   = useState<string | null>(null)
+  const [inlineForm,   setInlineForm]   = useState<typeof EMPTY>({ ...EMPTY })
+  const [inlineSaving, setInlineSaving] = useState(false)
 
   function upd(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -89,6 +92,57 @@ export default function ProductManager({ businessId }: Props) {
   }
 
   // ── Open edit form ─────────────────────────────────────────────────────
+  // ── Open inline editor beneath a product card ─────────────────────────
+  function openInlineEdit(p: Product) {
+    if (expandedId === p.id) { setExpandedId(null); return }
+    setExpandedId(p.id)
+    setInlineForm({
+      name:         p.name,
+      description:  p.description ?? '',
+      price:        p.price,
+      sale_price:   p.sale_price,
+      sale_active:  p.sale_active,
+      sale_label:   p.sale_label ?? '',
+      sale_ends_at: p.sale_ends_at ? p.sale_ends_at.slice(0,10) : null,
+      image_url:    p.image_url,
+      available:    p.available,
+    })
+    setImgFile(null)
+    setImgPreview(p.image_url)
+  }
+
+  async function saveInline(productId: string) {
+    if (!inlineForm.name.trim()) { showToast('Product name is required', 'error'); return }
+    if (!inlineForm.price || Number(inlineForm.price) <= 0) { showToast('Enter a valid price', 'error'); return }
+    setInlineSaving(true)
+
+    const imageUrl = imgFile ? await uploadImage() : inlineForm.image_url
+
+    const payload = {
+      name:         inlineForm.name.trim(),
+      description:  inlineForm.description?.trim() || null,
+      price:        Number(inlineForm.price),
+      sale_price:   inlineForm.sale_active && inlineForm.sale_price ? Number(inlineForm.sale_price) : null,
+      sale_active:  inlineForm.sale_active,
+      sale_label:   inlineForm.sale_active && inlineForm.sale_label ? inlineForm.sale_label.trim() : null,
+      sale_ends_at: inlineForm.sale_active && inlineForm.sale_ends_at ? inlineForm.sale_ends_at : null,
+      image_url:    imageUrl,
+      available:    inlineForm.available,
+    }
+
+    const { error } = await supabase.from('products').update(payload).eq('id', productId)
+    if (error) { showToast('Failed to update product', 'error'); setInlineSaving(false); return }
+
+    setProducts(ps => ps.map(p => p.id === productId ? { ...p, ...payload } : p))
+    setInlineSaving(false)
+    setExpandedId(null)
+    setImgFile(null)
+    setImgPreview(null)
+    showToast('Product updated!')
+  }
+
+  function updInline(k: string, v: any) { setInlineForm(f => ({ ...f, [k]: v })) }
+
   function openEdit(p: Product) {
     setEditing(p)
     setForm({
@@ -251,8 +305,11 @@ export default function ProductManager({ businessId }: Props) {
 
       {/* Product list */}
       {!loading && products.map(p => (
-        <div key={p.id}
-          className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl hover:border-green-200 transition-colors">
+        <div key={p.id} className="space-y-0">
+          <div
+            className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl hover:border-green-200 transition-colors"
+            style={expandedId === p.id ? { borderColor: '#1D9E75', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 } : {}}
+          >
 
           {/* Thumbnail */}
           <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
@@ -315,10 +372,12 @@ export default function ProductManager({ businessId }: Props) {
                 : <EyeOff size={15} className="text-gray-300" />
               }
             </button>
-            {/* Edit */}
-            <button onClick={() => openEdit(p)}
-              className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
-              <Pencil size={15} className="text-gray-400" />
+            {/* Edit — inline toggle */}
+            <button
+              onClick={() => openInlineEdit(p)}
+              className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              title="Edit product">
+              <Pencil size={15} style={{ color: expandedId === p.id ? '#1D9E75' : undefined }} className={expandedId === p.id ? '' : 'text-gray-400'} />
             </button>
             {/* Delete */}
             <button onClick={() => handleDelete(p.id)} disabled={deleting === p.id}
@@ -329,6 +388,139 @@ export default function ProductManager({ businessId }: Props) {
               }
             </button>
           </div>
+        </div>{/* end card row */}
+
+          {/* ── Inline edit panel ── */}
+          {expandedId === p.id && (
+            <div className="border border-gray-200 rounded-2xl overflow-hidden -mt-2"
+              style={{ background: '#fafafa' }}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100"
+                style={{ background: '#f0faf6' }}>
+                <p className="text-sm font-semibold" style={{ color: '#085041' }}>
+                  Editing — {p.name}
+                </p>
+                <button onClick={() => setExpandedId(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+
+                {/* Image */}
+                <div className="flex items-start gap-4">
+                  <div
+                    onClick={() => fileRef.current?.click()}
+                    className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 overflow-hidden flex-shrink-0 cursor-pointer hover:border-green-300 transition-colors">
+                    {imgPreview && expandedId === p.id
+                      ? <img src={imgPreview} alt="" className="w-full h-full object-cover" />
+                      : p.image_url
+                      ? <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon size={18} className="text-gray-300" />
+                        </div>
+                    }
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    {/* Name */}
+                    <input
+                      type="text"
+                      value={inlineForm.name}
+                      onChange={e => updInline('name', e.target.value)}
+                      placeholder="Product name *"
+                      className={inputCls}
+                    />
+                    {/* Price + available row */}
+                    <div className="flex gap-3">
+                      <div className="relative flex-1">
+                        <DollarSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="number" min="0" step="0.01"
+                          value={inlineForm.price || ''}
+                          onChange={e => updInline('price', e.target.value)}
+                          placeholder="Price *"
+                          className={`${inputCls} pl-7`}
+                        />
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={inlineForm.available}
+                          onChange={e => updInline('available', e.target.checked)}
+                          className="accent-green-600 w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-700 whitespace-nowrap">In stock</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <textarea
+                  value={inlineForm.description ?? ''}
+                  onChange={e => updInline('description', e.target.value)}
+                  placeholder="Description (optional)"
+                  rows={2}
+                  className={`${inputCls} resize-none`}
+                />
+
+                {/* Sale toggle */}
+                <div className="border border-amber-200 rounded-xl p-3" style={{ background: '#FFFBEB' }}>
+                  <label className="flex items-center gap-2 cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      checked={inlineForm.sale_active}
+                      onChange={e => updInline('sale_active', e.target.checked)}
+                      className="accent-amber-500 w-4 h-4"
+                    />
+                    <span className="text-sm font-semibold text-amber-800">
+                      <Tag size={12} className="inline mr-1" />Run a sale
+                    </span>
+                  </label>
+
+                  {inlineForm.sale_active && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <DollarSign size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="number" min="0" step="0.01"
+                          value={inlineForm.sale_price ?? ''}
+                          onChange={e => updInline('sale_price', e.target.value)}
+                          placeholder="Sale price"
+                          className={`${inputCls} pl-7`}
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        value={inlineForm.sale_label ?? ''}
+                        onChange={e => updInline('sale_label', e.target.value)}
+                        placeholder="Label e.g. Weekend deal"
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Save / Cancel */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => saveInline(p.id)}
+                    disabled={inlineSaving}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                    style={{ background: '#1D9E75' }}>
+                    {inlineSaving
+                      ? <><Loader2 size={13} className="animate-spin" /> Saving…</>
+                      : <><Save size={13} /> Save changes</>
+                    }
+                  </button>
+                  <button
+                    onClick={() => { setExpandedId(null); setImgFile(null); setImgPreview(null) }}
+                    className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ))}
 
