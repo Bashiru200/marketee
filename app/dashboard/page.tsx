@@ -10,6 +10,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import ImageUpload from '@/components/ui/ImageUpload'
+import ProductManager from '@/components/dashboard/ProductManager'
 import GalleryUploader from '@/components/dashboard/GalleryUploader'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
@@ -44,7 +45,7 @@ interface Business {
   street: string | null; address: string | null
   zip: string | null; phone: string | null; email: string | null
   website: string | null; country: string | null
-  cover_image: string | null; logo_url: string | null; images: string[] | null
+  cover_image: string | null; logo_url: string | null; images: string[] | null; slug: string | null; plan: string | null
   hours_open: string | null; days_open: string[] | null
   rating: number; review_count: number
   verified: boolean; premium: boolean; featured: boolean
@@ -162,11 +163,15 @@ export default function DashboardPage() {
   const [newProduct,     setNewProduct]     = useState({ name:'', price:'', description:'', image_url:'' })
   const [addingProduct,  setAddingProduct]  = useState(false)
   const [showAddProduct, setShowAddProduct] = useState(false)
+  const [slugInput,      setSlugInput]      = useState('')
+  const [slugSaving,     setSlugSaving]     = useState(false)
+  const [slugMsg,        setSlugMsg]        = useState<{ text: string; ok: boolean } | null>(null)
 
   const [form, setForm] = useState({
     name:'', description:'', phone:'', email:'', website:'',
     street:'', city:'', state:'', zip:'',
     cover_image:'', logo_url:'', images:[] as string[],
+    slug:'',
     hours_open:'', days_open:[] as string[],
     category:'', country:'',
   })
@@ -200,6 +205,7 @@ export default function DashboardPage() {
     ])
     if (bizRes.data) {
       setBiz(bizRes.data)
+    setSlugInput(bizRes.data.slug ?? '')
       // Pre-fill ALL fields from signup data — including street fallback to address
       setForm({
         name:        bizRes.data.name        ?? '',
@@ -214,6 +220,7 @@ export default function DashboardPage() {
         cover_image: bizRes.data.cover_image ?? '',
         logo_url:    bizRes.data.logo_url    ?? '',
         images:      bizRes.data.images ?? [],
+        slug:        bizRes.data.slug ?? '',
         hours_open:  bizRes.data.hours_open  ?? '',
         days_open:   bizRes.data.days_open   ?? [],
         category:    bizRes.data.category    ?? '',
@@ -223,6 +230,24 @@ export default function DashboardPage() {
     if (reviewRes.data)  setReviews(reviewRes.data as Review[])
     if (productRes.data) setProducts(productRes.data)
     setLoading(false)
+  }
+
+  async function saveSlug() {
+    const cleaned = slugInput.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    if (!cleaned) { setSlugMsg({ text: 'Enter a valid store name', ok: false }); return }
+    if (biz!.plan !== 'storefront') { setSlugMsg({ text: 'Upgrade to Storefront to use a custom URL', ok: false }); return }
+    setSlugSaving(true); setSlugMsg(null)
+    // Check uniqueness
+    const { data: existing } = await supabase.from('businesses').select('id').eq('slug', cleaned).neq('id', biz!.id).single()
+    if (existing) { setSlugMsg({ text: 'That URL is already taken — try another', ok: false }); setSlugSaving(false); return }
+    const { error } = await supabase.from('businesses').update({ slug: cleaned }).eq('id', biz!.id)
+    if (error) { setSlugMsg({ text: error.message, ok: false }) }
+    else {
+      setSlugMsg({ text: `Store URL set: markeetee.com/store/${cleaned}`, ok: true })
+      setBiz(b => b ? { ...b, slug: cleaned } : b)
+      setSlugInput(cleaned)
+    }
+    setSlugSaving(false)
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -299,7 +324,7 @@ export default function DashboardPage() {
     setProducts(p => p.filter(x => x.id !== id))
   }
 
-  function upd(k: string, v: string | string[]) { setForm(f => ({ ...f, [k]: v })) }
+  function upd(k: string, v: string | string[] | null) { setForm(f => ({ ...f, [k]: v })) }
   function updProduct(k: string, v: string) { setNewProduct(p => ({ ...p, [k]: v })) }
 
   const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all"
@@ -573,6 +598,60 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* ── Custom store URL (Storefront plan only) ── */}
+          <div className="border border-gray-100 rounded-2xl p-5" style={{ background: biz.plan === 'storefront' ? '#fafafa' : '#f9fafb' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-semibold text-gray-900 text-sm">Custom store URL</p>
+              {biz.plan !== 'storefront' && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background:'#FEF3C7', color:'#92400E' }}>
+                  Storefront plan
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              {biz.plan === 'storefront'
+                ? 'Your store is accessible at markeetee.com/store/your-url'
+                : 'Upgrade to Storefront to get a shareable custom URL like markeetee.com/store/your-business'}
+            </p>
+            {biz.plan === 'storefront' ? (
+              <>
+                <div className="flex gap-2">
+                  <div className="flex items-center bg-gray-100 rounded-l-xl px-3 text-xs text-gray-500 border border-r-0 border-gray-200 flex-shrink-0 whitespace-nowrap">
+                    markeetee.com/store/
+                  </div>
+                  <input
+                    type="text"
+                    value={slugInput}
+                    onChange={e => { setSlugInput(e.target.value); setSlugMsg(null) }}
+                    placeholder="your-business-name"
+                    className="flex-1 border border-gray-200 rounded-r-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all min-w-0"
+                  />
+                  <button type="button" onClick={saveSlug} disabled={slugSaving}
+                    className="flex-shrink-0 text-sm font-semibold text-white px-4 py-2 rounded-xl disabled:opacity-60"
+                    style={{ background: '#1D9E75' }}>
+                    {slugSaving ? <Loader2 size={14} className="animate-spin" /> : 'Save URL'}
+                  </button>
+                </div>
+                <p className="text-xs mt-1">
+                  {slugMsg && (
+                    <span style={{ color: slugMsg.ok ? '#1D9E75' : '#DC2626' }}>{slugMsg.text}</span>
+                  )}
+                  {!slugMsg && biz.slug && (
+                    <span className="text-gray-400">
+                      Current: <a href={`/store/${biz.slug}`} target="_blank" rel="noopener noreferrer" className="underline" style={{ color:'#1D9E75' }}>markeetee.com/store/{biz.slug}</a>
+                    </span>
+                  )}
+                </p>
+              </>
+            ) : (
+              <button type="button" onClick={() => setTab('upgrade')}
+                className="text-xs font-semibold text-white px-4 py-2 rounded-xl"
+                style={{ background: '#085041' }}>
+                Upgrade to Storefront →
+              </button>
+            )}
+          </div>
+
           <button type="submit" disabled={saving}
             className="w-full text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background:'#1D9E75' }}>
@@ -584,79 +663,8 @@ export default function DashboardPage() {
       {/* PRODUCTS */}
       {tab==='products' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-xl text-gray-900">Products</h2>
-            <button onClick={() => setShowAddProduct(!showAddProduct)}
-              className="flex items-center gap-1.5 text-sm font-medium text-white px-4 py-2 rounded-xl"
-              style={{ background:'#1D9E75' }}>
-              <Plus size={15} /> Add product
-            </button>
-          </div>
-          {showAddProduct && (
-            <form onSubmit={handleAddProduct} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-              <h3 className="font-semibold text-gray-900">New product</h3>
-              <ImageUpload bucket="products" folder={profile?.business_id ?? 'unknown'}
-                currentUrl={newProduct.image_url||null} onUpload={url => updProduct('image_url', url)}
-                onRemove={() => updProduct('image_url', '')} label="Product image" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Product name *</label>
-                  <input value={newProduct.name} onChange={e => updProduct('name', e.target.value)} required
-                    placeholder="Jollof Rice (Party Size)" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Price ($)</label>
-                  <input type="number" min="0" step="0.01" value={newProduct.price} onChange={e => updProduct('price', e.target.value)}
-                    placeholder="25.00" className={inputCls} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={labelCls}>Description</label>
-                  <input value={newProduct.description} onChange={e => updProduct('description', e.target.value)}
-                    placeholder="Brief description" className={inputCls} />
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" disabled={addingProduct}
-                  className="flex-1 text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-                  style={{ background:'#1D9E75' }}>
-                  {addingProduct ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : 'Add product'}
-                </button>
-                <button type="button" onClick={() => setShowAddProduct(false)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
-              </div>
-            </form>
-          )}
-          {products.length===0 && !showAddProduct ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-              <div className="text-4xl mb-3">📦</div>
-              <p className="font-medium text-gray-700 mb-1">No products yet</p>
-              <p className="text-sm text-gray-400">Add your first product to show what you sell</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                  {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-36 object-cover" />
-                    : <div className="w-full h-36 flex items-center justify-center text-3xl" style={{ background:'#F3F4F6' }}>📦</div>}
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-medium text-sm text-gray-900 line-clamp-1">{p.name}</p>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    {p.description && <p className="text-xs text-gray-400 line-clamp-2 mb-2">{p.description}</p>}
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-sm" style={{ color:'#1D9E75' }}>${p.price?.toFixed(2) ?? '0.00'}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${p.available?'bg-green-50 text-green-700':'bg-gray-100 text-gray-500'}`}>
-                        {p.available?'Available':'Unavailable'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <h2 className="font-bold text-xl text-gray-900">Products</h2>
+          <ProductManager businessId={biz.id} />
         </div>
       )}
 
