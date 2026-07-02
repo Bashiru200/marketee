@@ -1,4 +1,5 @@
 'use client'
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
@@ -7,10 +8,7 @@ import {
 } from 'lucide-react'
 import { BusinessRow } from '@/lib/queries'
 
-const FLAGS: Record<string, string> = {
-  Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
-  Senegal:'🇸🇳', 'South Africa':'🇿🇦', Ethiopia:'🇪🇹',
-}
+
 
 const GRADIENTS: Record<string, string> = {
   food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -50,7 +48,7 @@ function BusinessCard({ b }: { b: BusinessRow }) {
           )}
         </div>
         <div className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-xs">
-          {FLAGS[b.country ?? ''] || '🌍'}
+          {AFRICAN_FLAGS[b.country ?? ''] || '🌍'}
         </div>
         {b.price_range && (
           <div className="absolute bottom-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/50 text-white">
@@ -285,7 +283,7 @@ export default function BusinessGrid({ businesses, categories }: Props) {
                       {b.featured && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500 text-white">Featured</span>}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mb-1">{b.subcategory ?? b.category} · {FLAGS[b.country ?? ''] || '🌍'} {b.country}</p>
+                  <p className="text-xs text-gray-400 mb-1">{b.subcategory ?? b.category} · {AFRICAN_FLAGS[b.country ?? ''] || '🌍'} {b.country}</p>
                   <div className="flex items-center gap-1.5 mb-1">
                     {[1,2,3,4,5].map(i=><Star key={i} size={10} className={i<=Math.round(b.rating)?'text-amber-400 fill-current':'text-gray-200'} />)}
                     <span className="text-xs font-medium text-gray-800">{b.rating?.toFixed(1)||'—'}</span>

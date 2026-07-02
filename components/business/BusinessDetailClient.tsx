@@ -15,6 +15,7 @@ import ReviewCard    from '@/components/reviews/ReviewCard'
 import ReviewForm    from '@/components/reviews/ReviewForm'
 import SaveButton    from '@/components/ui/SaveButton'
 import ClaimBusinessModal from '@/components/ui/ClaimBusinessModal'
+import ProductModal     from '@/components/ui/ProductModal'
 import SendEmailModal     from '@/components/ui/SendEmailModal'
 
 const GRADIENTS: Record<string, string> = {
@@ -67,7 +68,8 @@ export default function BusinessDetailClient({ id }: { id: string }) {
   const [hasReviewed, setHasReviewed] = useState(false)
   const [copied,      setCopied]      = useState(false)
   const [showClaim,   setShowClaim]   = useState(false)
-  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [lightboxIdx,     setLightboxIdx]     = useState<number | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   // ── Data loading ──────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
@@ -207,7 +209,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* ── Main column ── */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 flex flex-col">
 
             {/* Photo gallery */}
             <div className="space-y-2">
@@ -269,28 +271,38 @@ export default function BusinessDetailClient({ id }: { id: string }) {
             </div>
 
             {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center">
                 <p className="font-bold text-gray-900 mb-1 flex items-center justify-center gap-1">
-                  <Star size={14} className="text-amber-400 fill-current" />
-                  {biz.rating > 0 ? biz.rating.toFixed(1) : '—'}
+                  <Star size={13} className="text-amber-400 fill-current flex-shrink-0" />
+                  <span className="truncate">{biz.rating > 0 ? biz.rating.toFixed(1) : '—'}</span>
                 </p>
                 <p className="text-xs text-gray-400">{biz.review_count} reviews</p>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
-                <p className="font-bold text-gray-900 mb-1">{biz.price_range ?? '—'}</p>
-                <p className="text-xs text-gray-400">Price range</p>
+              <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center">
+                <p className="font-bold text-gray-900 mb-1 truncate">{biz.price_range ?? '—'}</p>
+                <p className="text-xs text-gray-400">Price</p>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
+              <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center overflow-hidden">
                 {biz.hours_open ? (
                   <>
-                    <p className="font-bold text-xs" style={{ color: '#1D9E75' }}>{biz.hours_open}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Opening hours</p>
+                    {/* Show abbreviated format on mobile */}
+                    <p className="font-bold text-xs leading-snug" style={{ color: '#1D9E75' }}>
+                      <span className="hidden sm:inline">{biz.hours_open}</span>
+                      <span className="sm:hidden">
+                        {/* Show just the times without AM/PM labels if too long */}
+                        {biz.hours_open.length > 12
+                          ? biz.hours_open.replace(/\s*(AM|PM)/gi, m => m.trim()[0]).replace(' – ', '–')
+                          : biz.hours_open
+                        }
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">Hours</p>
                   </>
                 ) : (
                   <>
                     <p className="font-bold text-gray-400 mb-1 text-sm">—</p>
-                    <p className="text-xs text-gray-400">Hours not set</p>
+                    <p className="text-xs text-gray-400">Hours</p>
                   </>
                 )}
               </div>
@@ -320,7 +332,9 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                 <h2 className="font-bold text-xl text-gray-900 mb-4">Products & Menu</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {products.map(p => (
-                    <div key={p.id} className="flex gap-3 p-3 rounded-xl border border-gray-100">
+                    <div key={p.id}
+                      className="flex gap-3 p-3 rounded-xl border border-gray-100 cursor-pointer hover:border-green-300 hover:bg-green-50 transition-colors"
+                      onClick={() => setSelectedProduct(p)}>
                       {p.image_url
                         ? <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                             <Image src={p.image_url} alt={p.name} fill sizes="64px" className="object-cover" />
@@ -343,8 +357,8 @@ export default function BusinessDetailClient({ id }: { id: string }) {
               </div>
             )}
 
-            {/* Reviews */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100">
+            {/* Reviews — shown below sidebar on mobile via order, before on desktop */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 order-last lg:order-none">
               <h2 className="font-bold text-xl text-gray-900 mb-4">Reviews</h2>
 
               {/* Rating breakdown */}
@@ -566,6 +580,16 @@ export default function BusinessDetailClient({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* Product modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          businessName={biz?.name ?? ''}
+          businessPhone={biz?.phone ?? null}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
 
       {/* ── Lightbox ── */}
       {lightboxIdx !== null && allPhotos.length > 0 && (

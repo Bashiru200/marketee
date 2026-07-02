@@ -1,4 +1,5 @@
 'use client'
+import { AFRICAN_FLAGS } from '@/lib/africanCountries'
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -10,13 +11,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import ReviewCard from '@/components/reviews/ReviewCard'
 import ReviewForm from '@/components/reviews/ReviewForm'
-import SaveButton from '@/components/ui/SaveButton'
 import HoursBadge from '@/components/ui/HoursBadge'
+import SaveButton from '@/components/ui/SaveButton'
 
-const FLAGS: Record<string, string> = {
-  Nigeria:'🇳🇬', Ghana:'🇬🇭', Kenya:'🇰🇪',
-  Senegal:'🇸🇳', 'South Africa':'🇿🇦', Ethiopia:'🇪🇹',
-}
+
 
 const GRADIENTS: Record<string, string> = {
   food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -207,7 +205,7 @@ export default function BusinessDetailPage() {
               <p className="text-2xl font-bold">{biz.name}</p>
               <p className="text-white/80 text-sm">
                 {biz.subcategory ?? biz.category}
-                {biz.country && ` · ${FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
+                {biz.country && ` · ${AFRICAN_FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
               </p>
             </div>
           </div>
