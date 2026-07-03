@@ -53,8 +53,20 @@ interface Review {
 }
 
 interface Product {
-  id: string; name: string; price: number
-  description: string | null; image_url: string | null; available: boolean
+  id:            string
+  name:          string
+  price:         number
+  description:   string | null
+  image_url:     string | null
+  images:        string[] | null
+  available:     boolean
+  like_count?:   number
+  rating_avg?:   number
+  rating_count?: number
+  review_count?: number
+  sale_price?:   number | null
+  sale_active?:  boolean
+  sale_label?:   string | null
 }
 
 export default function BusinessDetailClient({ id }: { id: string }) {
@@ -80,7 +92,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         .eq('business_id', id)
         .order('created_at', { ascending: false }),
       supabase.from('products')
-        .select('id,name,price,description,image_url,available')
+        .select('id,name,price,description,image_url,images,available,like_count,rating_avg,rating_count,review_count,sale_price,sale_active,sale_label')
         .eq('business_id', id)
         .eq('available', true),
     ])
@@ -331,28 +343,45 @@ export default function BusinessDetailClient({ id }: { id: string }) {
               <div className="bg-white rounded-2xl p-6 border border-gray-100">
                 <h2 className="font-bold text-xl text-gray-900 mb-4">Products & Menu</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {products.map(p => (
+                  {products.map(p => {
+                    const photoCount = [p.image_url, ...(p.images ?? [])].filter(Boolean).length
+                    return (
                     <div key={p.id}
-                      className="flex gap-3 p-3 rounded-xl border border-gray-100 cursor-pointer hover:border-green-300 hover:bg-green-50 transition-colors"
+                      className="flex gap-3 p-3 rounded-xl border border-gray-100 cursor-pointer hover:border-green-300 hover:bg-green-50 transition-colors group"
                       onClick={() => setSelectedProduct(p)}>
-                      {p.image_url
-                        ? <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                            <Image src={p.image_url} alt={p.name} fill sizes="64px" className="object-cover" />
+                      {/* Thumbnail with photo count badge */}
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                        {p.image_url
+                          ? <Image src={p.image_url} alt={p.name} fill sizes="64px" className="object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-xl"
+                              style={{ background: '#F3F4F6' }}>📦</div>
+                        }
+                        {photoCount > 1 && (
+                          <div className="absolute bottom-0.5 right-0.5 bg-black/60 text-white text-[9px] font-bold px-1 rounded">
+                            +{photoCount - 1}
                           </div>
-                        : <div className="w-16 h-16 rounded-lg flex-shrink-0 flex items-center justify-center text-xl"
-                            style={{ background: '#F3F4F6' }}>📦</div>
-                      }
-                      <div>
-                        <p className="font-medium text-sm text-gray-900">{p.name}</p>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900 group-hover:text-green-700 transition-colors">{p.name}</p>
                         {p.description && (
                           <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{p.description}</p>
                         )}
-                        <p className="font-bold text-sm mt-1" style={{ color: '#1D9E75' }}>
-                          ${p.price?.toFixed(2)}
-                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="font-bold text-sm" style={{ color: '#1D9E75' }}>
+                            {p.sale_active && p.sale_price
+                              ? <><span className="text-gray-400 line-through text-xs mr-1">${p.price?.toFixed(2)}</span>${p.sale_price.toFixed(2)}</>
+                              : `$${p.price?.toFixed(2)}`
+                            }
+                          </p>
+                          <span className="text-[10px] text-gray-400 group-hover:text-green-600 transition-colors">
+                            View details →
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
