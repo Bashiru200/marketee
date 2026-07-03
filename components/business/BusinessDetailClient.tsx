@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
-  MapPin, Phone, Mail, Globe, Clock,
+  MapPin, Phone, Mail, Globe,
   Star, BadgeCheck, ArrowLeft, Share2,
   MessageCircle, X, ChevronLeft, ChevronRight,
 } from 'lucide-react'
@@ -16,7 +16,9 @@ import ReviewForm    from '@/components/reviews/ReviewForm'
 import SaveButton    from '@/components/ui/SaveButton'
 import ClaimBusinessModal from '@/components/ui/ClaimBusinessModal'
 import ProductModal     from '@/components/ui/ProductModal'
-import SendEmailModal     from '@/components/ui/SendEmailModal'
+import SendEmailModal      from '@/components/ui/SendEmailModal'
+import GoogleMapsHours    from '@/components/ui/GoogleMapsHours'
+import { getHoursStatus } from '@/lib/businessHours'
 
 const GRADIENTS: Record<string, string> = {
   food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
@@ -296,27 +298,25 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                 <p className="text-xs text-gray-400">Price</p>
               </div>
               <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center overflow-hidden">
-                {biz.hours_open ? (
-                  <>
-                    {/* Show abbreviated format on mobile */}
-                    <p className="font-bold text-xs leading-snug" style={{ color: '#1D9E75' }}>
-                      <span className="hidden sm:inline">{biz.hours_open}</span>
-                      <span className="sm:hidden">
-                        {/* Show just the times without AM/PM labels if too long */}
-                        {biz.hours_open.length > 12
-                          ? biz.hours_open.replace(/\s*(AM|PM)/gi, m => m.trim()[0]).replace(' – ', '–')
-                          : biz.hours_open
-                        }
-                      </span>
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">Hours</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-bold text-gray-400 mb-1 text-sm">—</p>
-                    <p className="text-xs text-gray-400">Hours</p>
-                  </>
-                )}
+                {biz.hours_open
+                  ? (() => {
+                      const { status, label } = getHoursStatus(biz.hours_open, biz.days_open)
+                      const color = status === 'open' ? '#1D9E75' : status === 'closing_soon' ? '#D97706' : '#9CA3AF'
+                      const short = status === 'open' ? 'Open' : status === 'closing_soon' ? 'Closing' : 'Closed'
+                      return (
+                        <>
+                          <p className="font-bold text-xs leading-snug truncate" style={{ color }}>{short}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Status</p>
+                        </>
+                      )
+                    })()
+                  : (
+                    <>
+                      <p className="font-bold text-gray-400 mb-1 text-sm">—</p>
+                      <p className="text-xs text-gray-400">Hours</p>
+                    </>
+                  )
+                }
               </div>
             </div>
 
@@ -560,36 +560,12 @@ export default function BusinessDetailClient({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* Opening hours */}
-            {(biz.hours_open || (biz.days_open && biz.days_open.length > 0)) && (
-              <div className="bg-white rounded-2xl p-5 border border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Clock size={15} style={{ color: '#1D9E75' }} /> Opening Hours
-                </h3>
-                {biz.hours_open && (
-                  <p className="text-sm text-gray-700 font-medium mb-2">{biz.hours_open}</p>
-                )}
-                {biz.days_open && biz.days_open.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => {
-                      const fullDay = ({
-                        Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday',
-                        Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday',
-                      } as Record<string,string>)[day]
-                      const isOpen = biz.days_open?.includes(fullDay)
-                      return (
-                        <span key={day} className="text-xs px-2 py-1 rounded-lg font-medium"
-                          style={{
-                            background: isOpen ? '#E1F5EE' : '#F3F4F6',
-                            color:      isOpen ? '#085041' : '#9CA3AF',
-                          }}>
-                          {day}
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+            {/* Opening hours — Google Maps style */}
+            {biz.hours_open && (
+              <GoogleMapsHours
+                hoursOpen={biz.hours_open}
+                daysOpen={biz.days_open}
+              />
             )}
 
             {/* Claim listing */}

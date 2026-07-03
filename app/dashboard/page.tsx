@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth'
 import ImageUpload from '@/components/ui/ImageUpload'
 import ProductManager from '@/components/dashboard/ProductManager'
 import GalleryUploader from '@/components/dashboard/GalleryUploader'
+import CountriesBar from '@/components/ui/CountriesBar'
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 
@@ -25,18 +26,6 @@ const CATEGORIES = [
   { id: 'crafts',     label: 'Crafts & Decor'     },
   { id: 'services',   label: 'Services'           },
   { id: 'nightlife',  label: 'Bars & Nightlife'   },
-]
-
-const COUNTRIES = [
-  { code:'NG', flag:'🇳🇬', name:'Nigeria'              },
-  { code:'GH', flag:'🇬🇭', name:'Ghana'                },
-  { code:'KE', flag:'🇰🇪', name:'Kenya'                },
-  { code:'SN', flag:'🇸🇳', name:'Senegal'              },
-  { code:'ZA', flag:'🇿🇦', name:'South Africa'         },
-  { code:'ET', flag:'🇪🇹', name:'Ethiopia'             },
-  { code:'CM', flag:'🇨🇲', name:'Cameroon'             },
-  { code:'CI', flag:'🇨🇮', name:"Côte d'Ivoire"       },
-  { code:'OTHER', flag:'🌍', name:'Other African country' },
 ]
 
 interface Business {
@@ -62,14 +51,20 @@ interface Product {
   image_url: string | null; available: boolean
 }
 
-const PLANS = [
-  { name:'Free',       price:'$0',  period:'/month', highlight:false, current:true,
-    features:['Basic listing','Map pin','Contact info','Category listing'] },
-  { name:'Premium',    price:'$29', period:'/month', highlight:true,  current:false,
-    features:['Everything in Free','Photos gallery','Featured placement','Product listings','Priority search','Analytics'] },
-  { name:'Storefront', price:'$49', period:'/month', highlight:false, current:false,
-    features:['Everything in Premium','Full product catalogue','Online enquiry','WhatsApp integration','Custom store URL'] },
-]
+function getPlans(currentPlan: string | null) {
+  const plan = currentPlan ?? 'free'
+  return [
+    { id:'free',       name:'Free',       price:'$0',  period:'/month', highlight:false,
+      current: plan === 'free',
+      features:['Basic listing','Map pin','Contact info','Category listing'] },
+    { id:'premium',    name:'Premium',    price:'$29', period:'/month', highlight:true,
+      current: plan === 'premium',
+      features:['Everything in Free','Photos gallery','Featured placement','Product listings','Priority search','Analytics'] },
+    { id:'storefront', name:'Storefront', price:'$49', period:'/month', highlight:false,
+      current: plan === 'storefront',
+      features:['Everything in Premium','Full product catalogue','Online enquiry','WhatsApp integration','Custom store URL'] },
+  ]
+}
 
 function getRecommendations(
   biz: Business, reviews: Review[], products: Product[]
@@ -171,9 +166,8 @@ export default function DashboardPage() {
     name:'', description:'', phone:'', email:'', website:'',
     street:'', city:'', state:'', zip:'',
     cover_image:'', logo_url:'', images:[] as string[],
-    slug:'',
     hours_open:'', days_open:[] as string[],
-    category:'', country:'',
+    category:'', country:'', slug:'',
   })
 
   useEffect(() => {
@@ -509,15 +503,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Business name</label>
-                <input type="text" value={form.name} onChange={e => upd('name', e.target.value)} placeholder="Mama Titi African Kitchen" className={inputCls} />
+                <input type="text" value={form.name} onChange={e => upd('name', e.target.value)} placeholder="Enter your business name" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Phone number</label>
-                <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)} placeholder="+1 (713) 555-0192" className={inputCls} />
+                <input type="tel" value={form.phone} onChange={e => upd('phone', e.target.value)} placeholder="Enter your phone number" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Email</label>
-                <input type="email" value={form.email} onChange={e => upd('email', e.target.value)} placeholder="hello@yourbusiness.com" className={inputCls} />
+                <input type="email" value={form.email} onChange={e => upd('email', e.target.value)} placeholder="Enter your email" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Website</label>
@@ -534,7 +528,7 @@ export default function DashboardPage() {
                 <label className={labelCls}>Country of origin</label>
                 <select value={form.country} onChange={e => upd('country', e.target.value)} className={inputCls}>
                   <option value="">Select country</option>
-                  {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
+                  <CountriesBar />
                 </select>
               </div>
               <div className="sm:col-span-2">
@@ -554,32 +548,25 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
               <div className="sm:col-span-6">
                 <label className={labelCls}>Street address</label>
-                <input value={form.street} onChange={e => upd('street', e.target.value)} placeholder="4821 Main St" className={inputCls} />
+                <input value={form.street} onChange={e => upd('street', e.target.value)} placeholder="Enter your street address" className={inputCls} />
               </div>
               <div className="sm:col-span-3">
                 <label className={labelCls}>City</label>
-                <input value={form.city} onChange={e => upd('city', e.target.value)} placeholder="Houston" className={inputCls} />
+                <input value={form.city} onChange={e => upd('city', e.target.value)} placeholder="Enter your city" className={inputCls} />
               </div>
               <div className="sm:col-span-1">
                 <label className={labelCls}>State</label>
-                <input value={form.state} onChange={e => upd('state', e.target.value)} placeholder="TX" maxLength={2} className={inputCls} />
+                <input value={form.state} onChange={e => upd('state', e.target.value)} placeholder="Enter your state" maxLength={2} className={inputCls} />
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>ZIP code</label>
-                <input value={form.zip} onChange={e => upd('zip', e.target.value)} placeholder="77001" maxLength={10} className={inputCls} />
+                <input value={form.zip} onChange={e => upd('zip', e.target.value)} placeholder="Enter your ZIP code" maxLength={10} className={inputCls} />
               </div>
             </div>
           </div>
 
           {/* Hours */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-              <Clock size={13} /> Opening hours
-            </p>
-            <div className="mb-3">
-              <label className={labelCls}>Hours (e.g. 9am – 9pm)</label>
-              <input value={form.hours_open} onChange={e => upd('hours_open', e.target.value)} placeholder="9:00 AM – 9:00 PM" className={inputCls} />
-            </div>
             <div>
               <label className={`${labelCls} flex items-center gap-1.5`}><Calendar size={13} /> Days open</label>
               <div className="flex flex-wrap gap-2">
@@ -703,30 +690,102 @@ export default function DashboardPage() {
 
       {/* UPGRADE */}
       {tab==='upgrade' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PLANS.map(plan => (
-            <div key={plan.name} className="rounded-2xl border p-6"
-              style={plan.highlight?{background:'#085041',borderColor:'#085041',color:'white'}:{background:'white',borderColor:'#F3F4F6'}}>
-              {plan.highlight && <div className="text-xs font-bold bg-amber-400 text-amber-900 px-3 py-1 rounded-full w-fit mb-4">Most Popular</div>}
+        <div className="space-y-6">
+          {/* Current plan banner */}
+          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: '#f0faf6', border: '1px solid #9FE1CB' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+              style={{ background: '#1D9E75' }}>
+              {biz.plan === 'storefront' ? '🏪' : biz.plan === 'premium' ? '⭐' : '🆓'}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 capitalize">
+                You are on the <strong>{biz.plan ?? 'Free'}</strong> plan
+              </p>
+              <p className="text-xs text-gray-500">
+                {biz.plan === 'storefront'
+                  ? 'You have access to all Markeetee features.'
+                  : biz.plan === 'premium'
+                  ? 'Upgrade to Storefront to unlock a custom store URL and more.'
+                  : 'Upgrade to unlock more features and reach more customers.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {getPlans(biz.plan).map(plan => (
+            <div key={plan.name}
+              className="rounded-2xl border p-6 flex flex-col"
+              style={plan.highlight
+                ? { background:'#085041', borderColor:'#085041', color:'white' }
+                : plan.current
+                ? { background:'#f9fafb', borderColor:'#1D9E75', borderWidth: 2 }
+                : { background:'white', borderColor:'#F3F4F6' }}>
+
+              {/* Badges */}
+              <div className="flex items-center gap-2 mb-4">
+                {plan.highlight && (
+                  <div className="text-xs font-bold bg-amber-400 text-amber-900 px-3 py-1 rounded-full">
+                    Most Popular
+                  </div>
+                )}
+                {plan.current && (
+                  <div className="text-xs font-bold px-3 py-1 rounded-full"
+                    style={{ background: '#E1F5EE', color: '#085041' }}>
+                    ✓ Your plan
+                  </div>
+                )}
+              </div>
+
               <p className="text-xl font-bold mb-1">{plan.name}</p>
               <div className="flex items-baseline gap-1 mb-5">
                 <span className="text-4xl font-bold">{plan.price}</span>
-                <span style={{color:plan.highlight?'#9FE1CB':'#9CA3AF'}}>{plan.period}</span>
+                <span style={{ color: plan.highlight ? '#9FE1CB' : '#9CA3AF' }}>{plan.period}</span>
               </div>
-              <ul className="space-y-2.5 mb-6">
+
+              <ul className="space-y-2.5 mb-6 flex-1">
                 {plan.features.map(f => (
-                  <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight?'text-green-100':'text-gray-600'}`}>
-                    <span className="text-green-400">✓</span>{f}
+                  <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? 'text-green-100' : 'text-gray-600'}`}>
+                    <span style={{ color: plan.highlight ? '#9FE1CB' : '#1D9E75' }}>✓</span>{f}
                   </li>
                 ))}
               </ul>
-              <button disabled={plan.current} className="w-full py-3 rounded-xl font-semibold text-sm transition-colors"
-                style={plan.current?{background:'#F3F4F6',color:'#9CA3AF',cursor:'default'}
-                  :{background:plan.highlight?'#fff':'#1D9E75',color:plan.highlight?'#085041':'#fff'}}>
-                {plan.current?'Current plan':`Get ${plan.name}`}
-              </button>
+
+              {plan.current ? (
+                <div className="w-full py-3 rounded-xl text-sm font-semibold text-center"
+                  style={{ background: '#E1F5EE', color: '#085041' }}>
+                  Current plan
+                </div>
+              ) : plan.id === 'free' ? (
+                <div className="w-full py-3 rounded-xl text-sm font-semibold text-center"
+                  style={{ background: '#F3F4F6', color: '#9CA3AF' }}>
+                  Downgrade
+                </div>
+              ) : (
+                <a
+                  href={`mailto:hello@markeetee.com?subject=Upgrade to ${plan.name}&body=Hi, I would like to upgrade my Markeetee listing (Business ID: ${biz.id}) to the ${plan.name} plan ($${plan.price}/month). Please send me payment details.`}
+                  className="w-full py-3 rounded-xl text-sm font-semibold text-center block hover:opacity-90 transition-opacity"
+                  style={{
+                    background: plan.highlight ? '#ffffff' : '#1D9E75',
+                    color:      plan.highlight ? '#085041' : '#ffffff',
+                  }}>
+                  Upgrade to {plan.name} →
+                </a>
+              )}
             </div>
           ))}
+          </div>
+
+          {/* Contact to upgrade */}
+          <div className="rounded-2xl border border-gray-100 p-5 bg-gray-50 text-center">
+            <p className="text-sm text-gray-600 mb-1">
+              Need help choosing a plan or want to pay by bank transfer?
+            </p>
+            <a href="mailto:hello@markeetee.com"
+              className="text-sm font-semibold"
+              style={{ color: '#1D9E75' }}>
+              Contact us at hello@markeetee.com
+            </a>
+          </div>
         </div>
       )}
     </div>

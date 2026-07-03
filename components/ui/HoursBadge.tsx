@@ -34,7 +34,7 @@ export default function HoursBadge({ hoursOpen, daysOpen, size = 'sm' }: Props) 
   const styles = {
     open:         { bg: '#f0faf6', text: '#085041', dot: '#1D9E75' },
     closing_soon: { bg: '#FEF3C7', text: '#92400E', dot: '#F59E0B' },
-    closed:       { bg: '#F9FAFB', text: '#6B7280', dot: '#D1D5DB' },
+    closed:       { bg: '#F9FAFB', text: '#971818', dot: '#b11c1c' },
   }
 
   const s       = styles[status] ?? styles.closed

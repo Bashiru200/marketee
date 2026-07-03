@@ -35,7 +35,7 @@ const CATEGORIES = [
     id:    'fashion',
     name:  'Fashion & Fabric',
     icon:  '👗',
-    image: '/images/categories/Food&Fabric/pic1.jpeg',
+    image: 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=600&q=80',
     // African print fabric — replace with Ankara/Kente photo
     overlay: 'rgba(90,50,0,0.4)',
   },
