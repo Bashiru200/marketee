@@ -87,7 +87,7 @@ function BizCard({ b }: { b: Business }) {
   const grad = GRADIENTS[b.category ?? ''] ?? GRADIENTS.services
   return (
     <Link href={`/businesses/${b.id}`}
-      className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-md transition-all">
+      className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md transition-all">
       {/* Cover */}
       <div className="relative h-44 overflow-hidden">
         {b.cover_image ? (
@@ -115,7 +115,7 @@ function BizCard({ b }: { b: Business }) {
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
           <SaveButton businessId={b.id} size="sm" />
           {b.country && (
-            <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm shadow">
+            <div className="w-7 h-7 bg-white dark:bg-gray-800/90 rounded-full flex items-center justify-center text-sm shadow">
               {AFRICAN_FLAGS[b.country] ?? '🌍'}
             </div>
           )}
@@ -124,10 +124,10 @@ function BizCard({ b }: { b: Business }) {
 
       {/* Info */}
       <div className="p-4">
-        <p className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-1">
+        <p className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-green-700 transition-colors line-clamp-1">
           {b.name}
         </p>
-        <p className="text-xs text-gray-500 mt-0.5 capitalize">
+        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5 capitalize">
           {b.subcategory ?? b.category}
           {b.city ? ` · ${b.city}` : ''}
           {b.state ? `, ${b.state}` : ''}
@@ -140,13 +140,13 @@ function BizCard({ b }: { b: Business }) {
                   className={i <= Math.round(b.rating ?? 0) ? 'text-amber-400 fill-current' : 'text-gray-200'} />
               ))}
             </div>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
               {b.rating > 0 ? b.rating.toFixed(1) : '—'}
-              <span className="text-gray-400"> ({b.review_count})</span>
+              <span className="text-gray-400 dark:text-gray-500"> ({b.review_count})</span>
             </span>
           </div>
           {b.price_range && (
-            <span className="text-xs font-medium text-gray-500">{b.price_range}</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">{b.price_range}</span>
           )}
         </div>
       </div>
@@ -165,10 +165,10 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
     : null
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col cursor-pointer"
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col cursor-pointer"
       onClick={() => onOpen(p)}>
       {/* Product image */}
-      <div className="relative h-44 overflow-hidden bg-gray-50">
+      <div className="relative h-44 overflow-hidden bg-gray-50 dark:bg-gray-700">
         {p.image_url ? (
           <Image src={p.image_url} alt={p.name} fill
             sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
@@ -188,15 +188,15 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
         {((p.like_count ?? 0) > 0 || (p.rating_count ?? 0) > 0) && (
           <div className="absolute bottom-2 left-2 flex gap-1.5">
             {(p.rating_count ?? 0) > 0 && (
-              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
                 <Star size={10} fill="#F59E0B" style={{ color: '#F59E0B' }} />
-                <span className="text-[10px] font-semibold text-gray-700">{p.rating_avg?.toFixed(1)}</span>
+                <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{p.rating_avg?.toFixed(1)}</span>
               </div>
             )}
             {(p.like_count ?? 0) > 0 && (
-              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
                 <Heart size={10} fill="#D4537E" style={{ color: '#D4537E' }} />
-                <span className="text-[10px] font-semibold text-gray-700">{p.like_count}</span>
+                <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{p.like_count}</span>
               </div>
             )}
           </div>
@@ -205,9 +205,9 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
 
       {/* Info */}
       <div className="p-4 flex flex-col flex-1">
-        <p className="font-semibold text-gray-900 line-clamp-1">{p.name}</p>
+        <p className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">{p.name}</p>
         {p.description && (
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{p.description}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{p.description}</p>
         )}
         <p className="text-lg font-bold mt-2" style={{ color:'#1D9E75' }}>
           ${p.price?.toFixed(2)}
@@ -217,7 +217,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
         {p.businesses && (
           <Link href={`/businesses/${p.businesses.id}`}
             onClick={e => e.stopPropagation()}
-            className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 hover:opacity-80 transition-opacity">
+            className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 hover:opacity-80 transition-opacity">
             {p.businesses.cover_image ? (
               <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
                 <Image src={p.businesses.cover_image} alt={p.businesses.name}
@@ -231,13 +231,13 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-xs font-medium text-gray-700 truncate">{p.businesses.name}</p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{p.businesses.name}</p>
                 {p.businesses.verified && (
                   <BadgeCheck size={10} style={{ color:'#1D9E75', flexShrink:0 }} />
                 )}
               </div>
               {(p.businesses.city || p.businesses.state) && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">
                   {[p.businesses.city, p.businesses.state].filter(Boolean).join(', ')}
                 </p>
               )}
@@ -264,7 +264,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
           )}
         </div>
       </div>
-    </div>
+ </div>
   )
 }
 
@@ -466,7 +466,7 @@ export default function SearchClient({
     <div className="max-w-7xl mx-auto px-4 py-8">
 
       {/* Tab switcher */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 mb-5 w-fit">
+      <div className="flex gap-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-1 mb-5 w-fit">
         {([
           ['businesses', '🏪', 'Businesses'],
           ['products',   '📦', 'Products'  ],
@@ -484,29 +484,29 @@ export default function SearchClient({
 
       {/* Search bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex items-center gap-2 flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
-          <Search size={16} className="text-gray-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 shadow-sm">
+          <Search size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder='Search "jollof rice", "ankara", "hair braiding"…'
             className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
           />
-          {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400" /></button>}
+          {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400 dark:text-gray-500" /></button>}
         </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm sm:w-52">
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 shadow-sm sm:w-52">
           <MapPin size={14} style={{ color:'#1D9E75' }} className="flex-shrink-0" />
           <input
             value={city}
             onChange={e => setCity(e.target.value)}
             placeholder="City, state or zip"
-            className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+            className="flex-1 text-sm outline-none bg-transparent text-gray-700 dark:text-gray-300 placeholder-gray-400"
           />
-          {city && <button onClick={() => setCity('')}><X size={13} className="text-gray-400" /></button>}
+          {city && <button onClick={() => setCity('')}><X size={13} className="text-gray-400 dark:text-gray-500" /></button>}
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-medium transition-colors hover:border-green-300 shadow-sm"
+          className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 text-sm font-medium transition-colors hover:border-green-300 shadow-sm"
           style={activeFilters > 0 ? { borderColor:'#1D9E75', color:'#1D9E75', background:'#f0faf6' } : { color:'#374151' }}
         >
           <SlidersHorizontal size={15} />
@@ -526,31 +526,31 @@ export default function SearchClient({
         <div>
           {/* Product filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Max price</span>
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2">
+              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide whitespace-nowrap">Max price</span>
               <input type="number" min={0} max={500} step={5}
                 value={maxPrice || ''}
                 onChange={e => setMaxPrice(Number(e.target.value))}
                 placeholder="Any"
-                className="w-20 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400" />
+                className="w-20 text-sm outline-none bg-transparent text-gray-700 dark:text-gray-300 placeholder-gray-400" />
               {maxPrice > 0 && (
-                <button onClick={() => setMaxPrice(0)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setMaxPrice(0)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">
                   <X size={12} />
                 </button>
               )}
             </div>
-            <label className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 cursor-pointer hover:border-green-300 transition-colors">
+            <label className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 cursor-pointer hover:border-green-300 transition-colors">
               <input type="checkbox" checked={inStockOnly} onChange={e => setInStockOnly(e.target.checked)}
                 className="rounded accent-green-600" />
-              <span className="text-sm text-gray-700">In stock only</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">In stock only</span>
             </label>
           </div>
 
           {/* Results count */}
-          <p className="text-sm text-gray-500 mb-5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-5">
             {productLoading ? 'Searching…' : (
-              <span><span className="font-semibold text-gray-900">{productTotal}</span> product{productTotal !== 1 ? 's' : ''}
-              {query ? ` for "${query}"` : ''}</span>
+              <><span className="font-semibold text-gray-900 dark:text-gray-100">{productTotal}</span> product{productTotal !== 1 ? 's' : ''}
+              {query ? ` for "${query}"` : ''}</>
             )}
           </p>
 
@@ -558,11 +558,11 @@ export default function SearchClient({
           {productLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length:6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="h-44 bg-gray-200" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden">
+                  <div className="h-44 bg-gray-200 dark:bg-gray-600" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
                   <div className="p-4 space-y-2">
-                    <div className="h-5 w-2/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
-                    <div className="h-4 w-1/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                    <div className="h-5 w-2/3 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                    <div className="h-4 w-1/3 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
                   </div>
                 </div>
               ))}
@@ -571,41 +571,41 @@ export default function SearchClient({
           ) : products.length === 0 ? (
             <div className="text-center py-24">
               <div className="text-5xl mb-4">📦</div>
-              <h3 className="font-semibold text-gray-900 mb-2">No products found</h3>
-              <p className="text-sm text-gray-500">Try a different search term or remove filters</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">No products found</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Try a different search term or remove filters</p>
             </div>
           ) : (
-            <div>
+            <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map(p => <ProductCard key={p.id} p={p} onOpen={setSelectedProduct} />)}
               </div>
               <div ref={productSentinelRef} className="h-10 flex items-center justify-center mt-8">
                 {productLoadingMore && (
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
                     <Loader2 size={16} className="animate-spin" style={{ color:'#1D9E75' }} />
                     Loading more products…
                   </div>
                 )}
                 {!productHasMore && products.length > 0 && (
-                  <p className="text-xs text-gray-400">Showing all {productTotal} product{productTotal !== 1 ? 's' : ''}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Showing all {productTotal} product{productTotal !== 1 ? 's' : ''}</p>
                 )}
               </div>
-            </div>
+            </>
           )}
         </div>
       )}
 
       {/* Businesses tab content */}
       {activeTab === 'businesses' && (
-        <div>
+      <>
       {/* Filter panel */}
       {showFilters && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 p-5 mb-6 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Category</label>
+              <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Category</label>
               <div className="flex flex-wrap gap-1.5">
                 {categories.map(c => (
                   <button key={c.id} onClick={() => setCat(cat === c.id ? '' : c.id)}
@@ -622,9 +622,9 @@ export default function SearchClient({
 
             {/* Country */}
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Country of origin</label>
+              <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Country of origin</label>
               <select value={country} onChange={e => setCountry(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:border-transparent">
+                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:border-transparent">
                 <option value="">All countries</option>
                 {COUNTRIES.map(c => (
                   <option key={c} value={c}>{AFRICAN_FLAGS[c] ?? '🌍'} {c}</option>
@@ -634,7 +634,7 @@ export default function SearchClient({
 
             {/* Price range */}
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
                 Price range {price && <span className="font-bold ml-1" style={{ color:'#1D9E75' }}>{price}</span>}
               </label>
               <input
@@ -644,7 +644,7 @@ export default function SearchClient({
                 className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                 style={{ accentColor:'#1D9E75' }}
               />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+              <div className="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 mt-1">
                 <span>Any</span><span>$</span><span>$$</span><span>$$$</span>
               </div>
             </div>
@@ -652,7 +652,7 @@ export default function SearchClient({
             {/* Min rating + verified */}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
                   Min rating {minRating > 0 && <span className="font-bold ml-1" style={{ color:'#1D9E75' }}>{minRating}★+</span>}
                 </label>
                 <div className="flex gap-1">
@@ -671,7 +671,7 @@ export default function SearchClient({
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)}
                   className="rounded accent-green-600" />
-                <span className="text-sm text-gray-700 flex items-center gap-1">
+                <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1">
                   <BadgeCheck size={13} style={{ color:'#1D9E75' }} /> Verified only
                 </span>
               </label>
@@ -679,8 +679,8 @@ export default function SearchClient({
           </div>
 
           {activeFilters > 0 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-              <span className="text-xs text-gray-400">{activeFilters} filter{activeFilters !== 1 ? 's' : ''} active</span>
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-xs text-gray-400 dark:text-gray-500">{activeFilters} filter{activeFilters !== 1 ? 's' : ''} active</span>
               <button onClick={clearAll} className="text-xs font-medium hover:underline" style={{ color:'#1D9E75' }}>
                 Clear all
               </button>
@@ -691,10 +691,10 @@ export default function SearchClient({
 
       {/* Sort + results count */}
       <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
           {loading ? 'Searching…' : (
             <>
-              <span className="font-semibold text-gray-900">{total}</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{total}</span>
               {' '}business{total !== 1 ? 'es' : ''}
               {cat     ? ` in ${categories.find(c => c.id === cat)?.name ?? cat}` : ''}
               {city    ? ` near ${city}`   : ''}
@@ -703,9 +703,9 @@ export default function SearchClient({
           )}
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 hidden sm:inline">Sort:</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">Sort:</span>
           <select value={sort} onChange={e => setSort(e.target.value)}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:border-transparent cursor-pointer">
+            className="text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:border-transparent cursor-pointer">
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
@@ -715,12 +715,12 @@ export default function SearchClient({
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="h-44 bg-gray-200" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden">
+              <div className="h-44 bg-gray-200 dark:bg-gray-600" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
               <div className="p-4 space-y-2">
-                <div className="h-5 w-2/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
-                <div className="h-3 w-1/2 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
-                <div className="h-3 w-1/3 bg-gray-200 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-5 w-2/3 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-3 w-1/2 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
+                <div className="h-3 w-1/3 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
               </div>
             </div>
           ))}
@@ -729,8 +729,8 @@ export default function SearchClient({
       ) : businesses.length === 0 ? (
         <div className="text-center py-24">
           <div className="text-5xl mb-4">🔍</div>
-          <h3 className="font-semibold text-gray-900 mb-2">No businesses found</h3>
-          <p className="text-sm text-gray-500 mb-6">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">No businesses found</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">
             Try a different search term, city, or remove some filters
           </p>
           {activeFilters > 0 && (
@@ -750,13 +750,13 @@ export default function SearchClient({
           {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="h-10 flex items-center justify-center mt-8">
             {loadingMore && (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
                 <Loader2 size={16} className="animate-spin" style={{ color:'#1D9E75' }} />
                 Loading more businesses…
               </div>
             )}
             {!hasMore && businesses.length > 0 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Showing all {total} business{total !== 1 ? 'es' : ''}
               </p>
             )}
@@ -773,7 +773,7 @@ export default function SearchClient({
           onClose={() => setSelectedProduct(null)}
         />
       )}
-      </div>
+      </>
       )}
     </div>
   )

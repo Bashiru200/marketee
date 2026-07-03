@@ -4,42 +4,82 @@ import type { Metadata } from 'next'
 import BusinessDetailClient from '@/components/business/BusinessDetailClient'
 
 interface Props {
-  params: Promise<{ slug: string }>
+  params: { slug: string }
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug }   = await params
-  const supabase   = await createClient()
-  const { data: biz } = await supabase
+/* ─────────────────────────────────────────────
+   🧠 Fetch business (shared logic)
+───────────────────────────────────────────── */
+async function getBusinessBySlug(slug: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
     .from('businesses')
-    .select('name, description, cover_image, city, state')
+    .select(`
+      id,
+      name,
+      description,
+      cover_image,
+      city,
+      state,
+      plan
+    `)
     .eq('slug', slug)
-    .eq('plan', 'storefront')
     .single()
 
-  if (!biz) return { title: 'Store not found — Markeetee' }
+  if (error || !data) return null
+
+  return data
+}
+
+/* ─────────────────────────────────────────────
+   🔍 SEO Metadata
+───────────────────────────────────────────── */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const biz = await getBusinessBySlug(params.slug)
+
+  if (!biz || biz.plan !== 'storefront') {
+    return {
+      title: 'Store not found — Markeetee',
+    }
+  }
 
   return {
-    title:       `${biz.name} — Markeetee Store`,
-    description: biz.description ?? `${biz.name} on Markeetee`,
+    title: `${biz.name} — Markeetee Store`,
+    description:
+      biz.description ??
+      `${biz.name} — African business on Markeetee`,
+
     openGraph: {
-      title:  biz.name,
-      images: biz.cover_image ? [{ url: biz.cover_image }] : [],
+      title: biz.name,
+      description: biz.description ?? '',
+      images: biz.cover_image
+        ? [{ url: biz.cover_image }]
+        : [],
+    },
+
+    twitter: {
+      card: 'summary_large_image',
+      title: biz.name,
+      images: biz.cover_image ? [biz.cover_image] : [],
     },
   }
 }
 
+/* ─────────────────────────────────────────────
+   🧱 Page
+───────────────────────────────────────────── */
 export default async function StorePage({ params }: Props) {
-  const { slug } = await params
-  const supabase = await createClient()
+  const biz = await getBusinessBySlug(params.slug)
 
-  const { data: biz } = await supabase
-    .from('businesses')
-    .select('id, plan')
-    .eq('slug', slug)
-    .single()
+  // 🚫 Not found or wrong plan
+  if (!biz || biz.plan !== 'storefront') {
+    notFound()
+  }
 
-  if (!biz || biz.plan !== 'storefront') notFound()
-
-  return <BusinessDetailClient id={biz.id} />
+  return (
+    <div className="min-h-screen bg-[#F6F8F7]">
+      <BusinessDetailClient id={biz.id} />
+    </div>
+  )
 }

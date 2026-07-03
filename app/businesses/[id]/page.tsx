@@ -420,32 +420,19 @@ export default function BusinessDetailPage() {
 
           {/* Hours */}
           {(biz.hours_open || (biz.days_open && biz.days_open.length > 0)) && (
-            <div className="bg-white rounded-2xl p-5 border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Clock size={15} style={{ color: '#1D9E75' }} /> Opening Hours
-              </h3>
-              {biz.hours_open && (
-                <p className="text-sm text-gray-700 font-medium mb-2">{biz.hours_open}</p>
-              )}
-              {biz.days_open && biz.days_open.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => {
-                    const fullDay = { Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday' }[day]!
-                    const isOpen  = biz.days_open!.includes(fullDay)
-                    return (
-                      <span key={day} className="text-xs px-2 py-1 rounded-lg font-medium"
-                        style={{
-                          background: isOpen ? '#E1F5EE' : '#F3F4F6',
-                          color:      isOpen ? '#085041' : '#9CA3AF',
-                        }}>
-                        {day}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+  <div className="bg-white rounded-2xl px-2 py-2 border border-gray-100">
+
+    {/* Header */}
+    
+
+    {/* Hours text */}
+    {biz.hours_open && (
+      <p className="text-sm text-gray-700 font-medium mb-3 leading-relaxed">
+        {biz.hours_open}
+      </p>
+    )}
+  </div>
+)}
 
           {/* Upgrade CTA for non-premium */}
           {!biz.premium && (

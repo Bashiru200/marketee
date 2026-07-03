@@ -1,166 +1,196 @@
 'use client'
+
 import { AFRICAN_FLAGS } from '@/lib/africanCountries'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
   MapPin, Phone, Mail, Globe,
-  Star, BadgeCheck, ArrowLeft, Share2,
-  MessageCircle, X, ChevronLeft, ChevronRight,
+  Star, ArrowLeft, Share2, MessageCircle,
+  X, ChevronLeft, ChevronRight, Grid2x2
 } from 'lucide-react'
+
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import ReviewCard    from '@/components/reviews/ReviewCard'
 import ReviewForm    from '@/components/reviews/ReviewForm'
 import SaveButton    from '@/components/ui/SaveButton'
-import ClaimBusinessModal from '@/components/ui/ClaimBusinessModal'
-import ProductModal     from '@/components/ui/ProductModal'
-import SendEmailModal      from '@/components/ui/SendEmailModal'
-import GoogleMapsHours    from '@/components/ui/GoogleMapsHours'
-import { getHoursStatus } from '@/lib/businessHours'
+import ProductModal  from '@/components/ui/ProductModal'
 
-const GRADIENTS: Record<string, string> = {
-  food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
-  restaurant: 'linear-gradient(135deg,#EEEDFE,#AFA9EC)',
-  fashion:    'linear-gradient(135deg,#FAEEDA,#FAC775)',
-  beauty:     'linear-gradient(135deg,#FBEAF0,#ED93B1)',
-  herbs:      'linear-gradient(135deg,#EAF3DE,#C0DD97)',
-  music:      'linear-gradient(135deg,#FAECE7,#F0997B)',
-  crafts:     'linear-gradient(135deg,#E6F1FB,#85B7EB)',
-  services:   'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
-  nightlife:  'linear-gradient(135deg,#2D1B69,#6B46C1)',
+// ── Airbnb-style full-screen gallery ─────────────────────────────────────
+function Gallery({
+  photos,
+  startIdx,
+  onClose,
+}: {
+  photos:   string[]
+  startIdx: number
+  onClose:  () => void
+}) {
+  const [idx, setIdx]       = useState(startIdx)
+  const touchStartX         = useRef<number | null>(null)
+  const touchStartY         = useRef<number | null>(null)
+
+  // Keyboard nav
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft')  setIdx(i => (i - 1 + photos.length) % photos.length)
+      if (e.key === 'ArrowRight') setIdx(i => (i + 1) % photos.length)
+      if (e.key === 'Escape')     onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [photos.length, onClose])
+
+  // Prevent body scroll while open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  function prev() { setIdx(i => (i - 1 + photos.length) % photos.length) }
+  function next() { setIdx(i => (i + 1) % photos.length) }
+
+  // Touch / swipe
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      dx < 0 ? next() : prev()
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col"
+      style={{ background: '#000' }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}>
+
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <X size={18} className="text-white" />
+        </button>
+        <span className="text-white text-sm font-medium">
+          {idx + 1} / {photos.length}
+        </span>
+        <div className="w-9" /> {/* spacer */}
+      </div>
+
+      {/* Main image */}
+      <div className="flex-1 relative flex items-center justify-center px-2">
+        <div className="relative w-full h-full max-h-[75vh]">
+          <Image
+            src={photos[idx]}
+            alt={`Photo ${idx + 1}`}
+            fill
+            sizes="100vw"
+            className="object-contain"
+            priority
+          />
+        </div>
+
+        {/* Prev / Next — hidden on mobile, visible on desktop */}
+        {photos.length > 1 && (
+          <>
+            <button
+              onClick={prev}
+              className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <ChevronLeft size={20} className="text-white" />
+            </button>
+            <button
+              onClick={next}
+              className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <ChevronRight size={20} className="text-white" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Thumbnail strip */}
+      {photos.length > 1 && (
+        <div className="flex-shrink-0 px-4 pb-4 pt-3">
+          <div className="flex gap-2 overflow-x-auto justify-center">
+            {photos.map((url, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                className="flex-shrink-0 rounded-lg overflow-hidden transition-all duration-150"
+                style={{
+                  width:         52,
+                  height:        52,
+                  opacity:       i === idx ? 1 : 0.45,
+                  outline:       i === idx ? '2px solid #1D9E75' : 'none',
+                  outlineOffset: '2px',
+                }}>
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+          {/* Swipe hint — mobile only */}
+          <p className="text-center text-xs mt-2 sm:hidden" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            Swipe to browse
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
 
-interface Business {
-  id: string; name: string; category: string | null; subcategory: string | null
-  description: string | null; address: string | null; street: string | null
-  city: string | null; state: string | null; zip: string | null
-  phone: string | null; email: string | null; website: string | null
-  country: string | null; cover_image: string | null; logo_url: string | null
-  images: string[] | null
-  rating: number; review_count: number; price_range: string | null
-  tags: string[] | null; lat: number | null; lng: number | null
-  verified: boolean; premium: boolean; featured: boolean
-  hours_open: string | null; days_open: string[] | null
-  owner_id: string | null
-}
-
-interface Review {
-  id: string; rating: number; title: string | null; body: string | null
-  created_at: string; helpful: number; verified: boolean; user_id: string
-  owner_reply: string | null; reply_at: string | null
-  images: string[] | null
-  profiles: { name: string | null; avatar_url?: string | null } | null
-}
-
-interface Product {
-  id:            string
-  name:          string
-  price:         number
-  description:   string | null
-  image_url:     string | null
-  images:        string[] | null
-  available:     boolean
-  like_count?:   number
-  rating_avg?:   number
-  rating_count?: number
-  review_count?: number
-  sale_price?:   number | null
-  sale_active?:  boolean
-  sale_label?:   string | null
-}
-
+// ── Main component ────────────────────────────────────────────────────────
 export default function BusinessDetailClient({ id }: { id: string }) {
   const supabase = createClient()
-  const { user, isOwner } = useAuth()
+  const { user } = useAuth()
 
-  const [biz,         setBiz]         = useState<Business | null>(null)
-  const [reviews,     setReviews]     = useState<Review[]>([])
-  const [products,    setProducts]    = useState<Product[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [hasReviewed, setHasReviewed] = useState(false)
-  const [copied,      setCopied]      = useState(false)
-  const [showClaim,   setShowClaim]   = useState(false)
-  const [lightboxIdx,     setLightboxIdx]     = useState<number | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [biz,             setBiz]             = useState<any>(null)
+  const [reviews,         setReviews]         = useState<any[]>([])
+  const [products,        setProducts]        = useState<any[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [galleryIdx,      setGalleryIdx]      = useState<number | null>(null)
+  const [copied,          setCopied]          = useState(false)
 
-  // ── Data loading ──────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
     const [bizRes, reviewRes, productRes] = await Promise.all([
       supabase.from('businesses').select('*').eq('id', id).single(),
-      supabase.from('reviews')
-        .select('id,rating,title,body,created_at,helpful,verified,user_id,owner_reply,reply_at,images,profiles(name,avatar_url)')
-        .eq('business_id', id)
-        .order('created_at', { ascending: false }),
+      supabase.from('reviews').select('*').eq('business_id', id),
       supabase.from('products')
-        .select('id,name,price,description,image_url,images,available,like_count,rating_avg,rating_count,review_count,sale_price,sale_active,sale_label')
-        .eq('business_id', id)
-        .eq('available', true),
+        .select('id,name,price,description,image_url,images,available,sale_price,sale_active,sale_label,like_count,rating_avg,rating_count')
+        .eq('business_id', id),
     ])
-    if (bizRes.error || !bizRes.data) notFound()
+    if (!bizRes.data) notFound()
     setBiz(bizRes.data)
-    setReviews((reviewRes.data ?? []) as Review[])
-    setProducts(productRes.data ?? [])
+    setReviews(reviewRes.data || [])
+    setProducts(productRes.data || [])
     setLoading(false)
   }, [id, supabase])
 
-  const checkHasReviewed = useCallback(async () => {
-    if (!user?.id) return
-    const { data } = await supabase.from('reviews').select('id')
-      .eq('business_id', id).eq('user_id', user.id).single()
-    setHasReviewed(!!data)
-  }, [id, user?.id, supabase])
-
   useEffect(() => { loadAll() }, [loadAll])
-  useEffect(() => { checkHasReviewed() }, [checkHasReviewed])
 
-  // ── View tracking ─────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!biz) return
-    if (user?.id === biz.owner_id) return
-    fetch('/api/track/view', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        businessId: biz.id,
-        viewerId:   user?.id ?? null,
-        source:     document.referrer.includes('/search') ? 'search'
-                  : document.referrer.includes('/map')    ? 'map'
-                  : 'direct',
-      }),
-    }).catch(() => {})
-  }, [biz?.id, biz?.owner_id, user?.id])
+  if (loading) return (
+    <div className="p-10 text-center text-gray-400">Loading…</div>
+  )
 
-  // ── Click tracking ────────────────────────────────────────────────────
-  function trackClick(type: string) {
-    if (!biz) return
-    fetch('/api/track/click', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ businessId: biz.id, clickType: type, viewerId: user?.id ?? null }),
-    }).catch(() => {})
-  }
+  if (!biz) return null
 
-  // ── Owner reply (called from ReviewCard) ─────────────────────────────
-  async function handleReply(reviewId: string, text: string) {
-    const { error } = await supabase.from('reviews').update({
-      owner_reply: text,
-      reply_at:    new Date().toISOString(),
-    }).eq('id', reviewId)
-    if (!error) {
-      setReviews(rs => rs.map(r =>
-        r.id === reviewId
-          ? { ...r, owner_reply: text, reply_at: new Date().toISOString() }
-          : r
-      ))
-    }
-  }
-
-  async function handleReviewSubmitted() {
-    await loadAll()
-    setHasReviewed(true)
-  }
+  const fullAddress  = [biz.address, biz.city, biz.state].filter(Boolean).join(', ')
+  const mapsUrl      = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+  const allPhotos    = [biz.cover_image, ...(biz.images || [])].filter(Boolean) as string[]
+  const extraPhotos  = allPhotos.slice(1, 5) // up to 4 grid thumbnails
 
   function handleShare() {
     navigator.clipboard.writeText(window.location.href)
@@ -168,495 +198,310 @@ export default function BusinessDetailClient({ id }: { id: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // ── Loading skeleton ──────────────────────────────────────────────────
-  if (loading) return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="h-4 w-64 bg-gray-100 rounded mb-6 animate-pulse" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="h-72 bg-gray-100 rounded-2xl animate-pulse" />
-          <div className="grid grid-cols-3 gap-3">
-            {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}
-          </div>
-          <div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
-        </div>
-        <div className="space-y-4">
-          <div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
-        </div>
-      </div>
-    </div>
-  )
-
-  if (!biz) return null
-
-  // ── Derived values ────────────────────────────────────────────────────
-  const ratingBreakdown = [5,4,3,2,1].map(s => ({
-    s,
-    count: reviews.filter(r => Math.round(r.rating) === s).length,
-    pct:   reviews.length
-      ? reviews.filter(r => Math.round(r.rating) === s).length / reviews.length * 100
-      : 0,
-  }))
-
-  const fullAddress = [biz.address ?? biz.street, biz.city, biz.state, biz.zip]
-    .filter(Boolean).join(', ')
-  const mapsUrl = biz.lat && biz.lng
-    ? `https://www.google.com/maps/dir/?api=1&destination=${biz.lat},${biz.lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
-  const grad       = GRADIENTS[biz.category ?? ''] ?? GRADIENTS.services
-  const allPhotos  = [biz.cover_image, ...(biz.images ?? [])].filter(Boolean) as string[]
-  const isThisOwner = isOwner && user?.id === biz.owner_id
-
   return (
-    <>
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-6xl mx-auto px-4 py-6">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-          <Link href="/" className="hover:text-green-600 transition-colors">Home</Link>
-          <span>/</span>
-          <Link href="/search" className="hover:text-green-600 transition-colors">Businesses</Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium truncate">{biz.name}</span>
-        </div>
+      {/* ── AIRBNB-STYLE PHOTO GRID ── */}
+      <div className="relative rounded-3xl overflow-hidden"
+        style={{ height: '380px' }}>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {allPhotos.length === 0 ? (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+            No photos yet
+          </div>
+        ) : allPhotos.length === 1 ? (
+          // Single photo — full width
+          <div
+            className="w-full h-full cursor-zoom-in"
+            onClick={() => setGalleryIdx(0)}>
+            <Image src={allPhotos[0]} alt={biz.name} fill sizes="100vw"
+              className="object-cover" priority />
+          </div>
+        ) : (
+          // Airbnb grid: big left + 2×2 right
+          <div className="grid h-full gap-1"
+            style={{ gridTemplateColumns: '1fr 1fr' }}>
 
-          {/* ── Main column ── */}
-          <div className="lg:col-span-2 space-y-6 flex flex-col">
-
-            {/* Photo gallery */}
-            <div className="space-y-2">
-              <div
-                className="relative rounded-2xl overflow-hidden cursor-zoom-in"
-                style={{ height: '300px' }}
-                onClick={() => allPhotos.length > 0 && setLightboxIdx(0)}>
-                {allPhotos.length > 0
-                  ? <Image src={allPhotos[0]} alt={biz.name} fill
-                      sizes="(max-width:1024px) 100vw, 66vw"
-                      className="object-cover" priority />
-                  : <div className="w-full h-full" style={{ background: grad }} />
-                }
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <Link href="/search"
-                  className="absolute top-4 left-4 flex items-center gap-1 bg-white/90 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-white transition-colors"
-                  onClick={e => e.stopPropagation()}>
-                  <ArrowLeft size={11} /> Back
-                </Link>
-                <div className="absolute top-4 right-4 flex gap-2">
-                  {biz.verified && (
-                    <span className="flex items-center gap-1 text-white text-xs font-medium px-3 py-1.5 rounded-full"
-                      style={{ background: '#1D9E75' }}>
-                      <BadgeCheck size={11} /> Verified
-                    </span>
-                  )}
-                  {biz.featured && (
-                    <span className="bg-amber-500 text-white text-xs font-medium px-3 py-1.5 rounded-full">
-                      Featured
-                    </span>
-                  )}
-                </div>
-                {allPhotos.length > 1 && (
-                  <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
-                    🖼 {allPhotos.length} photos
-                  </div>
-                )}
-                <div className="absolute bottom-4 left-4 text-white">
-                  <p className="text-2xl font-bold">{biz.name}</p>
-                  <p className="text-white/80 text-sm">
-                    {biz.subcategory ?? biz.category}
-                    {biz.country && ` · ${AFRICAN_FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
-                  </p>
-                </div>
-              </div>
-
-              {/* Thumbnail strip */}
-              {allPhotos.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {allPhotos.map((url, i) => (
-                    <button key={url} onClick={() => setLightboxIdx(i)}
-                      className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors"
-                      style={{ borderColor: i === 0 ? '#1D9E75' : 'transparent' }}>
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Left — hero */}
+            <div
+              className="relative cursor-zoom-in overflow-hidden"
+              onClick={() => setGalleryIdx(0)}>
+              <Image src={allPhotos[0]} alt={biz.name} fill sizes="50vw"
+                className="object-cover hover:scale-105 transition-transform duration-500" priority />
             </div>
 
-            {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center">
-                <p className="font-bold text-gray-900 mb-1 flex items-center justify-center gap-1">
-                  <Star size={13} className="text-amber-400 fill-current flex-shrink-0" />
-                  <span className="truncate">{biz.rating > 0 ? biz.rating.toFixed(1) : '—'}</span>
-                </p>
-                <p className="text-xs text-gray-400">{biz.review_count} reviews</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center">
-                <p className="font-bold text-gray-900 mb-1 truncate">{biz.price_range ?? '—'}</p>
-                <p className="text-xs text-gray-400">Price</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 text-center overflow-hidden">
-                {biz.hours_open
-                  ? (() => {
-                      const { status, label } = getHoursStatus(biz.hours_open, biz.days_open)
-                      const color = status === 'open' ? '#1D9E75' : status === 'closing_soon' ? '#D97706' : '#9CA3AF'
-                      const short = status === 'open' ? 'Open' : status === 'closing_soon' ? 'Closing' : 'Closed'
-                      return (
-                        <>
-                          <p className="font-bold text-xs leading-snug truncate" style={{ color }}>{short}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">Status</p>
-                        </>
-                      )
-                    })()
-                  : (
-                    <>
-                      <p className="font-bold text-gray-400 mb-1 text-sm">—</p>
-                      <p className="text-xs text-gray-400">Hours</p>
-                    </>
-                  )
-                }
-              </div>
-            </div>
-
-            {/* About */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100">
-              <h2 className="font-bold text-xl text-gray-900 mb-3">About</h2>
-              <p className="text-gray-600 leading-relaxed mb-4">
-                {biz.description || 'No description available for this business yet.'}
-              </p>
-              {biz.tags && biz.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {biz.tags.map(t => (
-                    <span key={t} className="text-xs px-3 py-1 rounded-full font-medium"
-                      style={{ background: '#E1F5EE', color: '#085041' }}>
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Products */}
-            {products.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-gray-100">
-                <h2 className="font-bold text-xl text-gray-900 mb-4">Products & Menu</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {products.map(p => {
-                    const photoCount = [p.image_url, ...(p.images ?? [])].filter(Boolean).length
-                    return (
-                    <div key={p.id}
-                      className="flex gap-3 p-3 rounded-xl border border-gray-100 cursor-pointer hover:border-green-300 hover:bg-green-50 transition-colors group"
-                      onClick={() => setSelectedProduct(p)}>
-                      {/* Thumbnail with photo count badge */}
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                        {p.image_url
-                          ? <Image src={p.image_url} alt={p.name} fill sizes="64px" className="object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center text-xl"
-                              style={{ background: '#F3F4F6' }}>📦</div>
-                        }
-                        {photoCount > 1 && (
-                          <div className="absolute bottom-0.5 right-0.5 bg-black/60 text-white text-[9px] font-bold px-1 rounded">
-                            +{photoCount - 1}
-                          </div>
-                        )}
+            {/* Right — 2×2 grid */}
+            <div className="grid gap-1"
+              style={{ gridTemplateRows: '1fr 1fr', gridTemplateColumns: '1fr 1fr' }}>
+              {[1, 2, 3, 4].map(i => {
+                const photo = allPhotos[i]
+                const isLast = i === 4 && allPhotos.length > 5
+                return photo ? (
+                  <div
+                    key={i}
+                    className="relative cursor-zoom-in overflow-hidden"
+                    onClick={() => setGalleryIdx(i)}>
+                    <Image src={photo} alt="" fill sizes="25vw"
+                      className="object-cover hover:scale-105 transition-transform duration-500" />
+                    {/* Show remaining count on last cell */}
+                    {isLast && (
+                      <div className="absolute inset-0 flex items-center justify-center"
+                        style={{ background: 'rgba(0,0,0,0.5)' }}>
+                        <span className="text-white text-xl font-bold">
+                          +{allPhotos.length - 5}
+                        </span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-gray-900 group-hover:text-green-700 transition-colors">{p.name}</p>
-                        {p.description && (
-                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{p.description}</p>
-                        )}
-                        <div className="flex items-center justify-between mt-1">
-                          <p className="font-bold text-sm" style={{ color: '#1D9E75' }}>
-                            {p.sale_active && p.sale_price
-                              ? <><span className="text-gray-400 line-through text-xs mr-1">${p.price?.toFixed(2)}</span>${p.sale_price.toFixed(2)}</>
-                              : `$${p.price?.toFixed(2)}`
-                            }
-                          </p>
-                          <span className="text-[10px] text-gray-400 group-hover:text-green-600 transition-colors">
-                            View details →
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Reviews — shown below sidebar on mobile via order, before on desktop */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 order-last lg:order-none">
-              <h2 className="font-bold text-xl text-gray-900 mb-4">Reviews</h2>
-
-              {/* Rating breakdown */}
-              {reviews.length > 0 && (
-                <div className="flex gap-6 mb-6 pb-6 border-b border-gray-100">
-                  <div className="text-center">
-                    <p className="text-5xl font-bold text-gray-900">{biz.rating.toFixed(1)}</p>
-                    <div className="flex gap-0.5 justify-center my-1">
-                      {[1,2,3,4,5].map(i => (
-                        <Star key={i} size={14}
-                          className={i <= Math.round(biz.rating) ? 'text-amber-400 fill-current' : 'text-gray-200'} />
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-400">{biz.review_count} reviews</p>
+                    )}
                   </div>
-                  <div className="flex-1 space-y-1.5">
-                    {ratingBreakdown.map(({ s, count, pct }) => (
-                      <div key={s} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 w-3">{s}</span>
-                        <Star size={10} className="text-amber-400 fill-current" />
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#1D9E75' }} />
-                        </div>
-                        <span className="text-xs text-gray-400 w-4">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Review list — reply UI is handled inside ReviewCard */}
-              <div className="space-y-4 mb-6">
-                {reviews.length === 0
-                  ? <p className="text-gray-400 text-sm text-center py-4">No reviews yet — be the first!</p>
-                  : reviews.map(r => (
-                    <ReviewCard
-                      key={r.id}
-                      review={r}
-                      businessName={biz.name}
-                      isOwner={isThisOwner}
-                      onReply={handleReply}
-                    />
-                  ))
-                }
-              </div>
-
-              <ReviewForm
-                businessId={id}
-                hasReviewed={hasReviewed}
-                onSubmitted={handleReviewSubmitted}
-              />
+                ) : (
+                  <div key={i} className="bg-gray-100" />
+                )
+              })}
             </div>
           </div>
+        )}
 
-          {/* ── Sidebar ── */}
-          <div className="space-y-4">
+        {/* Top bar overlaid on grid */}
+        <div className="absolute top-4 left-4 right-4 flex justify-between z-10">
+          <Link href="/search"
+            className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-1.5 text-sm font-medium hover:bg-white transition-colors">
+            <ArrowLeft size={14} /> Back
+          </Link>
+          <div className="flex gap-2">
+            <SaveButton businessId={biz.id} size="md" />
+            <button
+              onClick={handleShare}
+              className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl text-sm font-medium hover:bg-white transition-colors">
+              {copied ? 'Copied!' : <Share2 size={16} />}
+            </button>
+          </div>
+        </div>
 
-            {/* Contact card */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4">Location & Contact</h3>
+        {/* "Show all photos" button — bottom right */}
+        {allPhotos.length > 1 && (
+          <button
+            onClick={() => setGalleryIdx(0)}
+            className="absolute bottom-4 right-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-semibold hover:bg-white transition-colors shadow-sm">
+            <Grid2x2 size={14} />
+            Show all {allPhotos.length} photos
+          </button>
+        )}
 
-              {/* Static map */}
-              <div className="rounded-xl mb-4 overflow-hidden" style={{ height: '130px' }}>
-                {biz.lat && biz.lng && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-                    <Image
-                      src={`https://maps.googleapis.com/maps/api/staticmap?center=${biz.lat},${biz.lng}&zoom=15&size=400x130&scale=2&markers=color:0x1D9E75%7C${biz.lat},${biz.lng}&style=feature:poi|visibility:off&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
-                      alt={`Map of ${biz.name}`}
-                      width={400} height={130}
-                      className="w-full h-full object-cover hover:opacity-90 transition-opacity"
-                    />
-                  </a>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg,#e8f7f1,#c5eadb)' }}>
-                    <div className="text-center">
-                      <MapPin size={22} className="mx-auto mb-1" style={{ color: '#1D9E75' }} />
-                      <p className="text-xs font-medium" style={{ color: '#085041' }}>
-                        {biz.city}{biz.state ? `, ${biz.state}` : ''}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Contact details */}
-              <div className="space-y-3 text-sm">
-                {fullAddress && (
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-start gap-2 hover:text-green-700 transition-colors group">
-                    <MapPin size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#1D9E75' }} />
-                    <span className="text-gray-600 group-hover:text-green-700 underline decoration-dashed underline-offset-2">
-                      {fullAddress}
-                    </span>
-                  </a>
-                )}
-                {biz.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-                    <a href={`tel:${biz.phone}`} onClick={() => trackClick('phone')}
-                      className="text-gray-600 hover:text-green-700 transition-colors font-medium">
-                      {biz.phone}
-                    </a>
-                    <a href={`https://wa.me/${biz.phone.replace(/\D/g, '')}`}
-                      onClick={() => trackClick('whatsapp')}
-                      target="_blank" rel="noopener noreferrer"
-                      className="ml-auto flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg"
-                      style={{ background: '#25D366', color: 'white' }}>
-                      <MessageCircle size={11} /> WhatsApp
-                    </a>
-                  </div>
-                )}
-                {biz.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-                    <a href={`mailto:${biz.email}`}
-                      className="text-gray-600 hover:text-green-700 transition-colors truncate">
-                      {biz.email}
-                    </a>
-                  </div>
-                )}
-                {biz.website && (
-                  <div className="flex items-center gap-2">
-                    <Globe size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-                    <a href={biz.website.startsWith('http') ? biz.website : `https://${biz.website}`}
-                      onClick={() => trackClick('website')}
-                      target="_blank" rel="noopener noreferrer"
-                      className="hover:text-green-700 transition-colors truncate"
-                      style={{ color: '#1D9E75' }}>
-                      {biz.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {/* CTAs */}
-              <div className="flex flex-col gap-2 mt-4">
-                {biz.phone && (
-                  <a onClick={() => trackClick('whatsapp')}
-                    href={`https://wa.me/${biz.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I found your business on Markeetee — ${biz.name}. I'd like to enquire about your products/services.`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-3 rounded-xl hover:opacity-90 transition-opacity"
-                    style={{ background: '#25D366' }}>
-                    <MessageCircle size={16} /> Chat on WhatsApp
-                  </a>
-                )}
-
-                {/* Email enquiry */}
-                {biz.email && (
-                  <SendEmailModal
-                    recipientEmail={biz.email}
-                    recipientName={biz.name}
-                    businessName={biz.name}
-                  />
-                )}
-
-                <div className="flex gap-2">
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-white py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-                    style={{ background: '#1D9E75' }}>
-                    <MapPin size={14} /> Directions
-                  </a>
-                  <SaveButton businessId={biz.id} size="md" />
-                  <button onClick={handleShare}
-                    className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 px-3 py-2.5 rounded-xl hover:border-green-300 hover:text-green-600 transition-colors text-sm">
-                    <Share2 size={14} />
-                    {copied ? 'Copied!' : ''}
-                  </button>
-                </div>
-              </div>
+        {/* Business name overlaid bottom-left */}
+        <div className="absolute bottom-4 left-4 z-10">
+          <div className="bg-black/50 backdrop-blur-sm rounded-2xl px-4 py-3">
+            <h1 className="text-white font-bold text-xl">{biz.name}</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              {biz.category}
+              {biz.country && ` · ${AFRICAN_FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
+            </p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Star size={12} className="text-yellow-400 fill-current" />
+              <span className="text-white text-sm font-medium">{biz.rating || '—'}</span>
+              <span className="text-white/60 text-xs">({reviews.length} reviews)</span>
             </div>
-
-            {/* Opening hours — Google Maps style */}
-            {biz.hours_open && (
-              <GoogleMapsHours
-                hoursOpen={biz.hours_open}
-                daysOpen={biz.days_open}
-              />
-            )}
-
-            {/* Claim listing */}
-            {!biz.owner_id && (
-              <div className="bg-white rounded-2xl p-5 border border-gray-100">
-                <p className="text-sm font-semibold text-gray-900 mb-1">Is this your business?</p>
-                <p className="text-xs text-gray-500 mb-3">
-                  Claim this listing to manage photos, respond to reviews and more.
-                </p>
-                <button onClick={() => setShowClaim(true)}
-                  className="w-full text-sm font-semibold text-white py-2.5 rounded-xl"
-                  style={{ background: '#1D9E75' }}>
-                  Claim this listing
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Product modal */}
+      {/* ── ACTION BAR ── */}
+      <div className="flex gap-3 mt-4 overflow-x-auto pb-1">
+        {biz.phone && (
+          <a
+            href={`https://wa.me/${biz.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I found ${biz.name} on Markeetee. I'd like to enquire.`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 flex-shrink-0 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
+            style={{ background: '#25D366' }}>
+            <MessageCircle size={15} /> WhatsApp
+          </a>
+        )}
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-2 flex-shrink-0 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
+          style={{ background: '#1D9E75' }}>
+          <MapPin size={15} /> Directions
+        </a>
+        {biz.phone && (
+          <a href={`tel:${biz.phone}`}
+            className="flex items-center gap-2 flex-shrink-0 border border-gray-200 text-gray-700 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+            <Phone size={15} /> Call
+          </a>
+        )}
+        {biz.website && (
+          <a href={biz.website.startsWith('http') ? biz.website : `https://${biz.website}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 flex-shrink-0 border border-gray-200 text-gray-700 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+            <Globe size={15} /> Website
+          </a>
+        )}
+      </div>
+
+      {/* ── ABOUT ── */}
+      <div className="bg-white rounded-2xl p-6 mt-6 border border-gray-100">
+        <h2 className="font-bold text-lg mb-3 text-gray-900">About</h2>
+        <p className="text-gray-600 leading-relaxed">
+          {biz.description || 'No description available.'}
+        </p>
+        {biz.tags && biz.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {biz.tags.map((t: string) => (
+              <span key={t} className="text-xs px-3 py-1 rounded-full font-medium"
+                style={{ background: '#E1F5EE', color: '#085041' }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── PRODUCTS ── */}
+      {products.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-bold text-lg mb-4 text-gray-900">Products & Menu</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {products.map(p => {
+              const photoCount = [p.image_url, ...(p.images ?? [])].filter(Boolean).length
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedProduct(p)}
+                  className="cursor-pointer group rounded-2xl overflow-hidden border border-gray-100 hover:border-green-300 hover:shadow-md transition-all duration-200 text-left w-full">
+                  <div className="relative h-44 bg-gray-100">
+                    {p.image_url ? (
+                      <Image src={p.image_url} alt={p.name} fill sizes="200px"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-3xl pointer-events-none">📦</div>
+                    )}
+                    {/* Sale badge */}
+                    {p.sale_active && p.sale_label && (
+                      <div className="absolute top-2 left-2 pointer-events-none">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: '#FEF3C7', color: '#92400E' }}>
+                          🏷️ {p.sale_label}
+                        </span>
+                      </div>
+                    )}
+                    {/* Photo count */}
+                    {photoCount > 1 && (
+                      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full pointer-events-none">
+                        +{photoCount - 1} photos
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
+                    {p.description && (
+                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{p.description}</p>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <div>
+                        {p.sale_active && p.sale_price ? (
+                          <>
+                            <span className="text-xs text-gray-400 line-through mr-1">${p.price}</span>
+                            <span className="text-sm font-bold" style={{ color: '#1D9E75' }}>${p.sale_price}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-bold" style={{ color: '#1D9E75' }}>${p.price}</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-400 group-hover:text-green-600 transition-colors">
+                        View →
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── REVIEWS ── */}
+      <div className="mt-6 bg-white p-6 rounded-2xl border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-lg text-gray-900">Reviews</h2>
+          {biz.rating > 0 && (
+            <div className="flex items-center gap-1">
+              <Star size={14} className="text-amber-400 fill-current" />
+              <span className="font-bold text-gray-900">{biz.rating.toFixed(1)}</span>
+              <span className="text-xs text-gray-400">({reviews.length})</span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-4 mb-6">
+          {reviews.length === 0
+            ? <p className="text-gray-400 text-sm text-center py-4">No reviews yet — be the first!</p>
+            : reviews.map(r => (
+              <div key={r.id} className="bg-gray-50 p-4 rounded-xl">
+                <ReviewCard review={r} businessName={biz.name} />
+              </div>
+            ))
+          }
+        </div>
+        <ReviewForm businessId={id} hasReviewed={false} onSubmitted={loadAll} />
+      </div>
+
+      {/* ── CONTACT ── */}
+      <div className="mt-6 bg-white p-6 rounded-2xl border border-gray-100">
+        <h2 className="font-bold text-lg mb-4 text-gray-900">Contact & Location</h2>
+        <div className="space-y-3 text-sm">
+          {biz.phone && (
+            <a href={`tel:${biz.phone}`} className="flex items-center gap-3 text-gray-600 hover:text-green-700 transition-colors">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#E1F5EE' }}>
+                <Phone size={14} style={{ color: '#1D9E75' }} />
+              </div>
+              {biz.phone}
+            </a>
+          )}
+          {biz.email && (
+            <a href={`mailto:${biz.email}`} className="flex items-center gap-3 text-gray-600 hover:text-green-700 transition-colors">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#E1F5EE' }}>
+                <Mail size={14} style={{ color: '#1D9E75' }} />
+              </div>
+              {biz.email}
+            </a>
+          )}
+          {biz.website && (
+            <a href={biz.website.startsWith('http') ? biz.website : `https://${biz.website}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 hover:text-green-700 transition-colors"
+              style={{ color: '#1D9E75' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#E1F5EE' }}>
+                <Globe size={14} style={{ color: '#1D9E75' }} />
+              </div>
+              {biz.website.replace(/^https?:\/\//, '')}
+            </a>
+          )}
+          {fullAddress && (
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-start gap-3 text-gray-600 hover:text-green-700 transition-colors">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#E1F5EE' }}>
+                <MapPin size={14} style={{ color: '#1D9E75' }} />
+              </div>
+              <span className="underline decoration-dashed underline-offset-2">{fullAddress}</span>
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* ── PRODUCT MODAL ── */}
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
-          businessName={biz?.name ?? ''}
-          businessPhone={biz?.phone ?? null}
+          businessName={biz.name}
+          businessPhone={biz.phone}
           onClose={() => setSelectedProduct(null)}
         />
       )}
 
-      {/* ── Lightbox ── */}
-      {lightboxIdx !== null && allPhotos.length > 0 && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.92)' }}
-          onClick={() => setLightboxIdx(null)}>
-
-          <button onClick={() => setLightboxIdx(null)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors">
-            <X size={20} />
-          </button>
-
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">
-            {lightboxIdx + 1} / {allPhotos.length}
-          </div>
-
-          <img
-            src={allPhotos[lightboxIdx]}
-            alt=""
-            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
-            onClick={e => e.stopPropagation()}
-          />
-
-          {lightboxIdx > 0 && (
-            <button
-              onClick={e => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1) }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors">
-              <ChevronLeft size={20} />
-            </button>
-          )}
-
-          {lightboxIdx < allPhotos.length - 1 && (
-            <button
-              onClick={e => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1) }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors">
-              <ChevronRight size={20} />
-            </button>
-          )}
-
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[90vw] pb-1">
-            {allPhotos.map((url, i) => (
-              <button key={url}
-                onClick={e => { e.stopPropagation(); setLightboxIdx(i) }}
-                className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors"
-                style={{ borderColor: i === lightboxIdx ? '#1D9E75' : 'rgba(255,255,255,0.3)' }}>
-                <img src={url} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Claim modal */}
-      {showClaim && (
-        <ClaimBusinessModal
-          businessId={biz.id}
-          businessName={biz.name}
-          businessPhone={biz.phone}
-          onClose={() => setShowClaim(false)}
+      {/* ── FULL SCREEN GALLERY ── */}
+      {galleryIdx !== null && allPhotos.length > 0 && (
+        <Gallery
+          photos={allPhotos}
+          startIdx={galleryIdx}
+          onClose={() => setGalleryIdx(null)}
         />
       )}
-    </>
+
+    </div>
   )
 }
