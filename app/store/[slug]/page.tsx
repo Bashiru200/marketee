@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import BusinessDetailClient from '@/components/business/BusinessDetailClient'
+import BusinessDetailClient from '@/components/businesses/BusinessDetailClient'
 
 interface Props {
   params: { slug: string }

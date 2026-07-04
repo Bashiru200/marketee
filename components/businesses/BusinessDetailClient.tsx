@@ -16,7 +16,8 @@ import { useAuth } from '@/lib/auth'
 import ReviewCard    from '@/components/reviews/ReviewCard'
 import ReviewForm    from '@/components/reviews/ReviewForm'
 import SaveButton    from '@/components/ui/SaveButton'
-import ProductModal  from '@/components/ui/ProductModal'
+import ProductModal      from '@/components/ui/ProductModal'
+import GoogleMapsHours    from '@/components/ui/GoogleMapsHours'
 
 // ── Airbnb-style full-screen gallery ─────────────────────────────────────
 function Gallery({
@@ -167,10 +168,14 @@ export default function BusinessDetailClient({ id }: { id: string }) {
   const loadAll = useCallback(async () => {
     const [bizRes, reviewRes, productRes] = await Promise.all([
       supabase.from('businesses').select('*').eq('id', id).single(),
-      supabase.from('reviews').select('*').eq('business_id', id),
+      supabase.from('reviews')
+        .select('id,rating,title,body,created_at,helpful,verified,user_id,owner_reply,reply_at,images,profiles(name,avatar_url)')
+        .eq('business_id', id)
+        .order('created_at', { ascending: false }),
       supabase.from('products')
         .select('id,name,price,description,image_url,images,available,sale_price,sale_active,sale_label,like_count,rating_avg,rating_count')
-        .eq('business_id', id),
+        .eq('business_id', id)
+        .order('created_at', { ascending: false }),
     ])
     if (!bizRes.data) notFound()
     setBiz(bizRes.data)
@@ -180,6 +185,24 @@ export default function BusinessDetailClient({ id }: { id: string }) {
   }, [id, supabase])
 
   useEffect(() => { loadAll() }, [loadAll])
+
+  // ── Check ownership ───────────────────────────────────────────────────
+  const isThisOwner = !!(user && biz && user.id === biz.owner_id)
+
+  // ── Owner reply to a review ───────────────────────────────────────────
+  async function handleReply(reviewId: string, text: string) {
+    const { error } = await supabase.from('reviews').update({
+      owner_reply: text,
+      reply_at:    new Date().toISOString(),
+    }).eq('id', reviewId)
+    if (!error) {
+      setReviews(rs => rs.map(r =>
+        r.id === reviewId
+          ? { ...r, owner_reply: text, reply_at: new Date().toISOString() }
+          : r
+      ))
+    }
+  }
 
   if (loading) return (
     <div className="p-10 text-center text-gray-400">Loading…</div>
@@ -335,6 +358,16 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         )}
       </div>
 
+      {/* ── HOURS — Google Maps style ── */}
+      {biz.hours_open && (
+        <div className="mt-4">
+          <GoogleMapsHours
+            hoursOpen={biz.hours_open}
+            daysOpen={biz.days_open}
+          />
+        </div>
+      )}
+
       {/* ── ABOUT ── */}
       <div className="bg-white rounded-2xl p-6 mt-6 border border-gray-100">
         <h2 className="font-bold text-lg mb-3 text-gray-900">About</h2>
@@ -352,9 +385,14 @@ export default function BusinessDetailClient({ id }: { id: string }) {
       </div>
 
       {/* ── PRODUCTS ── */}
-      {products.length > 0 && (
-        <div className="mt-6">
-          <h2 className="font-bold text-lg mb-4 text-gray-900">Products & Menu</h2>
+      <div className="mt-6">
+        <h2 className="font-bold text-lg mb-4 text-gray-900">Products & Menu</h2>
+        {products.length === 0 ? (
+          <div className="text-center py-8 rounded-2xl border border-dashed border-gray-200">
+            <p className="text-2xl mb-2">📦</p>
+            <p className="text-sm text-gray-400">No products listed yet</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {products.map(p => {
               const photoCount = [p.image_url, ...(p.images ?? [])].filter(Boolean).length
@@ -364,7 +402,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                   type="button"
                   onClick={() => setSelectedProduct(p)}
                   className="cursor-pointer group rounded-2xl overflow-hidden border border-gray-100 hover:border-green-300 hover:shadow-md transition-all duration-200 text-left w-full">
-                  <div className="relative h-44 bg-gray-100">
+                  <div className="relative h-44 bg-gray-100 pointer-events-none">
                     {p.image_url ? (
                       <Image src={p.image_url} alt={p.name} fill sizes="200px"
                         className="object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none" />
@@ -387,7 +425,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                       </div>
                     )}
                   </div>
-                  <div className="p-3">
+                  <div className="p-3 pointer-events-none">
                     <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
                     {p.description && (
                       <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{p.description}</p>
@@ -412,8 +450,8 @@ export default function BusinessDetailClient({ id }: { id: string }) {
               )
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── REVIEWS ── */}
       <div className="mt-6 bg-white p-6 rounded-2xl border border-gray-100">
@@ -432,7 +470,12 @@ export default function BusinessDetailClient({ id }: { id: string }) {
             ? <p className="text-gray-400 text-sm text-center py-4">No reviews yet — be the first!</p>
             : reviews.map(r => (
               <div key={r.id} className="bg-gray-50 p-4 rounded-xl">
-                <ReviewCard review={r} businessName={biz.name} />
+                <ReviewCard
+                  review={r}
+                  businessName={biz.name}
+                  isOwner={isThisOwner}
+                  onReply={handleReply}
+                />
               </div>
             ))
           }

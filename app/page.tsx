@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, ArrowRight, Star, BadgeCheck, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import BusinessCard from '@/components/business/BusinessCard'
+import BusinessCard from '@/components/businesses/BusinessCard'
 import AlgoliaSearchBar from '@/components/search/AlgoliaSearchBar'
 import ListBusinessButton from '@/components/ui/ListBusinessButton'
 import HeroSlideshow      from '@/components/ui/HeroSlideshow'
@@ -27,16 +27,6 @@ const CATEGORIES = [
   { id:'nightlife', name:'Bars & Nightlife', icon:'🍺' },
 ]
 
-const COUNTRIES = [
-  { flag:'🇳🇬', name:'Nigeria'      },
-  { flag:'🇬🇭', name:'Ghana'        },
-  { flag:'🇰🇪', name:'Kenya'        },
-  { flag:'🇸🇳', name:'Senegal'      },
-  { flag:'🇿🇦', name:'South Africa' },
-  { flag:'🇪🇹', name:'Ethiopia'     },
-  { flag:'🇨🇲', name:'Cameroon'     },
-  { flag:'🇨🇮', name:"Côte d'Ivoire"},
-]
 
 const OWNER_BENEFITS = [
   { icon:'📍', title:'Map pin',         desc:'Customers get directions straight to your door' },
@@ -110,21 +100,6 @@ export default async function HomePage() {
 
       {/* ── Countries we serve ── */}
       <CountriesBar />
-      <section className="hidden">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Serving the diaspora from
-            </span>
-            {COUNTRIES.map(({ flag, name }) => (
-              <div key={name} className="flex items-center gap-1.5 text-sm text-gray-600">
-                <span className="text-lg">{flag}</span>
-                <span className="font-medium">{name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── Categories ── */ }
       <section className="max-w-7xl mx-auto px-4 py-16">

@@ -165,19 +165,20 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
     : null
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col cursor-pointer"
+    <button type="button"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col cursor-pointer text-left w-full"
       onClick={() => onOpen(p)}>
       {/* Product image */}
-      <div className="relative h-44 overflow-hidden bg-gray-50 dark:bg-gray-700">
+      <div className="relative h-44 overflow-hidden bg-gray-50 dark:bg-gray-700 pointer-events-none">
         {p.image_url ? (
           <Image src={p.image_url} alt={p.name} fill
             sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
-            className="object-cover" />
+            className="object-cover pointer-events-none" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>
+          <div className="w-full h-full flex items-center justify-center text-4xl pointer-events-none">📦</div>
         )}
         {!p.available && (
-          <div className="absolute inset-0 flex items-center justify-center"
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
             style={{ background:'rgba(0,0,0,0.45)' }}>
             <span className="text-xs font-semibold text-white bg-gray-800 px-3 py-1 rounded-full">
               Out of stock
@@ -186,7 +187,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
         )}
         {/* Likes + rating overlay */}
         {((p.like_count ?? 0) > 0 || (p.rating_count ?? 0) > 0) && (
-          <div className="absolute bottom-2 left-2 flex gap-1.5">
+          <div className="absolute bottom-2 left-2 flex gap-1.5 pointer-events-none">
             {(p.rating_count ?? 0) > 0 && (
               <div className="flex items-center gap-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
                 <Star size={10} fill="#F59E0B" style={{ color: '#F59E0B' }} />
@@ -264,7 +265,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
           )}
         </div>
       </div>
- </div>
+    </button>
   )
 }
 
@@ -763,6 +764,8 @@ export default function SearchClient({
           </div>
         </>
       )}
+      </>
+      )}
 
       {/* Product detail modal — opens on product card click */}
       {selectedProduct && (
@@ -772,8 +775,6 @@ export default function SearchClient({
           businessPhone={selectedProduct.businesses?.phone ?? null}
           onClose={() => setSelectedProduct(null)}
         />
-      )}
-      </>
       )}
     </div>
   )
