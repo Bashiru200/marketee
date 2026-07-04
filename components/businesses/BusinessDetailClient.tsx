@@ -222,6 +222,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
   }
 
   return (
+    <>
     <div className="max-w-6xl mx-auto px-4 py-6">
 
       {/* ── AIRBNB-STYLE PHOTO GRID ── */}
@@ -235,7 +236,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         ) : allPhotos.length === 1 ? (
           // Single photo — full width
           <div
-            className="w-full h-full cursor-zoom-in"
+            className="relative w-full h-full cursor-zoom-in"
             onClick={() => setGalleryIdx(0)}>
             <Image src={allPhotos[0]} alt={biz.name} fill sizes="100vw"
               className="object-cover" priority />
@@ -400,9 +401,12 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setSelectedProduct(p)}
-                  className="cursor-pointer group rounded-2xl overflow-hidden border border-gray-100 hover:border-green-300 hover:shadow-md transition-all duration-200 text-left w-full">
-                  <div className="relative h-44 bg-gray-100 pointer-events-none">
+                  onClick={() => {
+  console.log('product clicked:', p.id, p.name)
+  setSelectedProduct(p)
+}}
+                  className="cursor-pointer group rounded-2xl border border-gray-100 hover:border-green-300 hover:shadow-md transition-all duration-200 text-left w-full bg-white">
+                  <div className="relative h-44 bg-gray-100 overflow-hidden rounded-t-2xl pointer-events-none">
                     {p.image_url ? (
                       <Image src={p.image_url} alt={p.name} fill sizes="200px"
                         className="object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none" />
@@ -425,7 +429,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                       </div>
                     )}
                   </div>
-                  <div className="p-3 pointer-events-none">
+                  <div className="p-3">
                     <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
                     {p.description && (
                       <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{p.description}</p>
@@ -526,6 +530,8 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         </div>
       </div>
 
+    </div>
+
       {/* ── PRODUCT MODAL ── */}
       {selectedProduct && (
         <ProductModal
@@ -544,7 +550,6 @@ export default function BusinessDetailClient({ id }: { id: string }) {
           onClose={() => setGalleryIdx(null)}
         />
       )}
-
-    </div>
+    </>
   )
 }

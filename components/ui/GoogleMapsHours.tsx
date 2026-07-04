@@ -55,7 +55,7 @@ export default function GoogleMapsHours({ hoursOpen, daysOpen }: Props) {
     closed: {
       dot:        'bg-gray-400',
       badge:      'Closed',
-      badgeStyle: { background: '#d51d1d', color: '#af0d0d' },
+      badgeStyle: { background: '#d51d1d', color: '#dddddd' },
       detailShort: '', // remove detail on mobile when closed — "Closed" says enough
       detailFull:  label.replace('Closed · ', ''),
     },
@@ -120,13 +120,13 @@ export default function GoogleMapsHours({ hoursOpen, daysOpen }: Props) {
                 style={isToday ? { background: '#EFF6FF' } : {}}>
                 <span
                   className="font-medium flex-shrink-0"
-                  style={{ color: isToday ? '#2563EB' : '#374151', width: '2.5rem' }}>
+                  style={{ color: isToday ? '#2563EB' : '#7c7c7c', width: '2.5rem' }}>
                   {abbr}
                 </span>
                 <span
                   className="text-right text-xs sm:text-sm"
                   style={{
-                    color:      !dayOpen ? '#9CA3AF' : isToday ? '#2563EB' : '#374151',
+                    color:      !dayOpen ? '#7c7c7c' : isToday ? '#2563EB' : '#7c7c7c',
                     fontStyle:  !dayOpen ? 'italic' : 'normal',
                     fontWeight: isToday  ? 500      : 400,
                   }}>
