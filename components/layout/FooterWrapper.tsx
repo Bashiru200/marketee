@@ -13,6 +13,7 @@ const HIDDEN_ON = [
   '/auth/welcome',
   '/account/onboarding',
   '/invite/accept',
+  '/coming-soon',
 ]
 
 export default function FooterWrapper() {
