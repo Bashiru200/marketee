@@ -45,6 +45,7 @@ export const metadata: Metadata = {
     'African food Houston', 'African restaurant', 'African grocery store',
     'African fashion', 'African beauty salon', 'African market',
   ],
+  verification: { google: 'NsCTcJ4xHXlpeQhPs_NFSKQalYuOersx_oLfYLDAo8M' }
 }
 
 // Inline script runs synchronously before first paint —
