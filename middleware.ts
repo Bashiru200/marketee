@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 // NEXT_PUBLIC_COMING_SOON=true  → full lock, everyone sees coming soon
 // NEXT_PUBLIC_BETA_MODE=true    → beta mode, need code to get in
 // both false                    → site is fully live
-const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === 'true'
+const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === 'false'
 const BETA_MODE   = process.env.NEXT_PUBLIC_BETA_MODE   === 'true'
 
 // Always accessible regardless of mode
