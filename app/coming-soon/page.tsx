@@ -4,19 +4,22 @@ import Image from 'next/image'
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-const FLAGS = ['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹','🇨🇲','🇨🇮','🇹🇿','🇺🇬','🇷🇼','🇿🇼']
-
-const STATS = [
-  { value: '54', label: 'Countries' },
-  { value: '9+', label: 'Categories' },
-  { value: 'Free', label: 'Business listing' },
+const CATEGORIES = [
+  'Food & Groceries',
+  'Restaurants',
+  'Fashion & Fabric',
+  'Beauty & Hair',
+  'Herbs & Wellness',
+  'Music & Arts',
+  'Crafts & Decor',
+  'Services',
 ]
 
 function ComingSoonInner() {
   const params = useSearchParams()
   const router = useRouter()
-  const [showCode, setShowCode] = useState(false)
 
+  const [showCode, setShowCode] = useState(false)
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -89,77 +92,58 @@ function ComingSoonInner() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#043528] text-white">
-      <section className="relative min-h-screen px-6 py-8">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-emerald-500 blur-[120px]" />
-          <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-[#1D9E75] blur-[110px]" />
+    <main className="min-h-screen overflow-hidden bg-[#F8F5EC] text-[#043528]">
+      <section className="relative min-h-screen px-5 py-10 md:px-10">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-[#1D9E75]/20 blur-3xl" />
+          <div className="absolute -bottom-44 -left-44 h-[520px] w-[520px] rounded-full bg-[#085041]/20 blur-3xl" />
         </div>
 
-        <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/apple-touch-icon.png"
-              alt="Markeetee logo"
-              width={46}
-              height={46}
-              className="rounded-xl"
-              priority
-            />
-            <div>
-              <p className="text-xl font-bold tracking-tight">Markeetee</p>
-              <p className="text-xs text-emerald-100/70">Africa is here. Find it.</p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowCode(!showCode)}
-            className="rounded-full border border-emerald-300/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-emerald-100 backdrop-blur"
-          >
-            {showCode ? 'Waitlist' : 'Beta Access'}
-          </button>
-        </nav>
-
-        <div className="relative z-10 mx-auto grid min-h-[calc(100vh-90px)] max-w-7xl items-center gap-12 py-16 lg:grid-cols-2">
+        <div className="relative mx-auto grid min-h-[calc(100vh-80px)] max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <div className="mb-6 inline-flex rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
-              African businesses · Products · Services · Culture
+            <div className="mb-8 flex items-center gap-4">
+              <Image
+                src="/apple-touch-icon.png"
+                alt="Markeetee logo"
+                width={62}
+                height={62}
+                className="rounded-2xl"
+                priority
+              />
+
+              <div>
+                <h2 className="text-3xl font-black tracking-tight">Markeetee</h2>
+                <p className="text-sm font-medium text-[#085041]/70">
+                  Africa is here. Find it.
+                </p>
+              </div>
             </div>
 
-            <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
+            <div className="mb-5 inline-flex rounded-full border border-[#1D9E75]/20 bg-white px-4 py-2 text-sm font-semibold text-[#085041] shadow-sm">
+              Coming Soon
+            </div>
+
+            <h1 className="max-w-4xl text-5xl font-black leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
               All things Africa.
-              <span className="block text-[#28C98B]">All in one place.</span>
+              <span className="block text-[#1D9E75]">All in one place.</span>
             </h1>
 
-            <p className="mt-7 max-w-xl text-lg leading-8 text-white/70">
-              Markeetee helps people discover African-owned businesses across the USA —
-              from food and groceries to fashion, beauty, wellness, music, art, services,
-              crafts and decor.
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#085041]/75">
+              Discover African-owned businesses, products, services, food, fashion,
+              beauty, wellness, music, art, crafts and culture across the USA.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              {STATS.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 backdrop-blur"
-                >
-                  <p className="text-2xl font-black text-[#28C98B]">{item.value}</p>
-                  <p className="text-xs text-white/60">{item.label}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 max-w-xl rounded-3xl border border-white/10 bg-white/[0.08] p-3 backdrop-blur">
+            <div className="mt-9 max-w-xl rounded-[2rem] border border-[#085041]/10 bg-white/80 p-3 shadow-xl shadow-[#085041]/10 backdrop-blur">
               <div className="mb-3 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     setShowCode(false)
                     setError('')
                   }}
-                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
                     !showCode
-                      ? 'bg-[#1D9E75] text-white'
-                      : 'text-white/60 hover:bg-white/10'
+                      ? 'bg-[#085041] text-white'
+                      : 'bg-[#EAF8F1] text-[#085041]'
                   }`}
                 >
                   Join Waitlist
@@ -170,19 +154,19 @@ function ComingSoonInner() {
                     setShowCode(true)
                     setError('')
                   }}
-                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
                     showCode
-                      ? 'bg-[#1D9E75] text-white'
-                      : 'text-white/60 hover:bg-white/10'
+                      ? 'bg-[#085041] text-white'
+                      : 'bg-[#EAF8F1] text-[#085041]'
                   }`}
                 >
-                  I Have a Code
+                  Beta Code
                 </button>
               </div>
 
               {!showCode ? (
                 submitted ? (
-                  <div className="rounded-2xl bg-emerald-400/10 p-5 text-center text-emerald-100">
+                  <div className="rounded-2xl bg-[#EAF8F1] p-5 text-center font-semibold text-[#085041]">
                     🎉 You’re on the list. We’ll email you when Markeetee launches.
                   </div>
                 ) : (
@@ -192,11 +176,12 @@ function ComingSoonInner() {
                       onChange={(e) => setEmail(e.target.value)}
                       type="email"
                       placeholder="Enter your email address"
-                      className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-white outline-none placeholder:text-white/40 focus:border-emerald-300/50"
+                      className="min-w-0 flex-1 rounded-2xl border border-[#085041]/10 bg-[#F8F5EC] px-5 py-4 text-[#043528] outline-none placeholder:text-[#085041]/40 focus:border-[#1D9E75]"
                     />
+
                     <button
                       disabled={loading}
-                      className="rounded-2xl bg-[#28C98B] px-6 py-4 font-bold text-[#043528] transition hover:bg-[#5DCAA5] disabled:opacity-60"
+                      className="rounded-2xl bg-[#1D9E75] px-6 py-4 font-black text-white transition hover:bg-[#168966] disabled:opacity-60"
                     >
                       {loading ? 'Adding…' : 'Notify Me'}
                     </button>
@@ -209,86 +194,109 @@ function ComingSoonInner() {
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     type="text"
                     placeholder="ENTER ACCESS CODE"
-                    className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/10 px-5 py-4 font-bold uppercase tracking-widest text-white outline-none placeholder:text-white/40 focus:border-emerald-300/50"
+                    className="min-w-0 flex-1 rounded-2xl border border-[#085041]/10 bg-[#F8F5EC] px-5 py-4 font-black uppercase tracking-widest text-[#043528] outline-none placeholder:text-[#085041]/40 focus:border-[#1D9E75]"
                   />
+
                   <button
                     disabled={loading}
-                    className="rounded-2xl bg-[#28C98B] px-6 py-4 font-bold text-[#043528] transition hover:bg-[#5DCAA5] disabled:opacity-60"
+                    className="rounded-2xl bg-[#1D9E75] px-6 py-4 font-black text-white transition hover:bg-[#168966] disabled:opacity-60"
                   >
                     {loading ? 'Checking…' : 'Enter'}
                   </button>
                 </form>
               )}
 
-              {error && <p className="mt-3 text-center text-sm text-red-300">{error}</p>}
+              {error && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
 
-              <p className="mt-3 text-center text-xs text-white/40">
-                No spam. Just updates about Markeetee.
+              <p className="mt-3 text-center text-xs text-[#085041]/50">
+                No spam. Just Markeetee launch updates.
               </p>
             </div>
           </div>
 
           <div className="relative">
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.08] p-6 shadow-2xl backdrop-blur">
-              <div className="rounded-[1.5rem] bg-[#F7F4EC] p-6 text-[#063B2E]">
-                <div className="mb-6 flex items-center gap-3">
-                  <Image
-                    src="/apple-touch-icon.png"
-                    alt="Markeetee logo"
-                    width={42}
-                    height={42}
-                    className="rounded-xl"
-                  />
-                  <div>
-                    <p className="text-xl font-black">Markeetee</p>
-                    <p className="text-xs text-[#085041]/70">Africa is here. Find it.</p>
+            <div className="absolute -inset-5 rounded-[3rem] bg-[#1D9E75]/10 blur-2xl" />
+
+            <div className="relative rounded-[2.5rem] bg-[#043528] p-5 shadow-2xl">
+              <div className="rounded-[2rem] bg-white p-6">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src="/apple-touch-icon.png"
+                      alt="Markeetee logo"
+                      width={42}
+                      height={42}
+                      className="rounded-xl"
+                    />
+                    <div>
+                      <p className="text-lg font-black text-[#043528]">Markeetee</p>
+                      <p className="text-xs text-[#085041]/60">Find African businesses</p>
+                    </div>
+                  </div>
+
+                  <div className="h-9 w-9 rounded-full bg-[#EAF8F1] text-center leading-9">
+                    ☰
                   </div>
                 </div>
 
-                <h2 className="text-3xl font-black leading-tight">
-                  Find African businesses near you.
-                </h2>
+                <div className="rounded-[1.5rem] bg-[#085041] p-5 text-white">
+                  <p className="text-sm text-emerald-100/80">Launching soon</p>
+                  <h3 className="mt-2 text-3xl font-black leading-tight">
+                    Find. Connect. Support.
+                  </h3>
+                </div>
 
-                <div className="mt-5 rounded-2xl border border-[#085041]/10 bg-white px-4 py-3 text-sm text-[#085041]/50">
+                <div className="mt-5 rounded-2xl border border-[#085041]/10 bg-[#F8F5EC] px-4 py-3 text-sm text-[#085041]/50">
                   Search businesses, products, or services...
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {[
-                    ['🍲', 'Food'],
-                    ['🍽️', 'Restaurants'],
-                    ['👗', 'Fashion'],
-                    ['💇🏾', 'Beauty'],
-                    ['🌿', 'Wellness'],
-                    ['🎵', 'Music'],
-                    ['🏺', 'Decor'],
-                    ['🤝', 'Services'],
-                    ['🛍️', 'More'],
-                  ].map(([icon, label]) => (
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {CATEGORIES.map((category) => (
                     <div
-                      key={label}
-                      className="rounded-2xl border border-[#085041]/10 bg-[#EAF8F1] p-4 text-center"
+                      key={category}
+                      className="rounded-2xl border border-[#085041]/10 bg-[#EAF8F1] p-4"
                     >
-                      <p className="text-2xl">{icon}</p>
-                      <p className="mt-1 text-xs font-bold">{label}</p>
+                      <div className="mb-3 h-9 w-9 rounded-full bg-[#085041] text-center text-lg leading-9 text-white">
+                        {category.includes('Food') ? '🍲' :
+                         category.includes('Restaurant') ? '🍽️' :
+                         category.includes('Fashion') ? '👗' :
+                         category.includes('Beauty') ? '💇🏾' :
+                         category.includes('Herbs') ? '🌿' :
+                         category.includes('Music') ? '🎵' :
+                         category.includes('Crafts') ? '🏺' : '🤝'}
+                      </div>
+                      <p className="text-sm font-black text-[#043528]">{category}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {FLAGS.map((flag) => (
-                <span
-                  key={flag}
-                  className="rounded-full bg-white/10 px-3 py-2 text-xl backdrop-blur"
+            <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+              {[
+                ['54', 'Countries'],
+                ['9+', 'Categories'],
+                ['USA', 'Coverage'],
+              ].map(([value, label]) => (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-[#085041]/10 bg-white/80 p-4 shadow-sm"
                 >
-                  {flag}
-                </span>
+                  <p className="text-2xl font-black text-[#1D9E75]">{value}</p>
+                  <p className="text-xs font-semibold text-[#085041]/60">{label}</p>
+                </div>
               ))}
             </div>
           </div>
         </div>
+
+        <footer className="relative mx-auto mt-8 flex max-w-7xl flex-wrap items-center justify-between gap-4 border-t border-[#085041]/10 py-6 text-sm text-[#085041]/60">
+          <p>© {new Date().getFullYear()} Markeetee</p>
+          <p>Discover. Connect. Support.</p>
+          <a href="mailto:hello@markeetee.com" className="font-semibold text-[#085041]">
+            hello@markeetee.com
+          </a>
+        </footer>
       </section>
     </main>
   )
