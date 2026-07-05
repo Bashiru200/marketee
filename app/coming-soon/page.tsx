@@ -1,960 +1,299 @@
-// 'use client'
-// import { useState } from 'react'
-
-// export default function ComingSoonPage() {
-//   const [email,     setEmail]     = useState('')
-//   const [submitted, setSubmitted] = useState(false)
-//   const [loading,   setLoading]   = useState(false)
-//   const [error,     setError]     = useState('')
-
-//   async function handleSubmit(e: React.FormEvent) {
-//     e.preventDefault()
-//     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-//       setError('Please enter a valid email address')
-//       return
-//     }
-//     setLoading(true)
-//     setError('')
-
-//     try {
-//       // Save email to Supabase early_access table
-//       const { createClient } = await import('@/lib/supabase/client')
-//       const supabase = createClient()
-//       await supabase.from('early_access').upsert({ email }, { onConflict: 'email' })
-//       setSubmitted(true)
-//     } catch {
-//       setError('Something went wrong — please try again.')
-//     } finally {
-//       setLoading(false)
-//     }
-//   }
-
-//   const features = [
-//     { icon: '🍲', title: 'Food & Restaurants',    desc: 'From jollof rice to suya — find authentic African cuisine near you.' },
-//     { icon: '💇', title: 'Beauty & Hair',          desc: 'Braiding, locs, wigs and skincare from trusted African stylists.' },
-//     { icon: '👗', title: 'Fashion & Fabric',       desc: 'Ankara, Kente, tailoring and African fashion in your city.' },
-//     { icon: '🌿', title: 'Herbs & Wellness',       desc: 'Traditional medicine, shea butter and natural wellness products.' },
-//     { icon: '🛠️', title: 'Services',               desc: 'Accounting, legal, immigration — from people who understand you.' },
-//     { icon: '🎵', title: 'Music & Events',         desc: 'Afrobeats, DJs, studios and live entertainment near you.' },
-//   ]
-
-//   const cityDots = [
-//     { label: 'New York',   top: '14%', left: '12%', size: 10, delay: '0.2s' },
-//     { label: 'Atlanta',    top: '26%', left: '24%', size: 12, delay: '0.4s' },
-//     { label: 'Houston',    top: '38%', left: '29%', size: 10, delay: '0.6s' },
-//     { label: 'Washington', top: '20%', left: '18%', size: 9,  delay: '0.8s' },
-//     { label: 'Chicago',    top: '24%', left: '34%', size: 11, delay: '1s' },
-//     { label: 'Miami',      top: '52%', left: '30%', size: 9,  delay: '1.2s' },
-//     { label: 'Los Angeles',top: '45%', left: '6%',  size: 12, delay: '1.4s' },
-//     { label: 'Dallas',     top: '40%', left: '23%', size: 9,  delay: '1.6s' },
-//   ]
-
-//   // African city dots — positioned as abstract scatter on a dark canvas
-//   // (image should be rendered inside the returned JSX; do not place JSX directly in the component body)
-
-//   return (
-//     <>
-//       <style>{`
-//         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
-
-//         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-//         body { background: #053528; }
-
-//         .cs-page {
-//           min-height: 100vh;
-//           background: #053528;
-//           color: #F5F0E8;
-//           font-family: 'Inter', system-ui, sans-serif;
-//           overflow-x: hidden;
-//         }
-
-//         /* ── Nav ── */
-//         .cs-nav {
-//           position: fixed;
-//           top: 0; left: 0; right: 0;
-//           z-index: 50;
-//           padding: 20px 32px;
-//           display: flex;
-//           align-items: center;
-//           justify-content: space-between;
-//           background: linear-gradient(to bottom, rgba(5,53,40,0.95), transparent);
-//         }
-//         .cs-logo {
-//           display: flex;
-//           align-items: center;
-//           gap: 10px;
-//         }
-//         .cs-logo-mark {
-//           width: 34px; height: 34px;
-//           background: #1D9E75;
-//           border-radius: 9px;
-//           display: flex; align-items: center; justify-content: center;
-//           font-family: 'Playfair Display', serif;
-//           font-weight: 900;
-//           font-size: 18px;
-//           color: white;
-//         }
-//         .cs-logo-text {
-//           font-family: 'Inter', sans-serif;
-//           font-weight: 600;
-//           font-size: 16px;
-//           color: #F5F0E8;
-//           letter-spacing: -0.02em;
-//         }
-//         .cs-nav-badge {
-//           font-size: 11px;
-//           font-weight: 600;
-//           color: #9FE1CB;
-//           background: rgba(29, 158, 117, 0.15);
-//           border: 1px solid rgba(159, 225, 203, 0.25);
-//           padding: 5px 12px;
-//           border-radius: 20px;
-//           letter-spacing: 0.04em;
-//           text-transform: uppercase;
-//         }
-
-//         /* ── Hero ── */
-//         .cs-hero {
-//           min-height: 100vh;
-//           display: flex;
-//           flex-direction: column;
-//           align-items: center;
-//           justify-content: center;
-//           padding: 120px 24px 80px;
-//           position: relative;
-//           text-align: center;
-//         }
-
-//         /* Africa silhouette — pure CSS polygon approximation */
-//         .cs-continent {
-//           position: absolute;
-//           top: 50%;
-//           left: 50%;
-//           transform: translate(-50%, -50%);
-//           width: min(420px, 75vw);
-//           height: min(520px, 93vw);
-//           opacity: 0.06;
-//           pointer-events: none;
-//         }
-//         .cs-continent svg {
-//           width: 100%;
-//           height: 100%;
-//         }
-
-//         /* City dots */
-//         .cs-dot {
-//           position: absolute;
-//           border-radius: 50%;
-//           background: #1D9E75;
-//           opacity: 0;
-//           animation: dotAppear 0.4s ease-out forwards, dotPulse 3s ease-in-out infinite;
-//           box-shadow: 0 0 8px rgba(29, 158, 117, 0.8);
-//         }
-//         @keyframes dotAppear {
-//           to { opacity: 1; }
-//         }
-//         @keyframes dotPulse {
-//           0%, 100% { box-shadow: 0 0 6px rgba(29,158,117,0.6); }
-//           50%       { box-shadow: 0 0 14px rgba(29,158,117,0.9); }
-//         }
-
-//         /* Eyebrow */
-//         .cs-eyebrow {
-//           font-size: 11px;
-//           font-weight: 600;
-//           letter-spacing: 0.15em;
-//           text-transform: uppercase;
-//           color: #9FE1CB;
-//           margin-bottom: 20px;
-//           opacity: 0;
-//           animation: fadeUp 0.6s ease-out 0.2s forwards;
-//         }
-
-//         /* Hero headline */
-//         .cs-h1 {
-//           font-family: 'Playfair Display', Georgia, serif;
-//           font-size: clamp(40px, 8vw, 80px);
-//           font-weight: 900;
-//           line-height: 1.05;
-//           color: #F5F0E8;
-//           letter-spacing: -0.02em;
-//           margin-bottom: 24px;
-//           max-width: 760px;
-//           opacity: 0;
-//           animation: fadeUp 0.7s ease-out 0.4s forwards;
-//         }
-//         .cs-h1 span {
-//           color: #1D9E75;
-//           font-style: italic;
-//         }
-
-//         /* Subhead */
-//         .cs-sub {
-//           font-size: clamp(15px, 2.5vw, 18px);
-//           font-weight: 400;
-//           color: rgba(245, 240, 232, 0.65);
-//           line-height: 1.7;
-//           max-width: 520px;
-//           margin: 0 auto 48px;
-//           opacity: 0;
-//           animation: fadeUp 0.7s ease-out 0.6s forwards;
-//         }
-
-//         /* Email capture */
-//         .cs-form {
-//           opacity: 0;
-//           animation: fadeUp 0.7s ease-out 0.8s forwards;
-//           width: 100%;
-//           max-width: 460px;
-//           margin: 0 auto;
-//         }
-//         .cs-input-row {
-//           display: flex;
-//           gap: 10px;
-//           background: rgba(255,255,255,0.06);
-//           border: 1px solid rgba(159,225,203,0.2);
-//           border-radius: 14px;
-//           padding: 6px 6px 6px 18px;
-//           transition: border-color 0.2s;
-//         }
-//         .cs-input-row:focus-within {
-//           border-color: rgba(29,158,117,0.6);
-//         }
-//         .cs-input {
-//           flex: 1;
-//           background: transparent;
-//           border: none;
-//           outline: none;
-//           font-size: 14px;
-//           font-family: 'Inter', sans-serif;
-//           color: #F5F0E8;
-//           min-width: 0;
-//         }
-//         .cs-input::placeholder { color: rgba(245,240,232,0.35); }
-//         .cs-btn {
-//           background: #1D9E75;
-//           color: white;
-//           border: none;
-//           border-radius: 10px;
-//           padding: 11px 22px;
-//           font-size: 13px;
-//           font-weight: 600;
-//           font-family: 'Inter', sans-serif;
-//           cursor: pointer;
-//           white-space: nowrap;
-//           transition: background 0.2s, transform 0.1s;
-//           flex-shrink: 0;
-//         }
-//         .cs-btn:hover { background: #18886A; }
-//         .cs-btn:active { transform: scale(0.98); }
-//         .cs-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-//         .cs-error {
-//           font-size: 12px;
-//           color: #F87171;
-//           margin-top: 8px;
-//           text-align: center;
-//         }
-
-//         /* Success state */
-//         .cs-success {
-//           display: flex;
-//           align-items: center;
-//           gap: 10px;
-//           justify-content: center;
-//           padding: 14px 20px;
-//           background: rgba(29,158,117,0.12);
-//           border: 1px solid rgba(29,158,117,0.3);
-//           border-radius: 12px;
-//           font-size: 14px;
-//           color: #9FE1CB;
-//           font-weight: 500;
-//         }
-
-//         /* Scroll hint */
-//         .cs-scroll-hint {
-//           position: absolute;
-//           bottom: 32px;
-//           left: 50%;
-//           transform: translateX(-50%);
-//           display: flex;
-//           flex-direction: column;
-//           align-items: center;
-//           gap: 6px;
-//           opacity: 0;
-//           animation: fadeUp 0.5s ease-out 1.4s forwards;
-//         }
-//         .cs-scroll-hint span {
-//           font-size: 10px;
-//           letter-spacing: 0.12em;
-//           text-transform: uppercase;
-//           color: rgba(245,240,232,0.3);
-//         }
-//         .cs-scroll-line {
-//           width: 1px;
-//           height: 40px;
-//           background: linear-gradient(to bottom, rgba(159,225,203,0.4), transparent);
-//           animation: scrollLine 1.8s ease-in-out 1.4s infinite;
-//         }
-//         @keyframes scrollLine {
-//           0%   { transform: scaleY(0); transform-origin: top; opacity: 0; }
-//           50%  { transform: scaleY(1); transform-origin: top; opacity: 1; }
-//           100% { transform: scaleY(1); transform-origin: bottom; opacity: 0; }
-//         }
-
-//         /* ── What is Markeetee ── */
-//         .cs-what {
-//           padding: 80px 24px;
-//           max-width: 960px;
-//           margin: 0 auto;
-//           text-align: center;
-//         }
-//         .cs-section-label {
-//           font-size: 11px;
-//           font-weight: 600;
-//           letter-spacing: 0.15em;
-//           text-transform: uppercase;
-//           color: #1D9E75;
-//           margin-bottom: 16px;
-//         }
-//         .cs-h2 {
-//           font-family: 'Playfair Display', serif;
-//           font-size: clamp(28px, 5vw, 48px);
-//           font-weight: 700;
-//           color: #F5F0E8;
-//           line-height: 1.15;
-//           margin-bottom: 16px;
-//           letter-spacing: -0.02em;
-//         }
-//         .cs-h2 em { color: #9FE1CB; font-style: normal; }
-//         .cs-what-body {
-//           font-size: 16px;
-//           color: rgba(245,240,232,0.6);
-//           line-height: 1.8;
-//           max-width: 600px;
-//           margin: 0 auto 64px;
-//         }
-
-//         /* Feature grid */
-//         .cs-grid {
-//           display: grid;
-//           grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-//           gap: 16px;
-//           text-align: left;
-//         }
-//         .cs-card {
-//           background: rgba(255,255,255,0.04);
-//           border: 1px solid rgba(159,225,203,0.1);
-//           border-radius: 16px;
-//           padding: 24px;
-//           transition: border-color 0.2s, background 0.2s;
-//         }
-//         .cs-card:hover {
-//           border-color: rgba(29,158,117,0.35);
-//           background: rgba(29,158,117,0.06);
-//         }
-//         .cs-card-icon {
-//           font-size: 28px;
-//           margin-bottom: 12px;
-//           display: block;
-//         }
-//         .cs-card-title {
-//           font-size: 15px;
-//           font-weight: 600;
-//           color: #F5F0E8;
-//           margin-bottom: 6px;
-//         }
-//         .cs-card-desc {
-//           font-size: 13px;
-//           color: rgba(245,240,232,0.5);
-//           line-height: 1.6;
-//         }
-
-//         /* ── Stats strip ── */
-//         .cs-stats {
-//           border-top: 1px solid rgba(159,225,203,0.1);
-//           border-bottom: 1px solid rgba(159,225,203,0.1);
-//           padding: 48px 24px;
-//           display: flex;
-//           justify-content: center;
-//           gap: clamp(32px, 8vw, 96px);
-//           flex-wrap: wrap;
-//         }
-//         .cs-stat {
-//           text-align: center;
-//         }
-//         .cs-stat-num {
-//           font-family: 'Playfair Display', serif;
-//           font-size: clamp(36px, 6vw, 56px);
-//           font-weight: 900;
-//           color: #1D9E75;
-//           line-height: 1;
-//           margin-bottom: 6px;
-//         }
-//         .cs-stat-label {
-//           font-size: 12px;
-//           font-weight: 500;
-//           letter-spacing: 0.08em;
-//           text-transform: uppercase;
-//           color: rgba(245,240,232,0.45);
-//         }
-
-//         /* ── For owners ── */
-//         .cs-owners {
-//           padding: 80px 24px;
-//           max-width: 960px;
-//           margin: 0 auto;
-//         }
-//         .cs-owners-inner {
-//           background: linear-gradient(135deg, rgba(29,158,117,0.12), rgba(8,80,65,0.2));
-//           border: 1px solid rgba(29,158,117,0.2);
-//           border-radius: 24px;
-//           padding: clamp(32px, 5vw, 56px);
-//           display: grid;
-//           grid-template-columns: 1fr 1fr;
-//           gap: 40px;
-//           align-items: center;
-//         }
-//         @media (max-width: 640px) {
-//           .cs-owners-inner { grid-template-columns: 1fr; }
-//         }
-//         .cs-owners-title {
-//           font-family: 'Playfair Display', serif;
-//           font-size: clamp(24px, 4vw, 38px);
-//           font-weight: 700;
-//           color: #F5F0E8;
-//           line-height: 1.2;
-//           margin-bottom: 16px;
-//           letter-spacing: -0.02em;
-//         }
-//         .cs-owners-body {
-//           font-size: 15px;
-//           color: rgba(245,240,232,0.6);
-//           line-height: 1.7;
-//           margin-bottom: 24px;
-//         }
-//         .cs-owners-list {
-//           list-style: none;
-//           display: flex;
-//           flex-direction: column;
-//           gap: 10px;
-//         }
-//         .cs-owners-list li {
-//           display: flex;
-//           align-items: flex-start;
-//           gap: 10px;
-//           font-size: 14px;
-//           color: rgba(245,240,232,0.7);
-//         }
-//         .cs-owners-list li::before {
-//           content: '';
-//           width: 6px; height: 6px;
-//           border-radius: 50%;
-//           background: #1D9E75;
-//           margin-top: 7px;
-//           flex-shrink: 0;
-//         }
-
-//         /* Flags */
-//         .cs-flags {
-//           display: flex;
-//           flex-wrap: wrap;
-//           gap: 8px;
-//           justify-content: center;
-//         }
-//         .cs-flag {
-//           font-size: 28px;
-//           line-height: 1;
-//           opacity: 0.85;
-//           transition: transform 0.2s, opacity 0.2s;
-//           cursor: default;
-//         }
-//         .cs-flag:hover { transform: scale(1.2); opacity: 1; }
-
-//         /* ── Footer ── */
-//         .cs-footer {
-//           border-top: 1px solid rgba(159,225,203,0.1);
-//           padding: 32px 24px;
-//           display: flex;
-//           align-items: center;
-//           justify-content: space-between;
-//           gap: 16px;
-//           flex-wrap: wrap;
-//           max-width: 960px;
-//           margin: 0 auto;
-//         }
-//         .cs-footer-copy {
-//           font-size: 12px;
-//           color: rgba(245,240,232,0.3);
-//         }
-//         .cs-footer-links {
-//           display: flex;
-//           gap: 20px;
-//         }
-//         .cs-footer-links a {
-//           font-size: 12px;
-//           color: rgba(245,240,232,0.35);
-//           text-decoration: none;
-//           transition: color 0.2s;
-//         }
-//         .cs-footer-links a:hover { color: #9FE1CB; }
-
-//         @keyframes fadeUp {
-//           from { opacity: 0; transform: translateY(20px); }
-//           to   { opacity: 1; transform: translateY(0);    }
-//         }
-
-//         @media (max-width: 480px) {
-//           .cs-input-row { flex-direction: column; padding: 10px; }
-//           .cs-btn { width: 100%; text-align: center; }
-//           .cs-nav { padding: 16px 20px; }
-//         }
-//       `}</style>
-
-//       <div className="cs-page">
-
-//         {/* ── Navbar ── */}
-//         <nav className="cs-nav">
-//           <div className="cs-logo">
-//             <div className="cs-logo-mark">M</div>
-//             <span className="cs-logo-text">Markeetee</span>
-//           </div>
-//           <div className="cs-nav-badge">Coming soon</div>
-//         </nav>
-
-//         {/* ── Hero ── */}
-//         <section className="cs-hero">
-
-//           {/* Africa silhouette background */}
-//           <div className="cs-continent">
-//             <img
-//               src="https://markeetee.com/categories/services.jpg"
-//               alt="African services"
-//               style={{
-//                 width: '100%',
-//                 height: '160px',
-//                 objectFit: 'cover',
-//                 borderRadius: '14px',
-//                 marginBottom: '20px',
-//               }}
-//             />
-//           </div>
-
-//           {/* City dots */}
-//           {cityDots.map((dot, i) => (
-//             <div
-//               key={i}
-//               className="cs-dot"
-//               style={{
-//                 top:            dot.top,
-//                 left:           dot.left,
-//                 width:          dot.size + 'px',
-//                 height:         dot.size + 'px',
-//                 animationDelay: dot.delay,
-//                 animationDuration: `0.4s, ${2 + (i % 3) * 0.5}s`,
-//               }}
-//               title={dot.label}
-//             />
-//           ))}
-
-//           {/* Content */}
-//           <p className="cs-eyebrow">African businesses · US diaspora · Coming soon</p>
-
-//           <h1 className="cs-h1">
-//             Home has never<br />
-//             felt this <span>close.</span>
-//           </h1>
-
-//           <p className="cs-sub">
-//             Connecting the African diaspora
-//             One platform. Thousands of African businesses. A place where culture, community, and commerce meet.
-//           </p>
-
-//           {submitted ? (
-//             <div className="cs-success" style={{ maxWidth: 460, margin: '0 auto' }}>
-//               <span style={{ fontSize: 20 }}>🎉</span>
-//               <span>You&apos;re on the list! We&apos;ll let you know the moment we launch.</span>
-//             </div>
-//           ) : (
-//             <form className="cs-form" onSubmit={handleSubmit}>
-//               <div className="cs-input-row">
-//                 <input
-//                   type="email"
-//                   value={email}
-//                   onChange={e => { setEmail(e.target.value); setError('') }}
-//                   placeholder="Enter your email address"
-//                   className="cs-input"
-//                   required
-//                 />
-//                 <button type="submit" className="cs-btn" disabled={loading}>
-//                   {loading ? 'Adding…' : 'Notify me'}
-//                 </button>
-//               </div>
-//               {error && <p className="cs-error">{error}</p>}
-//               <p style={{ fontSize: 11, color: 'rgba(245,240,232,0.3)', marginTop: 10, textAlign: 'center' }}>
-//                 No spam. Just a single email when we launch.
-//               </p>
-//             </form>
-//           )}
-
-//           {/* Scroll hint */}
-//           <div className="cs-scroll-hint">
-//             <span>Discover</span>
-//             <div className="cs-scroll-line" />
-//           </div>
-//         </section>
-
-//         {/* ── What is Markeetee ── */}
-//         <section className="cs-what">
-//           <p className="cs-section-label">What we&apos;re building</p>
-//           <h2 className="cs-h2">
-//             Your community&apos;s businesses,<br />
-//             <em>finally in one place</em>
-//           </h2>
-//           <p className="cs-what-body">
-//             Finding African businesses in the US is harder than it should be. Markeetee changes that —
-//             a searchable, mapable directory built specifically for the diaspora,
-//             covering every city, every category.
-//           </p>
-
-//           <div className="cs-grid">
-//             {features.map(f => (
-//               <div key={f.title} className="cs-card">
-//                 <span className="cs-card-icon">{f.icon}</span>
-//                 <p className="cs-card-title">{f.title}</p>
-//                 <p className="cs-card-desc">{f.desc}</p>
-//               </div>
-//             ))}
-//           </div>
-//         </section>
-
-//         {/* ── Stats ── */}
-//         <div className="cs-stats">
-//           {[
-//             { num: '54',   label: 'African nations represented' },
-//             { num: '9',    label: 'Business categories'         },
-//             { num: 'Free', label: 'To list your business'       },
-//             { num: 'US',   label: 'Nationwide coverage'         },
-//           ].map(s => (
-//             <div key={s.label} className="cs-stat">
-//               <div className="cs-stat-num">{s.num}</div>
-//               <div className="cs-stat-label">{s.label}</div>
-//             </div>
-//           ))}
-//         </div>
-
-//         {/* ── For business owners ── */}
-//         <section className="cs-owners">
-//           <div className="cs-owners-inner">
-//             <div>
-//               <p className="cs-section-label">For business owners</p>
-//               <h2 className="cs-owners-title">
-//                 Get discovered by<br />your community
-//               </h2>
-//               <p className="cs-owners-body">
-//                 List your African business for free and reach thousands of diaspora
-//                 customers actively searching for what you offer.
-//               </p>
-//               <ul className="cs-owners-list">
-//                 <li>Free listing with photo, hours and WhatsApp contact</li>
-//                 <li>Show up on map and search results immediately</li>
-//                 <li>Collect reviews from real customers</li>
-//                 <li>Upgrade to Premium for featured placement</li>
-//               </ul>
-//             </div>
-
-//             <div>
-//               <p className="cs-section-label" style={{ marginBottom: 16 }}>Serving the diaspora from</p>
-//               <div className="cs-flags">
-//                 {['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹','🇨🇲','🇨🇮','🇹🇿','🇺🇬',
-//                   '🇷🇼','🇿🇼','🇲🇦','🇹🇳','🇩🇿','🇦🇴','🇧🇯','🇧🇫','🇲🇿','🇲🇬',
-//                   '🇸🇱','🇱🇷','🇬🇳','🇨🇬','🇨🇩','🇬🇦','🇳🇪','🇲🇱'].map(f => (
-//                   <span key={f} className="cs-flag">{f}</span>
-//                 ))}
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* ── Footer ── */}
-//         <footer className="cs-footer">
-//           <p className="cs-footer-copy">© 2026 Markeetee · Made for the African diaspora</p>
-//           <div className="cs-footer-links">
-//             <a href="https://instagram.com/markeetee">Instagram</a>
-//             <a href="https://twitter.com/markeetee">X</a>
-//             <a href="mailto:hello@markeetee.com">Contact</a>
-//           </div>
-//         </footer>
-
-//       </div>
-//     </>
-//   )
-// }
-
 'use client'
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+
 import Image from 'next/image'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-const CITY_DOTS = [
-  { top: '18%', left: '52%', delay: '0s',   size: 4 },
-  { top: '22%', left: '48%', delay: '0.3s', size: 3 },
-  { top: '15%', left: '44%', delay: '0.6s', size: 3 },
-  { top: '28%', left: '55%', delay: '0.9s', size: 3 },
-  { top: '35%', left: '62%', delay: '1.2s', size: 4 },
-  { top: '32%', left: '50%', delay: '1.5s', size: 3 },
-  { top: '42%', left: '54%', delay: '1.8s', size: 3 },
-  { top: '48%', left: '50%', delay: '2.1s', size: 4 },
-  { top: '55%', left: '52%', delay: '2.4s', size: 5 },
-  { top: '25%', left: '58%', delay: '2.7s', size: 3 },
-  { top: '12%', left: '55%', delay: '3.0s', size: 3 },
-  { top: '10%', left: '50%', delay: '3.3s', size: 3 },
-  { top: '8%',  left: '46%', delay: '3.6s', size: 4 },
-]
-
-const FLAGS = [
-  '🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹','🇨🇲',
-  '🇨🇮','🇹🇿','🇺🇬','🇷🇼','🇿🇼','🇲🇦','🇹🇳',
-  '🇩🇿','🇦🇴','🇧🇯','🇧🇫','🇲🇿','🇲🇬',
-]
+const FLAGS = ['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹','🇨🇲','🇨🇮','🇹🇿','🇺🇬','🇷🇼','🇿🇼']
 
 const STATS = [
-  { num: '54',   label: 'African nations'    },
-  { num: '9',    label: 'Categories'         },
-  { num: 'Free', label: 'To list a business' },
+  { value: '54', label: 'Countries' },
+  { value: '9+', label: 'Categories' },
+  { value: 'Free', label: 'Business listing' },
 ]
 
-// ── Inner component that reads search params ──────────────────────────────
 function ComingSoonInner() {
-  const params  = useSearchParams()
-  const router  = useRouter()
-  const isBeta  = params.get('beta') === '1'
+  const params = useSearchParams()
+  const router = useRouter()
+  const [showCode, setShowCode] = useState(false)
 
-  // Waitlist
-  const [email,      setEmail]      = useState('')
-  const [submitted,  setSubmitted]  = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [emailError, setEmailError] = useState('')
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  // Beta code
-  const [code,        setCode]        = useState('')
-  const [codeError,   setCodeError]   = useState('')
-  const [codeLoading, setCodeLoading] = useState(false)
-  const [showCode,    setShowCode]    = useState(false)
-
-  useEffect(() => { setShowCode(isBeta) }, [isBeta])
+  useEffect(() => {
+    setShowCode(params.get('beta') === '1')
+  }, [params])
 
   async function handleWaitlist(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Please enter a valid email address')
+      setError('Please enter a valid email address.')
       return
     }
-    setSubmitting(true); setEmailError('')
+
+    setLoading(true)
+
     try {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
-      await supabase.from('early_access').upsert({ email }, { onConflict: 'email' })
+
+      await supabase
+        .from('early_access')
+        .upsert({ email }, { onConflict: 'email' })
+
       setSubmitted(true)
     } catch {
-      setEmailError('Something went wrong — please try again.')
+      setError('Something went wrong. Please try again.')
     } finally {
-      setSubmitting(false)
+      setLoading(false)
     }
   }
 
   async function handleCode(e: React.FormEvent) {
     e.preventDefault()
-    if (!code.trim()) { setCodeError('Enter your access code'); return }
-    setCodeLoading(true); setCodeError('')
+    setError('')
+
+    if (!code.trim()) {
+      setError('Enter your access code.')
+      return
+    }
+
+    setLoading(true)
+
     try {
-      const res  = await fetch('/api/beta-access', {
-        method:  'POST',
+      const res = await fetch('/api/beta-access', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ code: code.trim() }),
+        body: JSON.stringify({ code: code.trim() }),
       })
+
       const data = await res.json()
+
       if (!res.ok) {
-        setCodeError(data.error ?? 'Invalid code. Try again.')
-        setCodeLoading(false)
+        setError(data.error ?? 'Invalid access code.')
         return
       }
+
       router.push('/')
       router.refresh()
     } catch {
-      setCodeError('Something went wrong. Try again.')
-      setCodeLoading(false)
+      setError('Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#053528}
-        .cs-dot{position:absolute;border-radius:50%;background:#1D9E75;opacity:0;
-          animation:dotAppear 0.4s ease-out forwards,dotPulse 3s ease-in-out infinite;
-          box-shadow:0 0 8px rgba(29,158,117,0.8)}
-        @keyframes dotAppear{to{opacity:1}}
-        @keyframes dotPulse{0%,100%{box-shadow:0 0 6px rgba(29,158,117,0.6)}50%{box-shadow:0 0 14px rgba(29,158,117,0.9)}}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        .f1{opacity:0;animation:fadeUp 0.7s ease-out 0.2s forwards}
-        .f2{opacity:0;animation:fadeUp 0.7s ease-out 0.4s forwards}
-        .f3{opacity:0;animation:fadeUp 0.7s ease-out 0.6s forwards}
-        .f4{opacity:0;animation:fadeUp 0.7s ease-out 0.8s forwards}
-        .f5{opacity:0;animation:fadeUp 0.7s ease-out 1.0s forwards}
-      `}</style>
+    <main className="min-h-screen overflow-hidden bg-[#043528] text-white">
+      <section className="relative min-h-screen px-6 py-8">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-emerald-500 blur-[120px]" />
+          <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-[#1D9E75] blur-[110px]" />
+        </div>
 
-      <div style={{ minHeight:'100vh', background:'#053528', color:'#F5F0E8', fontFamily:"'Inter',system-ui,sans-serif", overflowX:'hidden' }}>
-
-        {/* ── Navbar ── */}
-        <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:50, padding:'20px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', background:'linear-gradient(to bottom,rgba(5,53,40,0.95),transparent)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <Image src="/apple-touch-icon.png" alt="Markeetee" width={34} height={34} style={{ borderRadius:9 }} />
-            <span style={{ fontWeight:600, fontSize:16 }}>Markeetee</span>
+        <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/apple-touch-icon.png"
+              alt="Markeetee logo"
+              width={46}
+              height={46}
+              className="rounded-xl"
+              priority
+            />
+            <div>
+              <p className="text-xl font-bold tracking-tight">Markeetee</p>
+              <p className="text-xs text-emerald-100/70">Africa is here. Find it.</p>
+            </div>
           </div>
-          <span style={{ fontSize:11, fontWeight:600, color:'#9FE1CB', background:'rgba(29,158,117,0.15)', border:'1px solid rgba(159,225,203,0.25)', padding:'5px 12px', borderRadius:20, letterSpacing:'0.04em', textTransform:'uppercase' }}>
-            {showCode ? 'Beta Access' : 'Coming Soon'}
-          </span>
+
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className="rounded-full border border-emerald-300/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-emerald-100 backdrop-blur"
+          >
+            {showCode ? 'Waitlist' : 'Beta Access'}
+          </button>
         </nav>
 
-        {/* ── Hero ── */}
-        <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'120px 24px 80px', position:'relative', textAlign:'center' }}>
+        <div className="relative z-10 mx-auto grid min-h-[calc(100vh-90px)] max-w-7xl items-center gap-12 py-16 lg:grid-cols-2">
+          <div>
+            <div className="mb-6 inline-flex rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
+              African businesses · Products · Services · Culture
+            </div>
 
-          {/* City dots */}
-          {CITY_DOTS.map((d, i) => (
-            <div key={i} className="cs-dot"
-              style={{ top:d.top, left:d.left, width:d.size, height:d.size, animationDelay:d.delay }} />
-          ))}
+            <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
+              All things Africa.
+              <span className="block text-[#28C98B]">All in one place.</span>
+            </h1>
 
-          {/* Eyebrow */}
-          <p className="f1" style={{ fontSize:11, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', color:'#9FE1CB', marginBottom:20 }}>
-            African businesses · US diaspora
-          </p>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-white/70">
+              Markeetee helps people discover African-owned businesses across the USA —
+              from food and groceries to fashion, beauty, wellness, music, art, services,
+              crafts and decor.
+            </p>
 
-          {/* Headline */}
-          <h1 className="f2" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(40px,8vw,80px)', fontWeight:900, lineHeight:1.05, color:'#F5F0E8', letterSpacing:'-0.02em', marginBottom:24, maxWidth:760 }}>
-            Home has never<br />felt this{' '}
-            <span style={{ color:'#1D9E75', fontStyle:'italic' }}>close.</span>
-          </h1>
-
-          {/* Sub */}
-          <p className="f3" style={{ fontSize:'clamp(15px,2.5vw,18px)', color:'rgba(245,240,232,0.65)', lineHeight:1.7, maxWidth:520, marginBottom:48 }}>
-            Markeetee is the go-to directory for African-owned businesses in the US.
-            We&apos;re launching soon — be the first to know.
-          </p>
-
-          {/* ── Tab switcher + forms ── */}
-          <div className="f4" style={{ width:'100%', maxWidth:480 }}>
-
-            {/* Tabs */}
-            <div style={{ display:'flex', gap:6, marginBottom:20, background:'rgba(255,255,255,0.06)', borderRadius:14, padding:4 }}>
-              {[
-                { label:'Join waitlist', active:!showCode, onClick:() => setShowCode(false) },
-                { label:'I have a code', active:showCode,  onClick:() => setShowCode(true)  },
-              ].map(t => (
-                <button key={t.label} onClick={t.onClick}
-                  style={{ flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all 0.2s',
-                    background: t.active ? 'rgba(29,158,117,0.25)' : 'transparent',
-                    color:      t.active ? '#9FE1CB'               : 'rgba(245,240,232,0.5)',
-                  }}>
-                  {t.label}
-                </button>
+            <div className="mt-8 flex flex-wrap gap-3">
+              {STATS.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 backdrop-blur"
+                >
+                  <p className="text-2xl font-black text-[#28C98B]">{item.value}</p>
+                  <p className="text-xs text-white/60">{item.label}</p>
+                </div>
               ))}
             </div>
 
-            {/* Waitlist form */}
-            {!showCode && (
-              submitted ? (
-                <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center', padding:'14px 20px', background:'rgba(29,158,117,0.12)', border:'1px solid rgba(29,158,117,0.3)', borderRadius:12, color:'#9FE1CB', fontSize:14, fontWeight:500 }}>
-                  🎉 You&apos;re on the list! We&apos;ll email you when we launch.
-                </div>
-              ) : (
-                <form onSubmit={handleWaitlist}>
-                  <div style={{ display:'flex', gap:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(159,225,203,0.2)', borderRadius:14, padding:'6px 6px 6px 18px' }}>
-                    <input
-                      type="email" value={email}
-                      onChange={e => { setEmail(e.target.value); setEmailError('') }}
-                      placeholder="Enter your email address"
-                      style={{ flex:1, background:'transparent', border:'none', outline:'none', fontSize:14, color:'#F5F0E8', minWidth:0 }}
-                    />
-                    <button type="submit" disabled={submitting}
-                      style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:10, padding:'11px 22px', fontSize:13, fontWeight:600, cursor:'pointer', flexShrink:0, opacity:submitting ? 0.7 : 1 }}>
-                      {submitting ? 'Adding…' : 'Notify me'}
-                    </button>
-                  </div>
-                  {emailError && <p style={{ color:'#F87171', fontSize:12, marginTop:8, textAlign:'center' }}>{emailError}</p>}
-                  <p style={{ fontSize:11, color:'rgba(245,240,232,0.3)', marginTop:10, textAlign:'center' }}>
-                    No spam. One email when we launch.
-                  </p>
-                </form>
-              )
-            )}
+            <div className="mt-8 max-w-xl rounded-3xl border border-white/10 bg-white/[0.08] p-3 backdrop-blur">
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setShowCode(false)
+                    setError('')
+                  }}
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    !showCode
+                      ? 'bg-[#1D9E75] text-white'
+                      : 'text-white/60 hover:bg-white/10'
+                  }`}
+                >
+                  Join Waitlist
+                </button>
 
-            {/* Beta code form */}
-            {showCode && (
-              <form onSubmit={handleCode}>
-                <div style={{ display:'flex', gap:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(159,225,203,0.2)', borderRadius:14, padding:'6px 6px 6px 18px' }}>
-                  <input
-                    type="text" value={code}
-                    onChange={e => { setCode(e.target.value.toUpperCase()); setCodeError('') }}
-                    placeholder="ENTER YOUR ACCESS CODE"
-                    autoFocus
-                    style={{ flex:1, background:'transparent', border:'none', outline:'none', fontSize:14, color:'#F5F0E8', minWidth:0, letterSpacing:'0.1em', fontWeight:600 }}
-                  />
-                  <button type="submit" disabled={codeLoading}
-                    style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:10, padding:'11px 22px', fontSize:13, fontWeight:600, cursor:'pointer', flexShrink:0, opacity:codeLoading ? 0.7 : 1 }}>
-                    {codeLoading ? 'Checking…' : 'Enter →'}
-                  </button>
-                </div>
-                {codeError && <p style={{ color:'#F87171', fontSize:12, marginTop:8, textAlign:'center' }}>{codeError}</p>}
-                <p style={{ fontSize:11, color:'rgba(245,240,232,0.3)', marginTop:10, textAlign:'center' }}>
-                  Got an early access code? Enter it above to get in.
-                </p>
-              </form>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="f5" style={{ display:'flex', gap:'clamp(32px,8vw,80px)', marginTop:56, flexWrap:'wrap', justifyContent:'center' }}>
-            {STATS.map(s => (
-              <div key={s.label} style={{ textAlign:'center' }}>
-                <p style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(32px,5vw,48px)', fontWeight:900, color:'#1D9E75', lineHeight:1, marginBottom:6 }}>
-                  {s.num}
-                </p>
-                <p style={{ fontSize:12, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'rgba(245,240,232,0.45)' }}>
-                  {s.label}
-                </p>
+                <button
+                  onClick={() => {
+                    setShowCode(true)
+                    setError('')
+                  }}
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    showCode
+                      ? 'bg-[#1D9E75] text-white'
+                      : 'text-white/60 hover:bg-white/10'
+                  }`}
+                >
+                  I Have a Code
+                </button>
               </div>
-            ))}
+
+              {!showCode ? (
+                submitted ? (
+                  <div className="rounded-2xl bg-emerald-400/10 p-5 text-center text-emerald-100">
+                    🎉 You’re on the list. We’ll email you when Markeetee launches.
+                  </div>
+                ) : (
+                  <form onSubmit={handleWaitlist} className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      type="email"
+                      placeholder="Enter your email address"
+                      className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-white outline-none placeholder:text-white/40 focus:border-emerald-300/50"
+                    />
+                    <button
+                      disabled={loading}
+                      className="rounded-2xl bg-[#28C98B] px-6 py-4 font-bold text-[#043528] transition hover:bg-[#5DCAA5] disabled:opacity-60"
+                    >
+                      {loading ? 'Adding…' : 'Notify Me'}
+                    </button>
+                  </form>
+                )
+              ) : (
+                <form onSubmit={handleCode} className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    type="text"
+                    placeholder="ENTER ACCESS CODE"
+                    className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/10 px-5 py-4 font-bold uppercase tracking-widest text-white outline-none placeholder:text-white/40 focus:border-emerald-300/50"
+                  />
+                  <button
+                    disabled={loading}
+                    className="rounded-2xl bg-[#28C98B] px-6 py-4 font-bold text-[#043528] transition hover:bg-[#5DCAA5] disabled:opacity-60"
+                  >
+                    {loading ? 'Checking…' : 'Enter'}
+                  </button>
+                </form>
+              )}
+
+              {error && <p className="mt-3 text-center text-sm text-red-300">{error}</p>}
+
+              <p className="mt-3 text-center text-xs text-white/40">
+                No spam. Just updates about Markeetee.
+              </p>
+            </div>
           </div>
 
-          {/* Flags */}
-          <div style={{ display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center', maxWidth:480, marginTop:40 }}>
-            {FLAGS.map(f => (
-              <span key={f} style={{ fontSize:26, lineHeight:1 }}>{f}</span>
-            ))}
-          </div>
-        </section>
+          <div className="relative">
+            <div className="rounded-[2rem] border border-white/10 bg-white/[0.08] p-6 shadow-2xl backdrop-blur">
+              <div className="rounded-[1.5rem] bg-[#F7F4EC] p-6 text-[#063B2E]">
+                <div className="mb-6 flex items-center gap-3">
+                  <Image
+                    src="/apple-touch-icon.png"
+                    alt="Markeetee logo"
+                    width={42}
+                    height={42}
+                    className="rounded-xl"
+                  />
+                  <div>
+                    <p className="text-xl font-black">Markeetee</p>
+                    <p className="text-xs text-[#085041]/70">Africa is here. Find it.</p>
+                  </div>
+                </div>
 
-        {/* ── Footer ── */}
-        <footer style={{ borderTop:'1px solid rgba(159,225,203,0.1)', padding:'24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, maxWidth:960, margin:'0 auto' }}>
-          <p style={{ fontSize:12, color:'rgba(245,240,232,0.3)' }}>
-            © {new Date().getFullYear()} Markeetee · Made for the African diaspora
-          </p>
-          <div style={{ display:'flex', gap:16 }}>
-            <a href="https://instagram.com/markeetee"  style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Instagram</a>
-            <a href="mailto:hello@markeetee.com"        style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Contact</a>
-          </div>
-        </footer>
+                <h2 className="text-3xl font-black leading-tight">
+                  Find African businesses near you.
+                </h2>
 
-      </div>
-    </>
+                <div className="mt-5 rounded-2xl border border-[#085041]/10 bg-white px-4 py-3 text-sm text-[#085041]/50">
+                  Search businesses, products, or services...
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {[
+                    ['🍲', 'Food'],
+                    ['🍽️', 'Restaurants'],
+                    ['👗', 'Fashion'],
+                    ['💇🏾', 'Beauty'],
+                    ['🌿', 'Wellness'],
+                    ['🎵', 'Music'],
+                    ['🏺', 'Decor'],
+                    ['🤝', 'Services'],
+                    ['🛍️', 'More'],
+                  ].map(([icon, label]) => (
+                    <div
+                      key={label}
+                      className="rounded-2xl border border-[#085041]/10 bg-[#EAF8F1] p-4 text-center"
+                    >
+                      <p className="text-2xl">{icon}</p>
+                      <p className="mt-1 text-xs font-bold">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              {FLAGS.map((flag) => (
+                <span
+                  key={flag}
+                  className="rounded-full bg-white/10 px-3 py-2 text-xl backdrop-blur"
+                >
+                  {flag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   )
 }
 
-// ── Wrap in Suspense for useSearchParams ──────────────────────────────────
 export default function ComingSoonPage() {
   return (
     <Suspense>
