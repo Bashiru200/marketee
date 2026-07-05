@@ -12,7 +12,7 @@ const BETA_MODE   = process.env.NEXT_PUBLIC_BETA_MODE   === 'true'
 
 // Always accessible regardless of mode
 const PUBLIC_PATHS = [
-  '/coming-soon',
+  '/app',
   '/api/beta-access',
   '/api/early-access',
   '/api/',
