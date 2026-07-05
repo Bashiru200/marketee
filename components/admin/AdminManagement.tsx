@@ -315,7 +315,7 @@ export default function AdminManagement() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Email address</label>
                   <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="newadmin@example.com"
+                    placeholder="Enter email address"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent" />
                 </div>
                 <button onClick={sendAdminInvite} disabled={inviteSending || !inviteEmail.trim()}
@@ -347,7 +347,7 @@ export default function AdminManagement() {
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addAdmin()}
-              placeholder="user@email.com"
+              placeholder="Enter email address"
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
             />
             <button onClick={addAdmin} disabled={adding || !newEmail.trim()}

@@ -147,14 +147,14 @@ export default function BusinessGrid({ businesses, categories }: Props) {
           <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
             <Search size={15} className="text-gray-400 flex-shrink-0" />
             <input value={query} onChange={e => { setQuery(e.target.value); setPage(1) }}
-              placeholder='Search businesses, products...'
+              placeholder='Search by name, category, or tag'
               className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400" />
             {query && <button onClick={() => { setQuery(''); setPage(1) }}><X size={14} className="text-gray-400" /></button>}
           </div>
           <div className="hidden sm:flex items-center gap-1.5 border border-gray-200 rounded-xl px-3 py-2 bg-white focus-within:ring-2 focus-within:border-transparent transition-all">
             <MapPin size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
             <input value={city} onChange={e => { setCity(e.target.value); setPage(1) }}
-              placeholder="City or state"
+              placeholder="Enter city or state"
               className="w-28 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400" />
             {city && <button onClick={() => { setCity(''); setPage(1) }}><X size={12} className="text-gray-400" /></button>}
           </div>

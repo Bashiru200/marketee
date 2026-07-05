@@ -153,7 +153,7 @@ export default function ReviewCard({ review: r, businessName, isOwner, onReply }
             <textarea
               value={replyText}
               onChange={e => setReplyText(e.target.value)}
-              placeholder="Write a response to this review…"
+              placeholder="Write a reply to this review"
               rows={2}
               className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:border-transparent resize-none transition-all"
             />

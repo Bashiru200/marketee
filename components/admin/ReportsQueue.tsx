@@ -167,7 +167,7 @@ export default function ReportsQueue() {
         <div className="flex items-center gap-2 flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2">
           <Search size={14} className="text-gray-400 flex-shrink-0" />
           <input value={query} onChange={e => setQuery(e.target.value)}
-            placeholder="Search by business, reason, or reporter email…"
+            placeholder="Search by business name, review content, or reporter email"
             className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400" />
           {query && <button onClick={() => setQuery('')}><X size={13} className="text-gray-400" /></button>}
         </div>

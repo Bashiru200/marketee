@@ -490,7 +490,7 @@ export default function SearchClient({
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder='Search "jollof rice", "ankara", "hair braiding"…'
+            placeholder='Search businesses or products'
             className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
           />
           {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400 dark:text-gray-500" /></button>}
@@ -500,7 +500,7 @@ export default function SearchClient({
           <input
             value={city}
             onChange={e => setCity(e.target.value)}
-            placeholder="City, state or zip"
+            placeholder="Enter city, state or zip"
             className="flex-1 text-sm outline-none bg-transparent text-gray-700 dark:text-gray-300 placeholder-gray-400"
           />
           {city && <button onClick={() => setCity('')}><X size={13} className="text-gray-400 dark:text-gray-500" /></button>}
@@ -532,7 +532,7 @@ export default function SearchClient({
               <input type="number" min={0} max={500} step={5}
                 value={maxPrice || ''}
                 onChange={e => setMaxPrice(Number(e.target.value))}
-                placeholder="Any"
+                placeholder="Enter max price"
                 className="w-20 text-sm outline-none bg-transparent text-gray-700 dark:text-gray-300 placeholder-gray-400" />
               {maxPrice > 0 && (
                 <button onClick={() => setMaxPrice(0)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">

@@ -274,7 +274,7 @@ function WelcomeContent() {
               <div className="relative">
                 <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input type="text" value={city} onChange={e => setCity(e.target.value)}
-                  placeholder="e.g. Houston" className={`${inputCls} pl-9`} />
+                  placeholder="Enter your city" className={`${inputCls} pl-9`} />
               </div>
             </div>
 

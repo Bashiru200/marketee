@@ -221,7 +221,7 @@ export default function AnnouncementManager() {
               <textarea
                 value={form.message}
                 onChange={e => upd('message', e.target.value)}
-                placeholder="e.g. We're performing maintenance on Sunday 9–11am. Some features may be unavailable."
+                placeholder="Enter announcement message"
                 rows={2}
                 required
                 maxLength={300}
@@ -240,7 +240,7 @@ export default function AnnouncementManager() {
                   type="text"
                   value={form.link_text}
                   onChange={e => upd('link_text', e.target.value)}
-                  placeholder="Learn more"
+                  placeholder="Enter link text"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
                 />
               </div>
@@ -252,7 +252,7 @@ export default function AnnouncementManager() {
                   type="url"
                   value={form.link_url}
                   onChange={e => upd('link_url', e.target.value)}
-                  placeholder="https://…"
+                  placeholder="Enter link URL"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
                 />
               </div>

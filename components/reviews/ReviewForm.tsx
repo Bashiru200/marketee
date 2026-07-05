@@ -181,7 +181,7 @@ export default function ReviewForm({ businessId, hasReviewed, onSubmitted }: Pro
           Your review *
         </label>
         <textarea value={body} onChange={e => setBody(e.target.value)}
-          placeholder="Tell the community about your experience — what did you love? What could be better?"
+          placeholder="Write your review here…"
           rows={4} minLength={10} maxLength={1000}
           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none transition-all" />
         <p className="text-xs text-gray-400 text-right mt-1">{body.length}/1000</p>

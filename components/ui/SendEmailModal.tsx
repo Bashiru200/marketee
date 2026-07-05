@@ -103,7 +103,7 @@ export default function SendEmailModal({ recipientEmail, recipientName, business
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Subject *</label>
               <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
-                placeholder="e.g. Your recent enquiry about our products"
+                placeholder="e.g. Exciting news from Markeetee!"
                 required maxLength={150}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent" />
             </div>

@@ -251,7 +251,7 @@ export default function UserManagement() {
           <div className="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
             <Search size={14} className="text-gray-400 flex-shrink-0" />
             <input value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Search by name, email, or business…"
+              placeholder="Search by name, email, or business"
               className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400" />
             {query && <button onClick={() => setQuery('')}><X size={13} className="text-gray-400" /></button>}
           </div>
@@ -463,13 +463,13 @@ export default function UserManagement() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Subject *</label>
                   <input type="text" value={emailSubject} onChange={e => setEmailSubject(e.target.value)}
-                    placeholder="e.g. Important update about your account"
+                    placeholder="Enter email subject"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Message *</label>
                   <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)}
-                    placeholder="Write your message here…"
+                    placeholder="Enter email message"
                     rows={6}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none" />
                 </div>

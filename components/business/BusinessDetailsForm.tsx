@@ -278,7 +278,7 @@ export default function BusinessDetailsForm({
           <input type="text" value={form.city}
             onChange={e => { upd('city', e.target.value); clearError('city') }}
             onBlur={() => validate('city', form.city)}
-            placeholder="City" className={inputCls} />
+            placeholder="Enter city" className={inputCls} />
           {errors.city && <FieldError message={errors.city} />}
         </div>
         <div>
@@ -286,13 +286,13 @@ export default function BusinessDetailsForm({
           <input type="text" value={form.state}
             onChange={e => { upd('state', e.target.value); clearError('state') }}
             onBlur={() => validate('state', form.state)}
-            placeholder="TX" maxLength={2} className={inputCls} />
+            placeholder="Enter state" maxLength={2} className={inputCls} />
           {errors.state && <FieldError message={errors.state} />}
         </div>
         <div>
           <label className={labelCls}>ZIP code <span className="font-normal normal-case text-gray-400">(optional)</span></label>
           <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-            placeholder="77001" maxLength={10} className={inputCls} />
+            placeholder="Enter ZIP code" maxLength={10} className={inputCls} />
         </div>
       </div>
 
@@ -306,7 +306,7 @@ export default function BusinessDetailsForm({
           <input type="tel" value={form.phone}
             onChange={e => { upd('phone', e.target.value); clearError('phone') }}
             onBlur={() => validate('phone', form.phone)}
-            placeholder="Used for WhatsApp & calls" className={`${inputCls} pl-9`} />
+            placeholder="Enter phone number" className={`${inputCls} pl-9`} />
         </div>
         {errors.phone && <FieldError message={errors.phone} />}
       </div>
@@ -325,7 +325,7 @@ export default function BusinessDetailsForm({
           <div className="relative">
             <Globe size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input type="url" value={form.website} onChange={e => upd('website', e.target.value)}
-              placeholder="https://..." className={`${inputCls} pl-9`} />
+              placeholder="Enter website URL" className={`${inputCls} pl-9`} />
           </div>
         </div>
       </div>

@@ -283,7 +283,7 @@ export default function ClaimBusinessModal({
               maxLength={6}
               value={otp}
               onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError('') }}
-              placeholder="000000"
+              placeholder="Enter code"
               className={`${inputCls} text-center text-2xl font-bold tracking-widest`}
               autoFocus
             />
@@ -358,7 +358,7 @@ export default function ClaimBusinessModal({
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
-              placeholder="e.g. I am the founder and have been operating since 2019…"
+              placeholder="e.g. I am the owner, or I work here as a manager."
               rows={3}
               className={`${inputCls} resize-none`}
             />

@@ -466,13 +466,13 @@ export default function ProductManager({ businessId }: Props) {
                   </div>
                   <div className="flex-1 space-y-3">
                     <input type="text" value={inlineForm.name} onChange={e => updInline('name', e.target.value)}
-                      placeholder="Product name *" className={inputCls} />
+                      placeholder="Enter product name" className={inputCls} />
                     <div className="flex gap-3">
                       <div className="relative flex-1">
                         <DollarSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input type="number" min="0" step="0.01" value={inlineForm.price || ''}
                           onChange={e => updInline('price', e.target.value)}
-                          placeholder="Price *" className={`${inputCls} pl-7`} />
+                          placeholder="Enter price" className={`${inputCls} pl-7`} />
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
                         <input type="checkbox" checked={inlineForm.available}
@@ -491,7 +491,7 @@ export default function ProductManager({ businessId }: Props) {
                     setInlinePreview(URL.createObjectURL(f))
                   }} />
                 <textarea value={inlineForm.description ?? ''} onChange={e => updInline('description', e.target.value)}
-                  placeholder="Description (optional)" rows={2} className={`${inputCls} resize-none`} />
+                  placeholder="Enter description" rows={2} className={`${inputCls} resize-none`} />
                 {/* Sale */}
                 <div className="border border-amber-200 rounded-xl p-3" style={{ background: '#FFFBEB' }}>
                   <label className="flex items-center gap-2 cursor-pointer mb-3">
@@ -508,11 +508,11 @@ export default function ProductManager({ businessId }: Props) {
                         <DollarSign size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input type="number" min="0" step="0.01" value={inlineForm.sale_price ?? ''}
                           onChange={e => updInline('sale_price', e.target.value)}
-                          placeholder="Sale price" className={`${inputCls} pl-7`} />
+                          placeholder="Enter sale price" className={`${inputCls} pl-7`} />
                       </div>
                       <input type="text" value={inlineForm.sale_label ?? ''}
                         onChange={e => updInline('sale_label', e.target.value)}
-                        placeholder="Label e.g. Weekend deal" className={inputCls} />
+                        placeholder="Enter label e.g. Weekend deal" className={inputCls} />
                     </div>
                   )}
                 </div>
@@ -609,14 +609,14 @@ export default function ProductManager({ businessId }: Props) {
               <div>
                 <label className={labelCls}>Product name *</label>
                 <input type="text" value={form.name} onChange={e => upd('name', e.target.value)}
-                  placeholder="e.g. Jollof rice — family tray" className={inputCls} />
+                  placeholder="Enter product name" className={inputCls} />
               </div>
 
               {/* Description */}
               <div>
                 <label className={labelCls}>Description</label>
                 <textarea value={form.description ?? ''} onChange={e => upd('description', e.target.value)}
-                  placeholder="What's included, portions, ingredients…"
+                  placeholder="Enter description"
                   rows={3} className={`${inputCls} resize-none`} />
               </div>
 
@@ -628,7 +628,7 @@ export default function ProductManager({ businessId }: Props) {
                     <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="number" min="0" step="0.01" value={form.price || ''}
                       onChange={e => upd('price', e.target.value)}
-                      placeholder="0.00" className={`${inputCls} pl-8`} />
+                      placeholder="Enter price" className={`${inputCls} pl-8`} />
                   </div>
                 </div>
                 <div>
@@ -680,7 +680,7 @@ export default function ProductManager({ businessId }: Props) {
                       <label className={labelCls}>Sale label</label>
                       <input type="text" value={form.sale_label ?? ''}
                         onChange={e => upd('sale_label', e.target.value)}
-                        placeholder="e.g. Weekend special, Eid offer, Flash sale"
+                        placeholder="e.g. Weekend deal"
                         className={inputCls} />
                     </div>
                   </div>
@@ -758,7 +758,7 @@ export default function ProductManager({ businessId }: Props) {
                   <div className="mb-4">
                     <label className={labelCls}>Personal message <span className="font-normal normal-case text-gray-400">(optional)</span></label>
                     <textarea value={notifyMsg} onChange={e => setNotifyMsg(e.target.value)}
-                      placeholder="e.g. Available this weekend only!"
+                      placeholder="Add a personal message to your customers (e.g. 'Hurry, sale ends this weekend!')"
                       rows={3} className={`${inputCls} resize-none`} />
                   </div>
                   <button onClick={sendNotification} disabled={notifySending}

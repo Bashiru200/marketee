@@ -136,7 +136,7 @@ export default function AlgoliaSearchBar() {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => hits.length > 0 && setOpen(true)}
-            placeholder='Try "jollof rice" or "ankara"…'
+            placeholder='Search businesses, products, services…'
             className="flex-1 text-sm text-gray-800 outline-none bg-transparent placeholder-gray-400 min-w-0"
           />
           {query && (

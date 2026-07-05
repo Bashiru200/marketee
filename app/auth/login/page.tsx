@@ -214,7 +214,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={e => { setEmail(e.target.value); clearFE('email') }}
                       onBlur={() => validateEmail(email)}
-                      placeholder="you@example.com"
+                      placeholder="Enter your email"
                       className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent transition-all"
                     />
                   </div>
@@ -296,7 +296,7 @@ export default function LoginPage() {
                           value={magicEmail}
                           onChange={e => { setMagicEmail(e.target.value); clearFE('magicEmail') }}
                           onBlur={() => validateMagicEmail(magicEmail)}
-                          placeholder="you@example.com"
+                          placeholder="Enter your email"
                           className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent transition-all"
                         />
                       </div>

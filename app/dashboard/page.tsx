@@ -515,7 +515,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <label className={labelCls}>Website</label>
-                <input type="url" value={form.website} onChange={e => upd('website', e.target.value)} placeholder="https://yourbusiness.com" className={inputCls} />
+                <input type="url" value={form.website} onChange={e => upd('website', e.target.value)} placeholder="Enter your website URL" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Category</label>

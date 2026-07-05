@@ -750,7 +750,7 @@ export default function ProductModal({ product, businessName, businessPhone, bus
                     ))}
                   </div>
                   <textarea value={reviewBody} onChange={e => setReviewBody(e.target.value)}
-                    placeholder="What did you think of this product?"
+                    placeholder="Write your review here…"
                     rows={3} maxLength={500}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none" />
                   {reviewError && (

@@ -197,7 +197,7 @@ export default function BroadcastEmail() {
                   type="text"
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  placeholder="e.g. Important update from Markeetee"
+                  placeholder="Enter email subject"
                   required
                   maxLength={150}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
@@ -212,7 +212,7 @@ export default function BroadcastEmail() {
                 <textarea
                   value={body}
                   onChange={e => setBody(e.target.value)}
-                  placeholder="Write your message here. Use double line breaks to create paragraphs."
+                  placeholder="Enter email message"
                   required
                   rows={8}
                   minLength={20}

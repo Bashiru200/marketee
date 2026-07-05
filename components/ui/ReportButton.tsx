@@ -159,7 +159,7 @@ export default function ReportButton({ entityType, entityId, label }: Props) {
               <textarea
                 value={details}
                 onChange={e => setDetails(e.target.value)}
-                placeholder="Tell us more about the issue…"
+                placeholder="Provide any additional information that may help us review this report."
                 rows={3}
                 maxLength={300}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none"
