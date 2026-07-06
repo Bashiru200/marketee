@@ -1,5 +1,5 @@
 'use client'
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {

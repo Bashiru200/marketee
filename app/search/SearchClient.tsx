@@ -1,5 +1,5 @@
 'use client'
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'

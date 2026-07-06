@@ -1,66 +1,80 @@
+// components/ui/PlanGate.tsx
+// Wrap any feature in this to show an upgrade prompt if plan doesn't allow it
+
 'use client'
-import Link from 'next/link'
-import { Lock, Zap } from 'lucide-react'
-import { Plan, Feature, canAccess, PLAN_FEATURES } from '@/lib/planGate'
+import { canAccess, PLAN_LABELS, PLAN_PRICES, type Plan, type Feature } from '@/lib/planGate'
+import { useRouter } from 'next/navigation'
+import { Lock } from 'lucide-react'
 
 interface Props {
-  plan:     Plan
-  feature:  Feature
-  children: React.ReactNode
-  compact?: boolean          // inline lock icon instead of full overlay
+  plan:       string | null
+  feature:    Feature
+  children:   React.ReactNode
+  // What to show instead of children when locked — defaults to a blur overlay
+  fallback?:  React.ReactNode
+  // If true, just hides the feature entirely instead of showing upgrade prompt
+  hide?:      boolean
 }
 
-const UPGRADE_LABELS: Partial<Record<Feature, { title: string; desc: string; plan: string }>> = {
-  products:          { title: 'Products & Menu', desc: 'Showcase your menu to attract customers', plan: 'Premium' },
-  coverPhoto:        { title: 'Cover photo', desc: 'Add a cover photo to stand out', plan: 'Premium' },
-  logoUpload:        { title: 'Logo upload', desc: 'Brand your listing with your logo', plan: 'Premium' },
-  customDescription: { title: 'Custom description', desc: 'Tell your story in full', plan: 'Premium' },
-  featuredSearch:    { title: 'Featured placement', desc: 'Appear at the top of search results', plan: 'Premium' },
-  weeklyStats:       { title: 'Weekly stats email', desc: 'Get weekly insights on your listing', plan: 'Premium' },
-  customUrl:         { title: 'Custom store URL', desc: 'Get markeetee.com/store/your-name', plan: 'Storefront' },
-  whatsappProducts:  { title: 'WhatsApp enquiry', desc: 'Let customers enquire on products via WhatsApp', plan: 'Storefront' },
-  ownerReplies:      { title: 'Reply to reviews', desc: 'Respond publicly to customer reviews', plan: 'Storefront' },
-  analytics:         { title: 'Advanced analytics', desc: 'Views, clicks, and enquiry tracking', plan: 'Storefront' },
-  verifiedBadge:     { title: 'Verified badge', desc: 'Build trust with a verified tick', plan: 'Storefront' },
-  noMarketeeBranding:{ title: 'Remove branding', desc: 'Remove "Powered by Markeetee" from your listing', plan: 'Storefront' },
+const FEATURE_LABELS: Partial<Record<Feature, { name: string; requiredPlan: Plan }>> = {
+  products:           { name: 'Products & Services',  requiredPlan: 'growth'    },
+  menu:               { name: 'Menu listing',          requiredPlan: 'growth'    },
+  photo_gallery:      { name: 'Photo gallery',         requiredPlan: 'growth'    },
+  analytics_basic:    { name: 'Analytics',             requiredPlan: 'growth'    },
+  verified_badge:     { name: 'Verified badge',        requiredPlan: 'growth'    },
+  priority_search:    { name: 'Priority search',       requiredPlan: 'growth'    },
+  priority_support:   { name: 'Priority support',      requiredPlan: 'growth'    },
+  custom_store_page:  { name: 'Custom store page',     requiredPlan: 'pro_store' },
+  product_reviews:    { name: 'Product reviews',       requiredPlan: 'pro_store' },
+  promotions:         { name: 'Promotions',            requiredPlan: 'pro_store' },
+  lead_enquiry_form:  { name: 'Lead enquiry form',     requiredPlan: 'pro_store' },
+  multiple_locations: { name: 'Multiple locations',    requiredPlan: 'pro_store' },
+  analytics_advanced: { name: 'Advanced analytics',    requiredPlan: 'pro_store' },
+  unlimited_photos:   { name: 'Unlimited photos',      requiredPlan: 'pro_store' },
+  unlimited_products: { name: 'Unlimited products',    requiredPlan: 'pro_store' },
 }
 
-export default function PlanGate({ plan, feature, children, compact = false }: Props) {
-  if (canAccess(plan, feature)) return <>{children}</>
+export default function PlanGate({ plan, feature, children, fallback, hide }: Props) {
+  const router  = useRouter()
+  const allowed = canAccess(plan, feature)
 
-  const info = UPGRADE_LABELS[feature]
-  const requiredPlan = (PLAN_FEATURES[feature] as readonly string[])[0]
+  if (allowed) return <>{children}</>
+  if (hide)    return null
 
-  if (compact) {
-    return (
-      <div className="relative inline-flex items-center gap-1.5 opacity-50 cursor-not-allowed" title={`Requires ${requiredPlan} plan`}>
-        {children}
-        <Lock size={11} className="text-gray-400" />
-      </div>
-    )
-  }
+  if (fallback) return <>{fallback}</>
+
+  const meta     = FEATURE_LABELS[feature]
+  const reqPlan  = meta?.requiredPlan ?? 'growth'
+  const price    = PLAN_PRICES[reqPlan].monthly
+  const label    = PLAN_LABELS[reqPlan]
 
   return (
-    <div className="relative rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden">
-      {/* Blurred preview */}
-      <div className="blur-sm pointer-events-none select-none opacity-40">
+    <div className="relative rounded-2xl overflow-hidden border border-gray-100">
+      {/* Blurred preview of children */}
+      <div className="pointer-events-none select-none" style={{ filter: 'blur(4px)', opacity: 0.4 }}>
         {children}
       </div>
+
       {/* Lock overlay */}
-      <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-        <div className="text-center p-6 max-w-xs">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3"
-            style={{ background: requiredPlan === 'storefront' ? '#085041' : '#1D9E75' }}>
-            <Lock size={18} className="text-white" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 text-center shadow-lg max-w-xs mx-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+            style={{ background: '#E1F5EE' }}>
+            <Lock size={20} style={{ color: '#1D9E75' }} />
           </div>
-          <p className="font-semibold text-gray-900 text-sm mb-1">{info?.title}</p>
-          <p className="text-xs text-gray-500 mb-4">{info?.desc}</p>
-          <Link href="/dashboard?tab=billing"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ background: requiredPlan === 'storefront' ? '#085041' : '#1D9E75' }}>
-            <Zap size={11} />
-            Upgrade to {info?.plan}
-          </Link>
+          <p className="font-bold text-gray-900 mb-1">
+            {meta?.name ?? 'This feature'} is locked
+          </p>
+          <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+            Upgrade to the <strong>{label}</strong> plan to unlock this feature.
+            From ${price}/month.
+          </p>
+          <button
+            onClick={() => router.push('/dashboard?tab=upgrade')}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            style={{ background: '#1D9E75' }}>
+            Upgrade now →
+          </button>
         </div>
       </div>
     </div>

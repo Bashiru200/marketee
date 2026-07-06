@@ -1,6 +1,6 @@
 /// <reference types="google.maps" />
 'use client'
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   APIProvider, Map, AdvancedMarker, Pin,

@@ -1,6 +1,6 @@
 'use client'
 
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -18,6 +18,8 @@ import ReviewForm    from '@/components/reviews/ReviewForm'
 import SaveButton    from '@/components/ui/SaveButton'
 import ProductModal      from '@/components/ui/ProductModal'
 import GoogleMapsHours    from '@/components/ui/GoogleMapsHours'
+import LeadEnquiryForm    from '@/components/ui/LeadEnquiryForm'
+import { canAccess }      from '@/lib/planGate'
 
 // ── Airbnb-style full-screen gallery ─────────────────────────────────────
 function Gallery({
@@ -314,7 +316,15 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         {/* Business name overlaid bottom-left */}
         <div className="absolute bottom-4 left-4 z-10">
           <div className="bg-black/50 backdrop-blur-sm rounded-2xl px-4 py-3">
-            <h1 className="text-white font-bold text-xl">{biz.name}</h1>
+            <h1 className="text-white font-bold text-xl flex items-center gap-2">
+                {biz.name}
+                {canAccess(biz.plan, 'verified_badge') && biz.verified && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: '#1D9E75', color: 'white' }}>
+                    ✓ Verified
+                  </span>
+                )}
+              </h1>
             <p className="text-white/80 text-sm mt-0.5">
               {biz.category}
               {biz.country && ` · ${AFRICAN_FLAGS[biz.country] ?? '🌍'} ${biz.country}`}
@@ -401,10 +411,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => {
-  console.log('product clicked:', p.id, p.name)
-  setSelectedProduct(p)
-}}
+                  onClick={() => setSelectedProduct(p)}
                   className="cursor-pointer group rounded-2xl border border-gray-100 hover:border-green-300 hover:shadow-md transition-all duration-200 text-left w-full bg-white">
                   <div className="relative h-44 bg-gray-100 overflow-hidden rounded-t-2xl pointer-events-none">
                     {p.image_url ? (
@@ -486,6 +493,16 @@ export default function BusinessDetailClient({ id }: { id: string }) {
         </div>
         <ReviewForm businessId={id} hasReviewed={false} onSubmitted={loadAll} />
       </div>
+
+      {/* ── LEAD ENQUIRY FORM (Pro Store only) ── */}
+      {canAccess(biz.plan, 'lead_enquiry_form') && (
+        <div className="mt-6">
+          <LeadEnquiryForm
+            businessId={id}
+            businessName={biz.name}
+          />
+        </div>
+      )}
 
       {/* ── CONTACT ── */}
       <div className="mt-6 bg-white p-6 rounded-2xl border border-gray-100">

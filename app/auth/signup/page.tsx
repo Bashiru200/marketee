@@ -9,7 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import FieldError from '@/components/ui/FieldError'
 import CountriesBar from '@/components/ui/CountriesBar'
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import BusinessDetailsForm, {
   BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
 } from '@/components/business/BusinessDetailsForm'

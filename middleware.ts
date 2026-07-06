@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 // NEXT_PUBLIC_BETA_MODE=true    → beta mode, need code to get in
 // both false                    → site is fully live
 const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === 'false'
-const BETA_MODE   = process.env.NEXT_PUBLIC_BETA_MODE   === 'true'
+const BETA_MODE   = process.env.NEXT_PUBLIC_BETA_MODE   === 'false'
 
 // Always accessible regardless of mode
 const PUBLIC_PATHS = [

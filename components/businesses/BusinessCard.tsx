@@ -1,4 +1,4 @@
-import { AFRICAN_FLAGS } from '@/lib/africanCountries'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Star, BadgeCheck } from 'lucide-react'
