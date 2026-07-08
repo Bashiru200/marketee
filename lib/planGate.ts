@@ -47,6 +47,8 @@ export const PLAN_FEATURES = {
 export type Feature = keyof typeof PLAN_FEATURES
 
 export function canAccess(plan: Plan | string | null, feature: Feature): boolean {
+  // Launch mode — all features unlocked during beta/launch period
+  if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'true') return true
   const p = (plan ?? 'starter') as Plan
   return (PLAN_FEATURES[feature] as readonly string[]).includes(p)
 }

@@ -1,7 +1,8 @@
+// app/api/send-invite/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
-import { emailInviteTemplate } from '@/lib/emailTemplates'
+import { adminMessageTemplate } from '@/lib/emailTemplates'
 import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Fetch inviter's name + verify permission
+    // Fetch inviter + verify permission
     const { data: inviter } = await supabase
       .from('profiles')
       .select('name, email, is_admin, business_id')
@@ -29,7 +30,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Inviter not found' }, { status: 404 })
     }
 
-    // Permission check — must be admin, OR the owner of the business being invited to
     const isAuthorized =
       inviter.is_admin === true ||
       (businessId && inviter.business_id === businessId)
@@ -41,14 +41,14 @@ export async function POST(req: NextRequest) {
     let businessName: string | undefined
     if (businessId) {
       const { data: biz } = await supabase
-        .from('businesses')
-        .select('name')
-        .eq('id', businessId)
-        .single()
+        .from('businesses').select('name').eq('id', businessId).single()
       businessName = biz?.name
     }
 
-    const token = crypto.randomBytes(24).toString('hex')
+    const token     = crypto.randomBytes(24).toString('hex')
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/accept?token=${token}`
+    const inviterName = inviter.name ?? inviter.email ?? 'A Markeetee admin'
+    const inviteeName = email.split('@')[0]
 
     const { error: insertError } = await supabase.from('invites').insert({
       email,
@@ -62,19 +62,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/accept?token=${token}`
+    const subject  = `You've been invited to Markeetee${businessName ? ` — ${businessName}` : ''}`
+    const message  = `${inviterName} has invited you to join Markeetee as a <strong>${roleLabel}</strong>${businessName ? ` for <strong>${businessName}</strong>` : ''}.
+
+Click the button below to accept your invitation and set up your account.
+
+Your invitation link expires in 48 hours.`
+
+    const template = adminMessageTemplate({
+      recipientName: inviteeName,
+      subject,
+      message,
+      ctaLabel: 'Accept invitation →',
+      ctaUrl:   inviteUrl,
+    })
 
     await resend.emails.send({
       from:    process.env.EMAIL_FROM!,
       to:      email,
-      subject: `You've been invited to Markeetee${businessName ? ` — ${businessName}` : ''}`,
-      html:    emailInviteTemplate({
-        inviteeName: email.split('@')[0],
-        inviterName: inviter.name ?? inviter.email ?? 'A Markeetee admin',
-        roleLabel,
-        businessName,
-        inviteUrl,
-      }),
+      subject: template.subject,
+      html:    template.html,
     })
 
     return NextResponse.json({ ok: true })
