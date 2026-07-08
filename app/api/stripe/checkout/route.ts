@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       mode:                 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 7,  // 7-day free trial
+        trial_period_days: 30,  // 30-day free trial on all paid plans
         metadata:          { businessId, plan, interval },
       },
       success_url: `${appUrl}/dashboard?upgrade=success&plan=${plan}`,

@@ -295,6 +295,9 @@ export default function Navbar() {
               </>
             )}
           </div>
+          <Link href="/launch" className="...">
+          🚀 Free launch access
+          </Link>
         </div>
       )}
     </header>
