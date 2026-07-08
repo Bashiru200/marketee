@@ -66,7 +66,7 @@ export default function ListBusinessButton({ className, style, children }: Props
   // their business yet, so "add" is more accurate than "list" or "upgrade".
   if (!profile?.business_id) {
     return (
-      <Link href="/business/new" className={className} style={style}>
+      <Link href="/businesses/new" className={className} style={style}>
         {children ?? 'Add your business'}
       </Link>
     )
