@@ -232,321 +232,376 @@ export default function MapPage() {
     }
   }
 
-  if (loading) return (
-    <div className="h-[calc(100vh-4rem)] relative">
+  return (
+  <APIProvider apiKey={GOOGLE_MAPS_KEY}>
+    <div className="h-[calc(100vh-4rem)] bg-[#F8FAF9] flex flex-col">
 
+      {/* FILTER BAR */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 z-20">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-3 lg:items-center">
 
-      {/* Map + sidebar skeleton */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Map area */}
-        <div className="flex-1 relative" style={{ background: 'linear-gradient(135deg,#f0faf6,#e8f7f1)', animation: 'shimmer 1.8s ease-in-out infinite' }}>
-          {/* Fake pins */}
-          {[
-            { top: '30%', left: '25%' }, { top: '45%', left: '55%' },
-            { top: '60%', left: '35%' }, { top: '25%', left: '65%' },
-          ].map((pos, i) => (
-            <div key={i} className="absolute flex flex-col items-center" style={{ top: pos.top, left: pos.left }}>
-              <div className="h-6 w-20 bg-gray-300 rounded-full mb-0.5" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-              <div className="w-2.5 h-2.5 bg-gray-300 rounded-full" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-            </div>
-          ))}
-          {/* Stats overlay */}
-          <div className="absolute top-4 left-4 bg-white/80 rounded-xl px-4 py-2">
-            <div className="h-3 w-16 bg-gray-200 rounded mb-1.5" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-            <div className="h-4 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+          {/* Search */}
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex-1">
+            <Search size={15} className="text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search business, city, food, fashion..."
+              className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')}>
+                <X size={14} className="text-gray-400" />
+              </button>
+            )}
           </div>
+
+          {/* Location */}
+          <LocationSearch
+            onPlace={(lat, lng) => {
+              setMapCenter({ lat, lng })
+              setUserLocation({ lat, lng })
+              setMapZoom(13)
+            }}
+          />
+
+          {/* Category */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700"
+          >
+            <option value="">All categories</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.icon} {cat.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Radius */}
+          <select
+            value={radius}
+            onChange={(e) => setRadius(Number(e.target.value))}
+            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700"
+          >
+            {RADIUS_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+
+          {/* View toggle */}
+          <div className="flex bg-gray-100 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => setView('map')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold ${
+                view === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <MapPin size={14} />
+              Map
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold ${
+                view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <List size={14} />
+              List
+            </button>
+          </div>
+
+          {/* Clear filters */}
+          {(search || selectedCategory || radius !== 20) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('')
+                setSelectedCategory('')
+                setRadius(20)
+                setSelectedId(null)
+                setMapCenter(DEFAULT_CENTER)
+                setMapZoom(DEFAULT_ZOOM)
+              }}
+              className="text-xs font-semibold text-gray-500 hover:text-green-700"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
 
-        {/* Sidebar hidden */}
-        <div className="hidden">
-          <div className="p-4 border-b border-gray-100">
-            <div className="h-4 w-32 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-          </div>
-          {[1,2,3,4,5].map(i => (
-            <div key={i} className="flex gap-3 p-4 border-b border-gray-50">
-              <div className="w-12 h-12 rounded-lg bg-gray-200 flex-shrink-0" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-32 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-                <div className="h-3 w-24 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-                <div className="h-3 w-16 bg-gray-200 rounded" style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
-              </div>
-            </div>
-          ))}
+        <div className="max-w-7xl mx-auto mt-2">
+          <p className="text-xs text-gray-400">
+            Showing {filtered.length} of {businesses.length} businesses
+          </p>
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{ __html: '@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}' }} />
-    </div>
-  )
 
-  return (
-    <APIProvider apiKey={GOOGLE_MAPS_KEY} >
-      <div className="h-[calc(100vh-4rem)] relative">
+      {/* CONTENT */}
+      <div className="flex-1 min-h-0">
+        {view === 'map' ? (
+          <div className="h-full flex flex-col md:flex-row overflow-hidden">
 
-        {/* ── Content ── */}
-        <div className="h-[calc(100vh-4rem)] relative">
-          {view === 'map' ? (
-            <div className="h-full flex flex-col md:flex-row overflow-hidden">
-
-              {/* ── Google Map — hidden on mobile when list view active ── */}
-              <div className="relative h-64 sm:h-80 md:h-full md:flex-1 flex flex-col">
-                <Map
-                  mapId="markeetee-map"
-                  defaultCenter={DEFAULT_CENTER}
-                  defaultZoom={DEFAULT_ZOOM}
-                  gestureHandling="greedy"
-                  disableDefaultUI={true}
-                  style={{ width: '100%', height: '100%' }}
-                >
-                  <MapController center={mapCenter} zoom={mapZoom} />
-
-                  {/* User location blue dot */}
-                  {userLocation && (
-                    <AdvancedMarker position={userLocation}>
-                      <div style={{
-                        width:       '18px',
-                        height:      '18px',
-                        borderRadius:'50%',
-                        background:  '#4285F4',
-                        border:      '3px solid white',
-                        boxShadow:   '0 2px 8px rgba(66,133,244,0.6)',
-                      }} title="Your location" />
-                    </AdvancedMarker>
-                  )}
-
-                  {/* Business pins */}
-                  {filtered.map(b => (
-                    b.lat && b.lng ? (
-                      <AdvancedMarker
-                        key={b.id}
-                        position={{ lat: b.lat, lng: b.lng }}
-                        onClick={() => handlePinClick(b)}
-                        zIndex={selectedId === b.id ? 10 : 1}
-                      >
-                        <Pin
-                          background={selectedId === b.id ? '#085041' : '#1D9E75'}
-                          borderColor={selectedId === b.id ? '#053528' : '#0F6E56'}
-                          glyphColor="white"
-                          scale={selectedId === b.id ? 1.3 : 1}
-                        />
-                      </AdvancedMarker>
-                    ) : null
-                  ))}
-
-                  {/* Info window on selected pin */}
-                  {selected && selected.lat && selected.lng && (
-                    <InfoWindow
-                      position={{ lat: selected.lat, lng: selected.lng }}
-                      onCloseClick={() => setSelectedId(null)}
-                      pixelOffset={[0, -40]}
-                    >
-                      <div style={{ minWidth: '200px', maxWidth: '240px', fontFamily: 'system-ui, sans-serif', padding: '2px 4px 4px' }}>
-                        <p style={{ fontWeight: 700, fontSize: '14px', margin: '0 0 4px', color: '#111827' }}>
-                          {selected.name}
-                        </p>
-                        <p style={{ fontSize: '11px', color: '#6B7280', margin: '0 0 4px' }}>
-                          {selected.city}{selected.state ? `, ${selected.state}` : ''}
-                        </p>
-                        {selected.rating > 0 && (
-                          <p style={{ fontSize: '11px', color: '#F59E0B', margin: '0 0 6px' }}>
-                            {'★'.repeat(Math.round(selected.rating))} {selected.rating.toFixed(1)}
-                            <span style={{ color: '#6B7280' }}> ({selected.review_count})</span>
-                          </p>
-                        )}
-                        {/* Hours status */}
-                        {selected.hours_open && (() => {
-                          const h = getHoursStatus(selected.hours_open, selected.days_open)
-                          if (h.status === 'unknown') return null
-                          const color = h.status === 'open' ? '#085041' : h.status === 'closing_soon' ? '#92400E' : '#6B7280'
-                          const bg    = h.status === 'open' ? '#f0faf6' : h.status === 'closing_soon' ? '#FEF3C7' : '#F9FAFB'
-                          const dot   = h.status === 'open' ? '#1D9E75' : h.status === 'closing_soon' ? '#F59E0B' : '#D1D5DB'
-                          return (
-                            <p style={{ fontSize: '11px', margin: '0 0 10px', display: 'inline-flex', alignItems: 'center', gap: '5px', background: bg, color, padding: '3px 8px', borderRadius: '20px', fontWeight: 500 }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
-                              {h.label}
-                            </p>
-                          )
-                        })()}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <a href={`/businesses/${selected.id}`}
-                            style={{ flex: 1, textAlign: 'center', background: '#1D9E75', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
-                            View
-                          </a>
-                          {selected.phone && (
-                            <a href={`https://wa.me/${selected.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hi! I found you on Markeetee.')}`}
-                              target="_blank" rel="noopener noreferrer"
-                              style={{ flex: 1, textAlign: 'center', background: '#25D366', color: 'white', fontSize: '12px', fontWeight: 600, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
-                              WhatsApp
-                            </a>
-                          )}
-                          <a href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
-                            target="_blank" rel="noopener noreferrer"
-                            style={{ flex: 1, textAlign: 'center', background: '#F3F4F6', color: '#374151', fontSize: '12px', fontWeight: 500, padding: '7px 0', borderRadius: '8px', textDecoration: 'none' }}>
-                            Directions
-                          </a>
-                        </div>
-                      </div>
-                    </InfoWindow>
-                  )}
-                </Map>
-
-
-
-                {/* No coords warning */}
-                {businesses.length > 0 && filtered.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-white/90 rounded-2xl px-8 py-6 text-center shadow-lg">
-                      <p className="text-2xl mb-2">🔍</p>
-                      <p className="text-sm font-medium text-gray-700">No businesses match your filter</p>
-                      <p className="text-xs text-gray-400 mt-1">Try a different category or clear the search</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ── Left sidebar — below map on mobile, left column on desktop ── */}
-              <div className="flex-1 md:flex-none w-full md:w-72 xl:w-80 md:flex-shrink-0 flex flex-col bg-white border-t md:border-t-0 md:border-r border-gray-100 overflow-hidden">
-
-                {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">
-                      {filtered.length} business{filtered.length !== 1 ? 'es' : ''}
-                    </p>
-                    <p className="text-xs text-gray-400">on map</p>
-                  </div>
-                  {selectedId && (
-                    <button onClick={() => setSelectedId(null)}
-                      className="text-xs font-medium px-2 py-1 rounded-lg transition-colors hover:bg-gray-50"
-                      style={{ color: '#1D9E75' }}>
-                      Clear
-                    </button>
-                  )}
+            {/* BUSINESS LIST SIDEBAR */}
+            <div className="w-full md:w-80 bg-white border-r border-gray-100 overflow-y-auto order-2 md:order-1">
+              {filtered.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  <p className="text-3xl mb-2">🔍</p>
+                  <p className="text-sm font-medium">No businesses found</p>
+                  <p className="text-xs mt-1">Try changing your filters</p>
                 </div>
+              ) : (
+                filtered.map((b) => {
+                  const isSelected = selectedId === b.id
 
-                {/* List */}
-                <div className="flex-1 overflow-y-auto">
-                  {filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-400">
-                      <p className="text-3xl mb-3">🔍</p>
-                      <p className="text-sm font-medium text-gray-600">No businesses found</p>
-                      <p className="text-xs mt-1">Try adjusting your filters</p>
-                    </div>
-                  ) : (
-                    filtered.map(b => {
-                      const isSelected = selectedId === b.id
-                      return (
-                        <button
-                          key={b.id}
-                          id={`biz-${b.id}`}
-                          onClick={() => handlePinClick(b)}
-                          className="w-full text-left flex gap-3 px-4 py-3 border-b border-gray-50 transition-all hover:bg-gray-50"
-                          style={isSelected ? {
-                            background: '#f0faf6',
-                            borderLeft: '3px solid #1D9E75',
-                            paddingLeft: '13px',
-                          } : {}}
-                        >
-                          {/* Thumbnail */}
-                          <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
-                            {b.cover_image
-                              ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
-                              : <div className="w-full h-full flex items-center justify-center text-2xl"
-                                  style={{ background: GRADIENTS[b.category ?? ''] ?? GRADIENTS.services }}>
-                                  {b.category === 'food' ? '🍲' : b.category === 'restaurant' ? '🍽️' :
-                                   b.category === 'fashion' ? '👗' : b.category === 'beauty' ? '💆' :
-                                   b.category === 'herbs' ? '🌿' : b.category === 'music' ? '🎵' :
-                                   b.category === 'crafts' ? '🏺' : b.category === 'nightlife' ? '🍺' : '🛠️'}
-                                </div>
+                  return (
+                    <button
+                      key={b.id}
+                      id={`biz-${b.id}`}
+                      onClick={() => handlePinClick(b)}
+                      className="w-full text-left flex gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-all"
+                      style={
+                        isSelected
+                          ? {
+                              background: '#f0faf6',
+                              borderLeft: '3px solid #1D9E75',
+                              paddingLeft: '13px',
                             }
+                          : {}
+                      }
+                    >
+                      <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+                        {b.cover_image ? (
+                          <img
+                            src={b.cover_image}
+                            alt={b.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full flex items-center justify-center text-2xl"
+                            style={{
+                              background:
+                                GRADIENTS[b.category ?? ''] ?? GRADIENTS.services,
+                            }}
+                          >
+                            {CATEGORIES.find((c) => c.id === b.category)?.icon ?? '🏪'}
                           </div>
+                        )}
+                      </div>
 
-                          {/* Info */}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm text-gray-900 line-clamp-1 leading-snug">
-                              {b.name}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                              {AFRICAN_FLAGS[b.country ?? ''] ?? '🌍'}
-                              <span className="truncate capitalize">{b.subcategory ?? b.category}</span>
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              {b.rating > 0 ? (
-                                <span className="text-xs font-medium" style={{ color: '#F59E0B' }}>
-                                  ★ {b.rating.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-gray-300">No reviews</span>
-                              )}
-                              {b.price_range && (
-                                <span className="text-xs text-gray-400">· {b.price_range}</span>
-                              )}
-                              {b.verified && (
-                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#E1F5EE', color: '#085041' }}>✓</span>
-                              )}
-                            </div>
-                            {b.city && (
-                              <p className="text-[11px] text-gray-400 mt-0.5 truncate">
-                                📍 {b.city}{b.state ? `, ${b.state}` : ''}
-                              </p>
-                            )}
-                            {b.hours_open && (
-                              <div className="mt-1">
-                                <HoursBadge hoursOpen={b.hours_open} daysOpen={b.days_open} />
-                              </div>
-                            )}
-                          </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-gray-900 line-clamp-1">
+                          {b.name}
+                        </p>
 
-                          {/* Arrow indicator when selected */}
-                          {isSelected && (
-                            <div className="flex-shrink-0 self-center">
-                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#1D9E75' }} />
-                            </div>
+                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                          {AFRICAN_FLAGS[b.country ?? ''] ?? '🌍'}
+                          <span className="truncate capitalize">
+                            {b.subcategory ?? b.category}
+                          </span>
+                        </p>
+
+                        <p className="text-[11px] text-gray-400 mt-1 truncate">
+                          📍 {[b.city, b.state].filter(Boolean).join(', ') || 'No location'}
+                        </p>
+
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {b.rating > 0 ? (
+                            <span className="text-xs font-medium text-amber-500">
+                              ★ {b.rating.toFixed(1)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">No reviews</span>
                           )}
-                        </button>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
+
+                          {b.verified && (
+                            <span
+                              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                              style={{ background: '#E1F5EE', color: '#085041' }}
+                            >
+                              ✓ Verified
+                            </span>
+                          )}
+                        </div>
+
+                        {b.hours_open && (
+                          <div className="mt-1">
+                            <HoursBadge
+                              hoursOpen={b.hours_open}
+                              daysOpen={b.days_open}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })
+              )}
             </div>
 
-          ) : (
-            /* ── List view ── */
-            <div className="overflow-y-auto h-full p-4">
-              <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.length === 0 ? (
-                  <div className="col-span-full text-center py-16 text-gray-400">
-                    <p className="text-2xl mb-2">🔍</p>
-                    <p className="text-sm">No businesses found</p>
-                  </div>
-                ) : filtered.map(b => (
-                  <Link key={b.id} href={`/businesses/${b.id}`}
-                    className="bg-white rounded-xl border border-gray-100 hover:border-green-300 hover:shadow-md transition-all flex gap-3 p-4">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      {b.cover_image
-                        ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full" style={{ background: GRADIENTS[b.category ?? ''] ?? GRADIENTS.services }} />
-                      }
+            {/* MAP */}
+            <div className="relative flex-1 h-72 md:h-full order-1 md:order-2">
+              <Map
+                mapId="markeetee-map"
+                defaultCenter={DEFAULT_CENTER}
+                defaultZoom={DEFAULT_ZOOM}
+                gestureHandling="greedy"
+                disableDefaultUI={true}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <MapController center={mapCenter} zoom={mapZoom} />
+
+                {userLocation && (
+                  <AdvancedMarker position={userLocation}>
+                    <div
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: '#4285F4',
+                        border: '3px solid white',
+                        boxShadow: '0 2px 8px rgba(66,133,244,0.6)',
+                      }}
+                    />
+                  </AdvancedMarker>
+                )}
+
+                {filtered.map((b) =>
+                  b.lat && b.lng ? (
+                    <AdvancedMarker
+                      key={b.id}
+                      position={{ lat: b.lat, lng: b.lng }}
+                      onClick={() => handlePinClick(b)}
+                      zIndex={selectedId === b.id ? 10 : 1}
+                    >
+                      <Pin
+                        background={selectedId === b.id ? '#085041' : '#1D9E75'}
+                        borderColor={selectedId === b.id ? '#053528' : '#0F6E56'}
+                        glyphColor="white"
+                        scale={selectedId === b.id ? 1.3 : 1}
+                      />
+                    </AdvancedMarker>
+                  ) : null
+                )}
+
+                {selected && selected.lat && selected.lng && (
+                  <InfoWindow
+                    position={{ lat: selected.lat, lng: selected.lng }}
+                    onCloseClick={() => setSelectedId(null)}
+                    pixelOffset={[0, -40]}
+                  >
+                    <div style={{ minWidth: '210px', fontFamily: 'system-ui, sans-serif' }}>
+                      <p style={{ fontWeight: 700, fontSize: '14px', margin: '0 0 4px' }}>
+                        {selected.name}
+                      </p>
+
+                      <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 8px' }}>
+                        {[selected.city, selected.state].filter(Boolean).join(', ')}
+                      </p>
+
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <a
+                          href={`/businesses/${selected.id}`}
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            background: '#1D9E75',
+                            color: 'white',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            padding: '7px 0',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          View
+                        </a>
+
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            background: '#F3F4F6',
+                            color: '#374151',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            padding: '7px 0',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          Directions
+                        </a>
+                      </div>
                     </div>
+                  </InfoWindow>
+                )}
+              </Map>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full overflow-y-auto p-4">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.length === 0 ? (
+                <div className="col-span-full text-center py-16 text-gray-400">
+                  <p className="text-2xl mb-2">🔍</p>
+                  <p className="text-sm">No businesses found</p>
+                </div>
+              ) : (
+                filtered.map((b) => (
+                  <Link
+                    key={b.id}
+                    href={`/businesses/${b.id}`}
+                    className="bg-white rounded-xl border border-gray-100 hover:border-green-300 hover:shadow-md transition-all flex gap-3 p-4"
+                  >
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                      {b.cover_image ? (
+                        <img
+                          src={b.cover_image}
+                          alt={b.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full"
+                          style={{
+                            background:
+                              GRADIENTS[b.category ?? ''] ?? GRADIENTS.services,
+                          }}
+                        />
+                      )}
+                    </div>
+
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm text-gray-900 line-clamp-1">{b.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                        <MapPin size={10} style={{ color: '#1D9E75' }} />
-                        {[b.city, b.state].filter(Boolean).join(', ') || 'No location'}
+                      <p className="font-semibold text-sm text-gray-900 line-clamp-1">
+                        {b.name}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        📍 {[b.city, b.state].filter(Boolean).join(', ') || 'No location'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {b.rating > 0 ? `⭐ ${b.rating.toFixed(1)} (${b.review_count})` : 'No reviews yet'}
-                        {b.price_range ? ` · ${b.price_range}` : ''}
+                        {b.rating > 0
+                          ? `⭐ ${b.rating.toFixed(1)} (${b.review_count})`
+                          : 'No reviews yet'}
                       </p>
                     </div>
                   </Link>
-                ))}
-              </div>
+                ))
+              )}
             </div>
-
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </APIProvider>
-  )
-}
+    </div>
+  </APIProvider>
+)}

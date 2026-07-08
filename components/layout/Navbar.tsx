@@ -276,7 +276,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/auth/login" onClick={() => setMobileOpen(false)}
+                <Link href="/business/new" onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
                   <User size={14} className="text-gray-400" /> Sign in
                 </Link>
