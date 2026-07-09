@@ -286,7 +286,7 @@ export default function BusinessDetailsForm({
           <input type="text" value={form.state}
             onChange={e => { upd('state', e.target.value); clearError('state') }}
             onBlur={() => validate('state', form.state)}
-            placeholder="Enter state" maxLength={2} className={inputCls} />
+            placeholder="TX" maxLength={2} className={inputCls} />
           {errors.state && <FieldError message={errors.state} />}
         </div>
         <div>
