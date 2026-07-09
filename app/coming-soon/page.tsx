@@ -1,316 +1,300 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
+import {
+  Rocket,
+  Search,
+  Store,
+  MapPin,
+  Star,
+  Camera,
+  BarChart3,
+  MessageCircle,
+  ArrowRight,
+} from 'lucide-react'
 
-const CITY_DOTS = [
-  { top: '18%', left: '52%', delay: '0s',   size: 4 },
-  { top: '22%', left: '48%', delay: '0.3s', size: 3 },
-  { top: '15%', left: '44%', delay: '0.6s', size: 3 },
-  { top: '28%', left: '55%', delay: '0.9s', size: 3 },
-  { top: '35%', left: '62%', delay: '1.2s', size: 4 },
-  { top: '32%', left: '50%', delay: '1.5s', size: 3 },
-  { top: '42%', left: '54%', delay: '1.8s', size: 3 },
-  { top: '48%', left: '50%', delay: '2.1s', size: 4 },
-  { top: '55%', left: '52%', delay: '2.4s', size: 5 },
-  { top: '25%', left: '58%', delay: '2.7s', size: 3 },
-  { top: '12%', left: '55%', delay: '3.0s', size: 3 },
-  { top: '10%', left: '50%', delay: '3.3s', size: 3 },
-  { top: '8%',  left: '46%', delay: '3.6s', size: 4 },
+const LAUNCH_END_DATE = new Date('2026-07-22T23:59:59')
+
+const categories = [
+  { icon: '🍲', name: 'Food & Groceries' },
+  { icon: '🍽️', name: 'Restaurants' },
+  { icon: '👗', name: 'Fashion & Fabric' },
+  { icon: '💇', name: 'Beauty & Hair' },
+  { icon: '🌿', name: 'Herbs & Wellness' },
+  { icon: '🎵', name: 'Music & Arts' },
+  { icon: '🏺', name: 'Crafts & Decor' },
+  { icon: '🛠️', name: 'Services' },
 ]
 
-const FLAGS = [
-  '🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹','🇨🇲',
-  '🇨🇮','🇹🇿','🇺🇬','🇷🇼','🇿🇼','🇲🇦','🇹🇳',
-  '🇩🇿','🇦🇴','🇧🇯','🇧🇫','🇲🇿','🇲🇬',
+const launchFeatures = [
+  { icon: Store, text: 'Free business listing' },
+  { icon: Camera, text: 'Photo galleries' },
+  { icon: Search, text: 'Featured search visibility' },
+  { icon: BarChart3, text: 'Business analytics' },
+  { icon: MessageCircle, text: 'Customer enquiries' },
+  { icon: Star, text: 'Reviews & ratings' },
 ]
 
-const STATS = [
-  { num: '54',   label: 'African nations'    },
-  { num: '9',    label: 'Categories'         },
-  { num: 'Free', label: 'To list a business' },
-]
-
-// Launch date: July 18, 2026
-const LAUNCH_DATE = new Date('2026-07-18T00:00:00').getTime()
-
-function ComingSoonInner() {
-  const params  = useSearchParams()
-  const router  = useRouter()
-  const isBeta  = params.get('beta') === '1'
-
-  // ── Countdown ─────────────────────────────────────────────────────────
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+export default function ComingSoonPage() {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  })
 
   useEffect(() => {
-    function tick() {
-      const diff = Math.max(0, LAUNCH_DATE - Date.now())
-      setTimeLeft({
-        days:    Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours:   Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000),
-      })
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
+    function updateCountdown() {
+      const now = Date.now()
+      const distance = LAUNCH_END_DATE.getTime() - now
 
-  // ── Waitlist ───────────────────────────────────────────────────────────
-  const [email,      setEmail]      = useState('')
-  const [submitted,  setSubmitted]  = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [emailError, setEmailError] = useState('')
-
-  // ── Beta code ──────────────────────────────────────────────────────────
-  const [code,        setCode]        = useState('')
-  const [codeError,   setCodeError]   = useState('')
-  const [codeLoading, setCodeLoading] = useState(false)
-  const [showCode,    setShowCode]    = useState(false)
-
-  useEffect(() => { setShowCode(isBeta) }, [isBeta])
-
-  async function handleWaitlist(e: React.FormEvent) {
-    e.preventDefault()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Please enter a valid email address')
-      return
-    }
-    setSubmitting(true); setEmailError('')
-    try {
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-      await supabase.from('early_access').upsert({ email }, { onConflict: 'email' })
-      setSubmitted(true)
-    } catch {
-      setEmailError('Something went wrong — please try again.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleCode(e: React.FormEvent) {
-    e.preventDefault()
-    if (!code.trim()) { setCodeError('Enter your access code'); return }
-    setCodeLoading(true); setCodeError('')
-    try {
-      const res  = await fetch('/api/beta-access', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ code: code.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setCodeError(data.error ?? 'Invalid code. Try again.')
-        setCodeLoading(false)
+      if (distance <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
         return
       }
-      router.push('/')
-      router.refresh()
-    } catch {
-      setCodeError('Something went wrong. Try again.')
-      setCodeLoading(false)
+
+      setTimeLeft({
+        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((distance / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((distance / (1000 * 60)) % 60),
+        seconds: Math.floor((distance / 1000) % 60),
+      })
     }
-  }
+
+    updateCountdown()
+    const timer = setInterval(updateCountdown, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#053528}
-        .cs-dot{position:absolute;border-radius:50%;background:#1D9E75;opacity:0;
-          animation:dotAppear 0.4s ease-out forwards,dotPulse 3s ease-in-out infinite;
-          box-shadow:0 0 8px rgba(29,158,117,0.8)}
-        @keyframes dotAppear{to{opacity:1}}
-        @keyframes dotPulse{0%,100%{box-shadow:0 0 6px rgba(29,158,117,0.6)}50%{box-shadow:0 0 14px rgba(29,158,117,0.9)}}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        .f1{opacity:0;animation:fadeUp 0.7s ease-out 0.2s forwards}
-        .f2{opacity:0;animation:fadeUp 0.7s ease-out 0.4s forwards}
-        .f3{opacity:0;animation:fadeUp 0.7s ease-out 0.6s forwards}
-        .f4{opacity:0;animation:fadeUp 0.7s ease-out 0.8s forwards}
-        .f5{opacity:0;animation:fadeUp 0.7s ease-out 1.0s forwards}
-      `}</style>
+    <main className="min-h-screen bg-[#F8FAF9] overflow-hidden">
+      <section
+        className="relative text-white"
+        style={{
+          background:
+            'radial-gradient(circle at top left,#1D9E75 0%,#085041 38%,#053528 100%)',
+        }}
+      >
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,#ffffff_1px,transparent_1px)] [background-size:24px_24px]" />
 
-      <div style={{ minHeight:'100vh', background:'#053528', color:'#F5F0E8', fontFamily:"'Inter',system-ui,sans-serif", overflowX:'hidden' }}>
+        <nav className="relative max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/logo1.png"
+              alt="Markeetee"
+              width={150}
+              height={48}
+              className="h-auto w-[150px]"
+              priority
+            />
+          </Link>
 
-        {/* ── Navbar ── */}
-        <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:50, padding:'20px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', background:'linear-gradient(to bottom,rgba(5,53,40,0.95),transparent)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <Image src="/apple-touch-icon.png" alt="Markeetee" width={34} height={34} style={{ borderRadius:9 }} />
-            <span style={{ fontWeight:600, fontSize:16 }}>Markeetee</span>
-          </div>
-          <span style={{ fontSize:11, fontWeight:600, color:'#9FE1CB', background:'rgba(29,158,117,0.15)', border:'1px solid rgba(159,225,203,0.25)', padding:'5px 12px', borderRadius:20, letterSpacing:'0.04em', textTransform:'uppercase' }}>
-            {showCode ? 'Beta Access' : 'Coming Soon'}
+          <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-green-100 border border-white/10">
+            <Rocket size={15} />
+            Launch Access
           </span>
         </nav>
 
-        {/* ── Hero ── */}
-        <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'120px 24px 80px', position:'relative', textAlign:'center' }}>
+        <div className="relative max-w-7xl mx-auto px-4 pt-12 pb-24 text-center">
+          <span className="inline-flex items-center rounded-full bg-white/10 border border-white/10 px-5 py-2 text-sm font-bold text-green-100 mb-8">
+            🚀 Early businesses get every premium feature free
+          </span>
 
-          {/* City dots */}
-          {CITY_DOTS.map((d, i) => (
-            <div key={i} className="cs-dot"
-              style={{ top:d.top, left:d.left, width:d.size, height:d.size, animationDelay:d.delay }} />
-          ))}
-
-          {/* Eyebrow */}
-          <p className="f1" style={{ fontSize:11, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', color:'#9FE1CB', marginBottom:20 }}>
-            African businesses · US diaspora
-          </p>
-
-          {/* Headline */}
-          <h1 className="f2" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(40px,8vw,80px)', fontWeight:900, lineHeight:1.05, color:'#F5F0E8', letterSpacing:'-0.02em', marginBottom:32, maxWidth:760 }}>
-            Home has never<br />felt this{' '}
-            <span style={{ color:'#1D9E75', fontStyle:'italic' }}>close.</span>
+          <h1 className="text-5xl md:text-7xl font-black leading-tight max-w-4xl mx-auto">
+            Africa is here.
+            <br />
+            <span className="text-[#9FE1CB]">Find it.</span>
           </h1>
 
-          {/* ── Countdown ── */}
-          <div className="f3" style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'center', marginBottom:40 }}>
-            {[
-              { value: timeLeft.days,    label: 'Days'    },
-              { value: timeLeft.hours,   label: 'Hours'   },
-              { value: timeLeft.minutes, label: 'Minutes' },
-              { value: timeLeft.seconds, label: 'Seconds' },
-            ].map(({ value, label }, i) => (
-              <div key={label} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={{ textAlign:'center', background:'rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 20px', minWidth:76, border:'1px solid rgba(159,225,203,0.2)' }}>
-                  <p style={{ margin:0, fontFamily:"'Playfair Display',serif", fontSize:'clamp(28px,5vw,44px)', fontWeight:900, color:'#ffffff', lineHeight:1 }}>
-                    {String(value).padStart(2, '0')}
-                  </p>
-                  <p style={{ margin:'6px 0 0', fontSize:10, fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(245,240,232,0.4)' }}>
-                    {label}
-                  </p>
-                </div>
-                {i < 3 && (
-                  <p style={{ margin:0, fontSize:30, fontWeight:700, color:'rgba(159,225,203,0.4)', lineHeight:1, paddingBottom:20 }}>:</p>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Sub */}
-          <p className="f3" style={{ fontSize:'clamp(15px,2.5vw,18px)', color:'rgba(245,240,232,0.65)', lineHeight:1.7, maxWidth:520, marginBottom:48 }}>
-            Markeetee is the go-to directory for African-owned businesses in the US.
-            We&apos;re launching on July 18th — join the waitlist or use your beta code to get in early.
+          <p className="mt-7 text-lg md:text-xl text-green-100 leading-8 max-w-3xl mx-auto">
+            Markeetee is launching soon — the discovery platform connecting the
+            African diaspora with African-owned restaurants, markets, fashion,
+            beauty, wellness, services, and culture across the United States.
           </p>
 
-          {/* ── Tab switcher + forms ── */}
-          <div className="f4" style={{ width:'100%', maxWidth:480 }}>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/auth/signup?role=owner"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 font-bold text-[#085041] hover:scale-105 transition"
+            >
+              Claim My Free Storefront
+              <ArrowRight size={18} />
+            </Link>
 
-            {/* Tabs */}
-            <div style={{ display:'flex', gap:6, marginBottom:20, background:'rgba(255,255,255,0.06)', borderRadius:14, padding:4 }}>
-              {[
-                { label:'Join waitlist', active:!showCode, onClick:() => setShowCode(false) },
-                { label:'I have a code', active:showCode,  onClick:() => setShowCode(true)  },
-              ].map(t => (
-                <button key={t.label} onClick={t.onClick}
-                  style={{ flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all 0.2s',
-                    background: t.active ? 'rgba(29,158,117,0.25)' : 'transparent',
-                    color:      t.active ? '#9FE1CB'               : 'rgba(245,240,232,0.5)',
-                  }}>
-                  {t.label}
-                </button>
-              ))}
+            <Link
+              href="/search"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white/10 border border-white/10 px-7 py-4 font-bold text-white hover:bg-white/20 transition"
+            >
+              Explore Markeetee
+            </Link>
+          </div>
+
+          <div className="mt-14">
+            <p className="text-sm font-bold uppercase tracking-widest text-green-200 mb-5">
+              Launch offer ends in
+            </p>
+
+            <div className="grid grid-cols-4 gap-3 max-w-2xl mx-auto">
+              <TimeBox value={timeLeft.days} label="Days" />
+              <TimeBox value={timeLeft.hours} label="Hours" />
+              <TimeBox value={timeLeft.minutes} label="Minutes" />
+              <TimeBox value={timeLeft.seconds} label="Seconds" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 -mt-12 relative z-10">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 md:p-10">
+          <div className="grid lg:grid-cols-[1fr_420px] gap-10 items-center">
+            <div>
+              <span className="inline-flex rounded-full bg-[#E1F5EE] px-4 py-2 text-sm font-bold text-[#085041] mb-5">
+                Launch Access
+              </span>
+
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Every Pro Store feature is free during launch.
+              </h2>
+
+              <p className="text-gray-600 leading-8 mb-8">
+                Early business owners get full access to tools that help them
+                get discovered, showcase products, collect reviews, receive
+                enquiries, and grow online — at no cost during the launch period.
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {launchFeatures.map(({ icon: Icon, text }) => (
+                  <div key={text} className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#E1F5EE] text-[#085041]">
+                      <Icon size={18} />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">
+                      {text}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Waitlist form */}
-            {!showCode && (
-              submitted ? (
-                <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center', padding:'14px 20px', background:'rgba(29,158,117,0.12)', border:'1px solid rgba(29,158,117,0.3)', borderRadius:12, color:'#9FE1CB', fontSize:14, fontWeight:500 }}>
-                  🎉 You&apos;re on the list! We&apos;ll email you when we launch.
-                </div>
-              ) : (
-                <form onSubmit={handleWaitlist}>
-                  <div style={{ display:'flex', gap:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(159,225,203,0.2)', borderRadius:14, padding:'6px 6px 6px 18px' }}>
-                    <input
-                      type="email" value={email}
-                      onChange={e => { setEmail(e.target.value); setEmailError('') }}
-                      placeholder="Enter your email address"
-                      style={{ flex:1, background:'transparent', border:'none', outline:'none', fontSize:14, color:'#F5F0E8', minWidth:0 }}
-                    />
-                    <button type="submit" disabled={submitting}
-                      style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:10, padding:'11px 22px', fontSize:13, fontWeight:600, cursor:'pointer', flexShrink:0, opacity:submitting ? 0.7 : 1 }}>
-                      {submitting ? 'Adding…' : 'Notify me'}
-                    </button>
-                  </div>
-                  {emailError && <p style={{ color:'#F87171', fontSize:12, marginTop:8, textAlign:'center' }}>{emailError}</p>}
-                  <p style={{ fontSize:11, color:'rgba(245,240,232,0.3)', marginTop:10, textAlign:'center' }}>
-                    No spam. One email when we launch.
-                  </p>
-                </form>
-              )
-            )}
+            <div className="rounded-3xl p-7 text-white bg-[#085041]">
+              <p className="text-sm uppercase tracking-widest font-bold text-[#9FE1CB] mb-3">
+                Full Launch Access
+              </p>
 
-            {/* Beta code form */}
-            {showCode && (
-              <form onSubmit={handleCode}>
-                <div style={{ display:'flex', gap:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(159,225,203,0.2)', borderRadius:14, padding:'6px 6px 6px 18px' }}>
-                  <input
-                    type="text" value={code}
-                    onChange={e => { setCode(e.target.value.toUpperCase()); setCodeError('') }}
-                    placeholder="ENTER YOUR ACCESS CODE"
-                    autoFocus
-                    style={{ flex:1, background:'transparent', border:'none', outline:'none', fontSize:14, color:'#F5F0E8', minWidth:0, letterSpacing:'0.1em', fontWeight:600 }}
-                  />
-                  <button type="submit" disabled={codeLoading}
-                    style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:10, padding:'11px 22px', fontSize:13, fontWeight:600, cursor:'pointer', flexShrink:0, opacity:codeLoading ? 0.7 : 1 }}>
-                    {codeLoading ? 'Checking…' : 'Enter →'}
-                  </button>
-                </div>
-                {codeError && <p style={{ color:'#F87171', fontSize:12, marginTop:8, textAlign:'center' }}>{codeError}</p>}
-                <p style={{ fontSize:11, color:'rgba(245,240,232,0.3)', marginTop:10, textAlign:'center' }}>
-                  Got an early access code? Enter it above to get in.
-                </p>
-              </form>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="f5" style={{ display:'flex', gap:'clamp(32px,8vw,80px)', marginTop:56, flexWrap:'wrap', justifyContent:'center' }}>
-            {STATS.map(s => (
-              <div key={s.label} style={{ textAlign:'center' }}>
-                <p style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(32px,5vw,48px)', fontWeight:900, color:'#1D9E75', lineHeight:1, marginBottom:6 }}>
-                  {s.num}
-                </p>
-                <p style={{ fontSize:12, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'rgba(245,240,232,0.45)' }}>
-                  {s.label}
-                </p>
+              <div className="flex items-end gap-2 mb-4">
+                <span className="text-6xl font-black">$0</span>
+                <span className="text-green-100 mb-2">during launch</span>
               </div>
-            ))}
-          </div>
 
-          {/* Flags */}
-          <div style={{ display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center', maxWidth:480, marginTop:40 }}>
-            {FLAGS.map(f => (
-              <span key={f} style={{ fontSize:26, lineHeight:1 }}>{f}</span>
-            ))}
-          </div>
-        </section>
+              <p className="text-green-100 leading-7 mb-6">
+                Claim your business now and unlock every premium tool while we
+                prepare for public launch.
+              </p>
 
-        {/* ── Footer ── */}
-        <footer style={{ borderTop:'1px solid rgba(159,225,203,0.1)', padding:'24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, maxWidth:960, margin:'0 auto' }}>
-          <p style={{ fontSize:12, color:'rgba(245,240,232,0.3)' }}>
-            © {new Date().getFullYear()} Markeetee · Made for the African diaspora
+              <Link
+                href="/auth/signup?role=owner"
+                className="block text-center rounded-2xl bg-white px-6 py-4 font-bold text-[#085041] hover:scale-[1.02] transition"
+              >
+                Get Launch Access
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 py-20">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Discover all things Africa, all in one place.
+          </h2>
+          <p className="mt-4 text-gray-500 leading-7">
+            Markeetee helps customers find the businesses, products, food, and
+            services that feel like home.
           </p>
-          <div style={{ display:'flex', gap:16 }}>
-            <a href="/privacy"                         style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Privacy Policy</a>
-            <a href="/terms"                           style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Terms</a>
-            <a href="https://instagram.com/markeetee" style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Instagram</a>
-            <a href="mailto:hello@markeetee.com"       style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Contact</a>
-          </div>
-        </footer>
+        </div>
 
-      </div>
-    </>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {categories.map((cat) => (
+            <div
+              key={cat.name}
+              className="bg-white border border-gray-100 rounded-3xl p-6 text-center hover:shadow-lg transition"
+            >
+              <div className="text-4xl mb-3">{cat.icon}</div>
+              <p className="text-sm font-bold text-gray-800">{cat.name}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 pb-20">
+        <div className="rounded-3xl bg-white border border-gray-100 p-8 md:p-12 text-center">
+          <MapPin size={34} className="mx-auto mb-5 text-[#1D9E75]" />
+
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Built for the African diaspora.
+          </h2>
+
+          <p className="text-gray-600 leading-8 max-w-3xl mx-auto mb-8">
+            Whether you are looking for jollof, African groceries, Ankara
+            fabric, hair braiding, wellness products, music, art, or trusted
+            local services — Markeetee is being built to help you find it faster.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/auth/signup?role=customer"
+              className="rounded-2xl px-7 py-4 font-bold text-white bg-[#1D9E75]"
+            >
+              Join Customer Waitlist
+            </Link>
+
+            <Link
+              href="/auth/signup?role=owner"
+              className="rounded-2xl px-7 py-4 font-bold text-[#085041] border border-gray-200 bg-white"
+            >
+              List My Business
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-gray-100 bg-white">
+        <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-400">
+            © 2026 Markeetee. All rights reserved.
+          </p>
+
+          <div className="flex items-center gap-5 text-sm">
+            <Link href="/about" className="text-gray-500 hover:text-[#1D9E75]">
+              About
+            </Link>
+            <Link href="/privacy" className="text-gray-500 hover:text-[#1D9E75]">
+              Privacy
+            </Link>
+            <Link href="/terms" className="text-gray-500 hover:text-[#1D9E75]">
+              Terms
+            </Link>
+            <Link href="/contact" className="text-gray-500 hover:text-[#1D9E75]">
+              Contact
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </main>
   )
 }
 
-export default function ComingSoonPage() {
+function TimeBox({ value, label }: { value: number; label: string }) {
   return (
-    <Suspense>
-      <ComingSoonInner />
-    </Suspense>
+    <div className="rounded-2xl bg-white/10 border border-white/10 backdrop-blur p-4">
+      <p className="text-3xl md:text-4xl font-black text-white">
+        {String(value).padStart(2, '0')}
+      </p>
+      <p className="text-[11px] md:text-xs uppercase tracking-widest text-green-200 mt-1">
+        {label}
+      </p>
+    </div>
   )
 }
