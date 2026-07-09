@@ -1,362 +1,309 @@
 'use client'
-
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 
-const BENEFITS = [
-  {
-    icon: '⌕',
-    title: 'Discover',
-    text: 'Find authentic African businesses near you.',
-  },
-  {
-    icon: '👥',
-    title: 'Connect',
-    text: 'Build relationships that matter.',
-  },
-  {
-    icon: '♡',
-    title: 'Support',
-    text: 'Empower communities. Grow together.',
-  },
+const CITY_DOTS = [
+  { top: '18%', left: '52%', delay: '0s',   size: 4 },
+  { top: '22%', left: '48%', delay: '0.3s', size: 3 },
+  { top: '15%', left: '44%', delay: '0.6s', size: 3 },
+  { top: '28%', left: '55%', delay: '0.9s', size: 3 },
+  { top: '35%', left: '62%', delay: '1.2s', size: 4 },
+  { top: '32%', left: '50%', delay: '1.5s', size: 3 },
+  { top: '42%', left: '54%', delay: '1.8s', size: 3 },
+  { top: '48%', left: '50%', delay: '2.1s', size: 4 },
+  { top: '55%', left: '52%', delay: '2.4s', size: 5 },
+  { top: '25%', left: '58%', delay: '2.7s', size: 3 },
+  { top: '12%', left: '55%', delay: '3.0s', size: 3 },
+  { top: '10%', left: '50%', delay: '3.3s', size: 3 },
+  { top: '8%',  left: '46%', delay: '3.6s', size: 4 },
 ]
 
-const CATEGORIES = [
-  ['🍲', 'Food & Groceries'],
-  ['🍽️', 'Restaurants'],
-  ['👗', 'Fashion & Fabric'],
-  ['💇🏾', 'Beauty & Hair'],
-  ['🌿', 'Herbs & Wellness'],
-  ['🎵', 'Music & Arts'],
-  ['🏺', 'Crafts & Decor'],
-  ['🤝', 'Services'],
-  ['•••', 'More'],
+const FLAGS = [
+  '🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹','🇨🇲',
+  '🇨🇮','🇹🇿','🇺🇬','🇷🇼','🇿🇼','🇲🇦','🇹🇳',
+  '🇩🇿','🇦🇴','🇧🇯','🇧🇫','🇲🇿','🇲🇬',
 ]
+
+const STATS = [
+  { num: '54',   label: 'African nations'    },
+  { num: '9',    label: 'Categories'         },
+  { num: 'Free', label: 'To list a business' },
+]
+
+// Launch date: July 18, 2026
+const LAUNCH_DATE = new Date('2026-07-18T00:00:00').getTime()
 
 function ComingSoonInner() {
-  const params = useSearchParams()
-  const router = useRouter()
+  const params  = useSearchParams()
+  const router  = useRouter()
+  const isBeta  = params.get('beta') === '1'
 
-  const [showCode, setShowCode] = useState(false)
-  const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  // ── Countdown ─────────────────────────────────────────────────────────
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   useEffect(() => {
-    setShowCode(params.get('beta') === '1')
-  }, [params])
+    function tick() {
+      const diff = Math.max(0, LAUNCH_DATE - Date.now())
+      setTimeLeft({
+        days:    Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours:   Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((diff % (1000 * 60)) / 1000),
+      })
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  // ── Waitlist ───────────────────────────────────────────────────────────
+  const [email,      setEmail]      = useState('')
+  const [submitted,  setSubmitted]  = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [emailError, setEmailError] = useState('')
+
+  // ── Beta code ──────────────────────────────────────────────────────────
+  const [code,        setCode]        = useState('')
+  const [codeError,   setCodeError]   = useState('')
+  const [codeLoading, setCodeLoading] = useState(false)
+  const [showCode,    setShowCode]    = useState(false)
+
+  useEffect(() => { setShowCode(isBeta) }, [isBeta])
 
   async function handleWaitlist(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address.')
+      setEmailError('Please enter a valid email address')
       return
     }
-
-    setLoading(true)
-
+    setSubmitting(true); setEmailError('')
     try {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
-
-      await supabase
-        .from('early_access')
-        .upsert({ email }, { onConflict: 'email' })
-
+      await supabase.from('early_access').upsert({ email }, { onConflict: 'email' })
       setSubmitted(true)
     } catch {
-      setError('Something went wrong. Please try again.')
+      setEmailError('Something went wrong — please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   async function handleCode(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-
-    if (!code.trim()) {
-      setError('Enter your access code.')
-      return
-    }
-
-    setLoading(true)
-
+    if (!code.trim()) { setCodeError('Enter your access code'); return }
+    setCodeLoading(true); setCodeError('')
     try {
-      const res = await fetch('/api/beta-access', {
-        method: 'POST',
+      const res  = await fetch('/api/beta-access', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.trim() }),
+        body:    JSON.stringify({ code: code.trim() }),
       })
-
       const data = await res.json()
-
       if (!res.ok) {
-        setError(data.error ?? 'Invalid access code.')
+        setCodeError(data.error ?? 'Invalid code. Try again.')
+        setCodeLoading(false)
         return
       }
-
       router.push('/')
       router.refresh()
     } catch {
-      setError('Something went wrong. Try again.')
-    } finally {
-      setLoading(false)
+      setCodeError('Something went wrong. Try again.')
+      setCodeLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#FBF8F1] text-[#043528]">
-      <section className="relative min-h-screen px-5 py-10 md:px-10">
-        <div className="absolute right-[-180px] top-20 h-[620px] w-[620px] rounded-full bg-[#EAF4E8]" />
-        <div className="absolute bottom-[-180px] left-[-180px] h-[360px] w-[360px] rounded-full bg-[#EEF7E9]" />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:#053528}
+        .cs-dot{position:absolute;border-radius:50%;background:#1D9E75;opacity:0;
+          animation:dotAppear 0.4s ease-out forwards,dotPulse 3s ease-in-out infinite;
+          box-shadow:0 0 8px rgba(29,158,117,0.8)}
+        @keyframes dotAppear{to{opacity:1}}
+        @keyframes dotPulse{0%,100%{box-shadow:0 0 6px rgba(29,158,117,0.6)}50%{box-shadow:0 0 14px rgba(29,158,117,0.9)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .f1{opacity:0;animation:fadeUp 0.7s ease-out 0.2s forwards}
+        .f2{opacity:0;animation:fadeUp 0.7s ease-out 0.4s forwards}
+        .f3{opacity:0;animation:fadeUp 0.7s ease-out 0.6s forwards}
+        .f4{opacity:0;animation:fadeUp 0.7s ease-out 0.8s forwards}
+        .f5{opacity:0;animation:fadeUp 0.7s ease-out 1.0s forwards}
+      `}</style>
 
-        <div className="relative mx-auto max-w-6xl text-center">
-          <div className="mx-auto flex flex-col items-center">
-            <Image
-              src="/apple-touch-icon.png"
-              alt="Markeetee logo"
-              width={72}
-              height={72}
-              className="rounded-2xl"
-              priority
-            />
+      <div style={{ minHeight:'100vh', background:'#053528', color:'#F5F0E8', fontFamily:"'Inter',system-ui,sans-serif", overflowX:'hidden' }}>
 
-            <h2 className="mt-4 text-3xl font-black tracking-tight">
-              Markeetee
-            </h2>
-
-            <p className="text-base text-[#043528]/70">
-              Africa is here. Find it.
-            </p>
+        {/* ── Navbar ── */}
+        <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:50, padding:'20px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', background:'linear-gradient(to bottom,rgba(5,53,40,0.95),transparent)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <Image src="/apple-touch-icon.png" alt="Markeetee" width={34} height={34} style={{ borderRadius:9 }} />
+            <span style={{ fontWeight:600, fontSize:16 }}>Markeetee</span>
           </div>
+          <span style={{ fontSize:11, fontWeight:600, color:'#9FE1CB', background:'rgba(29,158,117,0.15)', border:'1px solid rgba(159,225,203,0.25)', padding:'5px 12px', borderRadius:20, letterSpacing:'0.04em', textTransform:'uppercase' }}>
+            {showCode ? 'Beta Access' : 'Coming Soon'}
+          </span>
+        </nav>
 
-          <div className="mt-10 inline-flex rounded-full bg-[#E8F2E3] px-7 py-3 text-sm font-black uppercase tracking-wide text-[#085041]">
-            Coming Soon
-          </div>
+        {/* ── Hero ── */}
+        <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'120px 24px 80px', position:'relative', textAlign:'center' }}>
 
-          <h1 className="mx-auto mt-8 max-w-5xl text-5xl font-black leading-[1.02] tracking-tight sm:text-7xl lg:text-8xl">
-            All things Africa.
-            <span className="block text-[#168966]">All in one place.</span>
-          </h1>
+          {/* City dots */}
+          {CITY_DOTS.map((d, i) => (
+            <div key={i} className="cs-dot"
+              style={{ top:d.top, left:d.left, width:d.size, height:d.size, animationDelay:d.delay }} />
+          ))}
 
-          <p className="mx-auto mt-7 max-w-2xl text-lg leading-8 text-[#043528]/65">
-            Markeetee connects African-owned businesses, products, services and
-            culture across the USA. Discover. Connect. Support.
+          {/* Eyebrow */}
+          <p className="f1" style={{ fontSize:11, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', color:'#9FE1CB', marginBottom:20 }}>
+            African businesses · US diaspora
           </p>
 
-          <div className="relative mt-12 grid items-center gap-12 lg:grid-cols-[1fr_360px] lg:text-left">
-            <div>
-              <div className="mx-auto max-w-2xl rounded-[2rem] border border-[#043528]/10 bg-white p-8 shadow-2xl shadow-[#043528]/10">
-                <h3 className="text-center text-2xl font-black text-[#043528]">
-                  {showCode
-                    ? 'Enter your beta access code'
-                    : 'Be the first to know when we launch!'}
-                </h3>
+          {/* Headline */}
+          <h1 className="f2" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(40px,8vw,80px)', fontWeight:900, lineHeight:1.05, color:'#F5F0E8', letterSpacing:'-0.02em', marginBottom:32, maxWidth:760 }}>
+            Home has never<br />felt this{' '}
+            <span style={{ color:'#1D9E75', fontStyle:'italic' }}>close.</span>
+          </h1>
 
-                <p className="mt-2 text-center text-sm text-[#043528]/60">
-                  {showCode
-                    ? 'Use your access code to preview Markeetee early.'
-                    : 'Join our waitlist for updates and early access.'}
-                </p>
-
-                <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-[#F2F7EE] p-2">
-                  <button
-                    onClick={() => {
-                      setShowCode(false)
-                      setError('')
-                    }}
-                    className={`rounded-xl px-4 py-3 text-sm font-bold transition ${
-                      !showCode
-                        ? 'bg-[#085041] text-white'
-                        : 'text-[#085041]/60'
-                    }`}
-                  >
-                    Join Waitlist
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowCode(true)
-                      setError('')
-                    }}
-                    className={`rounded-xl px-4 py-3 text-sm font-bold transition ${
-                      showCode
-                        ? 'bg-[#085041] text-white'
-                        : 'text-[#085041]/60'
-                    }`}
-                  >
-                    Beta Code
-                  </button>
+          {/* ── Countdown ── */}
+          <div className="f3" style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'center', marginBottom:40 }}>
+            {[
+              { value: timeLeft.days,    label: 'Days'    },
+              { value: timeLeft.hours,   label: 'Hours'   },
+              { value: timeLeft.minutes, label: 'Minutes' },
+              { value: timeLeft.seconds, label: 'Seconds' },
+            ].map(({ value, label }, i) => (
+              <div key={label} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ textAlign:'center', background:'rgba(255,255,255,0.07)', borderRadius:14, padding:'16px 20px', minWidth:76, border:'1px solid rgba(159,225,203,0.2)' }}>
+                  <p style={{ margin:0, fontFamily:"'Playfair Display',serif", fontSize:'clamp(28px,5vw,44px)', fontWeight:900, color:'#ffffff', lineHeight:1 }}>
+                    {String(value).padStart(2, '0')}
+                  </p>
+                  <p style={{ margin:'6px 0 0', fontSize:10, fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(245,240,232,0.4)' }}>
+                    {label}
+                  </p>
                 </div>
-
-                {!showCode ? (
-                  submitted ? (
-                    <div className="mt-6 rounded-2xl bg-[#EAF8F1] p-5 text-center font-semibold text-[#085041]">
-                      🎉 You’re on the list. We’ll email you when Markeetee launches.
-                    </div>
-                  ) : (
-                    <form
-                      onSubmit={handleWaitlist}
-                      className="mt-6 flex flex-col gap-3 sm:flex-row"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-[#043528]/10 bg-white px-5 py-4">
-                        <span className="text-xl text-[#043528]/50">✉</span>
-                        <input
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          type="email"
-                          placeholder="Enter your email address"
-                          className="min-w-0 flex-1 bg-transparent text-[#043528] outline-none placeholder:text-[#043528]/40"
-                        />
-                      </div>
-
-                      <button
-                        disabled={loading}
-                        className="rounded-2xl bg-[#085041] px-8 py-4 font-bold text-white transition hover:bg-[#0B634F] disabled:opacity-60"
-                      >
-                        {loading ? 'Adding…' : 'Notify Me'}
-                      </button>
-                    </form>
-                  )
-                ) : (
-                  <form
-                    onSubmit={handleCode}
-                    className="mt-6 flex flex-col gap-3 sm:flex-row"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-[#043528]/10 bg-white px-5 py-4">
-                      <span className="text-xl text-[#043528]/50">🔒</span>
-                      <input
-                        value={code}
-                        onChange={(e) => setCode(e.target.value.toUpperCase())}
-                        type="text"
-                        placeholder="ENTER ACCESS CODE"
-                        className="min-w-0 flex-1 bg-transparent font-bold uppercase tracking-widest text-[#043528] outline-none placeholder:text-[#043528]/40"
-                      />
-                    </div>
-
-                    <button
-                      disabled={loading}
-                      className="rounded-2xl bg-[#085041] px-8 py-4 font-bold text-white transition hover:bg-[#0B634F] disabled:opacity-60"
-                    >
-                      {loading ? 'Checking…' : 'Enter'}
-                    </button>
-                  </form>
+                {i < 3 && (
+                  <p style={{ margin:0, fontSize:30, fontWeight:700, color:'rgba(159,225,203,0.4)', lineHeight:1, paddingBottom:20 }}>:</p>
                 )}
-
-                {error && (
-                  <p className="mt-4 text-center text-sm text-red-600">{error}</p>
-                )}
-
-                <p className="mt-5 text-center text-sm text-[#043528]/55">
-                  🔒 No spam. Just updates about our launch.
-                </p>
               </div>
-
-              <div className="mx-auto mt-12 grid max-w-3xl gap-8 sm:grid-cols-3">
-                {BENEFITS.map((item) => (
-                  <div key={item.title} className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#EDF6E9] text-3xl text-[#085041]">
-                      {item.icon}
-                    </div>
-
-                    <h4 className="mt-4 font-black text-[#085041]">
-                      {item.title}
-                    </h4>
-
-                    <p className="mt-2 text-sm leading-6 text-[#043528]/65">
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mx-auto w-full max-w-[360px] lg:mx-0">
-              <div className="rotate-3 rounded-[2.2rem] bg-[#111] p-3 shadow-2xl shadow-[#043528]/25">
-                <div className="rounded-[1.8rem] bg-white p-5 text-left">
-                  <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/apple-touch-icon.png"
-                        alt="Markeetee"
-                        width={34}
-                        height={34}
-                        className="rounded-lg"
-                      />
-                      <div>
-                        <p className="text-sm font-black">Markeetee</p>
-                        <p className="text-[10px] text-[#043528]/50">
-                          Africa is here. Find it.
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="text-xl">☰</span>
-                  </div>
-
-                  <div className="rounded-xl border border-[#043528]/10 px-3 py-3 text-xs text-[#043528]/40">
-                    Search businesses, products, services...
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-3 gap-3">
-                    {CATEGORIES.map(([icon, label]) => (
-                      <div
-                        key={label}
-                        className="rounded-2xl border border-[#043528]/10 bg-[#FAF8F1] p-3 text-center"
-                      >
-                        <div className="text-xl">{icon}</div>
-                        <p className="mt-2 text-[10px] font-bold leading-tight">
-                          {label}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 rounded-2xl bg-[#085041] p-4 text-white">
-                    <p className="text-sm font-bold">
-                      Supporting our community.
-                    </p>
-                    <p className="text-xs text-white/70">
-                      Building our future.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <div className="mx-auto mt-16 max-w-5xl rounded-[2rem] border border-[#043528]/10 bg-white/70 p-8 shadow-sm">
-            <p className="mb-6 text-center font-black text-[#168966]">
-              Launching Soon
-            </p>
+          {/* Sub */}
+          <p className="f3" style={{ fontSize:'clamp(15px,2.5vw,18px)', color:'rgba(245,240,232,0.65)', lineHeight:1.7, maxWidth:520, marginBottom:48 }}>
+            Markeetee is the go-to directory for African-owned businesses in the US.
+            We&apos;re launching on July 18th — join the waitlist or use your beta code to get in early.
+          </p>
 
-            <div className="grid grid-cols-4 gap-4 text-center">
+          {/* ── Tab switcher + forms ── */}
+          <div className="f4" style={{ width:'100%', maxWidth:480 }}>
+
+            {/* Tabs */}
+            <div style={{ display:'flex', gap:6, marginBottom:20, background:'rgba(255,255,255,0.06)', borderRadius:14, padding:4 }}>
               {[
-                ['23', 'Days'],
-                ['14', 'Hours'],
-                ['36', 'Minutes'],
-                ['48', 'Seconds'],
-              ].map(([num, label]) => (
-                <div key={label}>
-                  <p className="text-4xl font-black text-[#085041]">{num}</p>
-                  <p className="mt-1 text-sm text-[#043528]/60">{label}</p>
-                </div>
+                { label:'Join waitlist', active:!showCode, onClick:() => setShowCode(false) },
+                { label:'I have a code', active:showCode,  onClick:() => setShowCode(true)  },
+              ].map(t => (
+                <button key={t.label} onClick={t.onClick}
+                  style={{ flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all 0.2s',
+                    background: t.active ? 'rgba(29,158,117,0.25)' : 'transparent',
+                    color:      t.active ? '#9FE1CB'               : 'rgba(245,240,232,0.5)',
+                  }}>
+                  {t.label}
+                </button>
               ))}
             </div>
+
+            {/* Waitlist form */}
+            {!showCode && (
+              submitted ? (
+                <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center', padding:'14px 20px', background:'rgba(29,158,117,0.12)', border:'1px solid rgba(29,158,117,0.3)', borderRadius:12, color:'#9FE1CB', fontSize:14, fontWeight:500 }}>
+                  🎉 You&apos;re on the list! We&apos;ll email you when we launch.
+                </div>
+              ) : (
+                <form onSubmit={handleWaitlist}>
+                  <div style={{ display:'flex', gap:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(159,225,203,0.2)', borderRadius:14, padding:'6px 6px 6px 18px' }}>
+                    <input
+                      type="email" value={email}
+                      onChange={e => { setEmail(e.target.value); setEmailError('') }}
+                      placeholder="Enter your email address"
+                      style={{ flex:1, background:'transparent', border:'none', outline:'none', fontSize:14, color:'#F5F0E8', minWidth:0 }}
+                    />
+                    <button type="submit" disabled={submitting}
+                      style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:10, padding:'11px 22px', fontSize:13, fontWeight:600, cursor:'pointer', flexShrink:0, opacity:submitting ? 0.7 : 1 }}>
+                      {submitting ? 'Adding…' : 'Notify me'}
+                    </button>
+                  </div>
+                  {emailError && <p style={{ color:'#F87171', fontSize:12, marginTop:8, textAlign:'center' }}>{emailError}</p>}
+                  <p style={{ fontSize:11, color:'rgba(245,240,232,0.3)', marginTop:10, textAlign:'center' }}>
+                    No spam. One email when we launch.
+                  </p>
+                </form>
+              )
+            )}
+
+            {/* Beta code form */}
+            {showCode && (
+              <form onSubmit={handleCode}>
+                <div style={{ display:'flex', gap:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(159,225,203,0.2)', borderRadius:14, padding:'6px 6px 6px 18px' }}>
+                  <input
+                    type="text" value={code}
+                    onChange={e => { setCode(e.target.value.toUpperCase()); setCodeError('') }}
+                    placeholder="ENTER YOUR ACCESS CODE"
+                    autoFocus
+                    style={{ flex:1, background:'transparent', border:'none', outline:'none', fontSize:14, color:'#F5F0E8', minWidth:0, letterSpacing:'0.1em', fontWeight:600 }}
+                  />
+                  <button type="submit" disabled={codeLoading}
+                    style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:10, padding:'11px 22px', fontSize:13, fontWeight:600, cursor:'pointer', flexShrink:0, opacity:codeLoading ? 0.7 : 1 }}>
+                    {codeLoading ? 'Checking…' : 'Enter →'}
+                  </button>
+                </div>
+                {codeError && <p style={{ color:'#F87171', fontSize:12, marginTop:8, textAlign:'center' }}>{codeError}</p>}
+                <p style={{ fontSize:11, color:'rgba(245,240,232,0.3)', marginTop:10, textAlign:'center' }}>
+                  Got an early access code? Enter it above to get in.
+                </p>
+              </form>
+            )}
           </div>
 
-          <footer className="mt-14 pb-8 text-sm text-[#043528]/70">
-            <p>All things Africa, all in one place.</p>
-          </footer>
-        </div>
-      </section>
-    </main>
+          {/* Stats */}
+          <div className="f5" style={{ display:'flex', gap:'clamp(32px,8vw,80px)', marginTop:56, flexWrap:'wrap', justifyContent:'center' }}>
+            {STATS.map(s => (
+              <div key={s.label} style={{ textAlign:'center' }}>
+                <p style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(32px,5vw,48px)', fontWeight:900, color:'#1D9E75', lineHeight:1, marginBottom:6 }}>
+                  {s.num}
+                </p>
+                <p style={{ fontSize:12, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'rgba(245,240,232,0.45)' }}>
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Flags */}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center', maxWidth:480, marginTop:40 }}>
+            {FLAGS.map(f => (
+              <span key={f} style={{ fontSize:26, lineHeight:1 }}>{f}</span>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Footer ── */}
+        <footer style={{ borderTop:'1px solid rgba(159,225,203,0.1)', padding:'24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, maxWidth:960, margin:'0 auto' }}>
+          <p style={{ fontSize:12, color:'rgba(245,240,232,0.3)' }}>
+            © {new Date().getFullYear()} Markeetee · Made for the African diaspora
+          </p>
+          <div style={{ display:'flex', gap:16 }}>
+            <a href="/privacy"                         style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Privacy Policy</a>
+            <a href="/terms"                           style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Terms</a>
+            <a href="https://instagram.com/markeetee" style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Instagram</a>
+            <a href="mailto:hello@markeetee.com"       style={{ fontSize:12, color:'rgba(245,240,232,0.35)', textDecoration:'none' }}>Contact</a>
+          </div>
+        </footer>
+
+      </div>
+    </>
   )
 }
 
