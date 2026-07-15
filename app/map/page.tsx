@@ -3,7 +3,7 @@
 import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  APIProvider, Map, AdvancedMarker, Pin,
+  APIProvider, Map, AdvancedMarker,
   InfoWindow, useMap, useMapsLibrary
 } from '@vis.gl/react-google-maps'
 import { Search, X, MapPin, List, LayoutGrid, Loader2, Navigation } from 'lucide-react'
@@ -20,9 +20,9 @@ type BusinessRowWithHours = BusinessRow & {
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!
 
-// Houston, TX default center
-const DEFAULT_CENTER = { lat: 29.7604, lng: -95.3698 }
-const DEFAULT_ZOOM   = 11
+// Center of the United States
+const DEFAULT_CENTER = { lat: 39.5, lng: -98.35 }
+const DEFAULT_ZOOM   = 4
 
 // Haversine formula — distance in miles between two lat/lng points
 function distanceMiles(
@@ -71,6 +71,19 @@ const CATEGORIES = [
   { id: 'crafts',     name: 'Crafts & Decor',     icon: '🏺' },
   { id: 'services',   name: 'Services',           icon: '🛠️' },
 ]
+
+// ── Category emoji for map pins ──────────────────────────────────────────
+const CATEGORY_PIN: Record<string, string> = {
+  food:       '🍲',
+  restaurant: '🍽️',
+  fashion:    '👗',
+  beauty:     '💇',
+  herbs:      '🌿',
+  music:      '🎵',
+  crafts:     '🏺',
+  services:   '🛠️',
+  nightlife:  '🍸',
+}
 
 // ── Location search box (uses Places Autocomplete) ──────────────────────────
 function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => void }) {
@@ -481,12 +494,41 @@ export default function MapPage() {
                       onClick={() => handlePinClick(b)}
                       zIndex={selectedId === b.id ? 10 : 1}
                     >
-                      <Pin
-                        background={selectedId === b.id ? '#085041' : '#1D9E75'}
-                        borderColor={selectedId === b.id ? '#053528' : '#0F6E56'}
-                        glyphColor="white"
-                        scale={selectedId === b.id ? 1.3 : 1}
-                      />
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        transform: selectedId === b.id ? 'scale(1.35)' : 'scale(1)',
+                        transition: 'transform 0.15s ease',
+                        filter: selectedId === b.id
+                          ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))'
+                          : 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
+                      }}>
+                        {/* Teardrop body */}
+                        <div style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50% 50% 50% 0',
+                          transform: 'rotate(-45deg)',
+                          background: selectedId === b.id ? '#085041' : '#DC2626',
+                          border: `2.5px solid ${selectedId === b.id ? '#053528' : '#991B1B'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <span style={{ transform: 'rotate(45deg)', fontSize: 16, lineHeight: 1 }}>
+                            {CATEGORY_PIN[b.category ?? ''] ?? '📍'}
+                          </span>
+                        </div>
+                        {/* Stem dot */}
+                        <div style={{
+                          width: 6, height: 6,
+                          background: selectedId === b.id ? '#085041' : '#DC2626',
+                          borderRadius: '50%',
+                          marginTop: 2,
+                        }} />
+                      </div>
                     </AdvancedMarker>
                   ) : null
                 )}

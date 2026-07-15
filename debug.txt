@@ -190,7 +190,6 @@ export default function BusinessDetailClient({ id }: { id: string }) {
 
   // ── Check ownership ───────────────────────────────────────────────────
   const isThisOwner = !!(user && biz && user.id === biz.owner_id)
-  const isUnclaimed = !biz?.owner_id
 
   // ── Owner reply to a review ───────────────────────────────────────────
   async function handleReply(reviewId: string, text: string) {
@@ -395,27 +394,6 @@ export default function BusinessDetailClient({ id }: { id: string }) {
           </div>
         )}
       </div>
-
-      {/* ── CLAIM BANNER (unclaimed listings only) ── */}
-      {isUnclaimed && (
-        <div className="mt-4 rounded-2xl border border-amber-200 p-4 flex items-center justify-between gap-3 flex-wrap"
-          style={{ background: '#FFFBEB' }}>
-          <div className="flex items-start gap-3">
-            <span className="text-2xl flex-shrink-0">🏪</span>
-            <div>
-              <p className="font-bold text-sm text-amber-900">Is this your business?</p>
-              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                Claim this listing to manage your photos, hours, products, and respond to reviews.
-              </p>
-            </div>
-          </div>
-          <a href={`/claim/${id}`}
-            className="flex-shrink-0 text-sm font-bold text-white px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-            style={{ background: '#1D9E75' }}>
-            Claim this business →
-          </a>
-        </div>
-      )}
 
       {/* ── PRODUCTS ── */}
       <div className="mt-6">

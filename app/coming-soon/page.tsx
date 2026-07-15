@@ -3,10 +3,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { ArrowRight, Rocket } from 'lucide-react'
 
-const LAUNCH_END_DATE = new Date('2026-07-22T23:59:59')
+const LAUNCH_END_DATE = new Date('2026-07-20T23:59:59')
 
 const BENEFITS = [
   { icon: '⌕', title: 'Discover', text: 'Find authentic African businesses near you.' },
@@ -39,7 +39,6 @@ const LAUNCH_FEATURES = [
 
 function ComingSoonInner() {
   const params = useSearchParams()
-  const router = useRouter()
 
   const [showCode, setShowCode] = useState(false)
   const [email, setEmail] = useState('')
@@ -129,14 +128,14 @@ function ComingSoonInner() {
 
       if (!res.ok) {
         setError(data.error ?? 'Invalid access code.')
+        setLoading(false)
         return
       }
 
-      router.push('/')
-      router.refresh()
+      // Hard redirect — picks up the beta cookie in one shot
+      window.location.href = '/'
     } catch {
       setError('Something went wrong. Try again.')
-    } finally {
       setLoading(false)
     }
   }

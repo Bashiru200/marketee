@@ -1,32 +1,43 @@
-import { MetadataRoute } from 'next'
-import { createClient } from '@/lib/supabase/server'
+// app/sitemap.ts
+import type { MetadataRoute } from 'next'
+import { createClient } from '@supabase/supabase-js'
+
+const APP_URL = 'https://markeetee.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient()
-  const base     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
-
-  const { data: businesses } = await supabase
-    .from('businesses')
-    .select('id, updated_at')
-
-  const businessUrls = (businesses ?? []).map(b => ({
-    url:          `${base}/businesses/${b.id}`,
-    lastModified: b.updated_at ? new Date(b.updated_at) : new Date(),
-    changeFrequency: 'weekly' as const,
-    priority:     0.8,
-  }))
-
-  const staticPages = [
-    { url: base,                      priority: 1.0, changeFrequency: 'daily'   as const },
-    { url: `${base}/search`,          priority: 0.9, changeFrequency: 'daily'   as const },
-    { url: `${base}/map`,             priority: 0.8, changeFrequency: 'daily'   as const },
-    { url: `${base}/about`,           priority: 0.6, changeFrequency: 'monthly' as const },
-    { url: `${base}/how-it-works`,    priority: 0.6, changeFrequency: 'monthly' as const },
-    { url: `${base}/contact`,         priority: 0.5, changeFrequency: 'monthly' as const },
-    { url: `${base}/faq`,             priority: 0.6, changeFrequency: 'monthly' as const },
-    { url: `${base}/terms`,           priority: 0.3, changeFrequency: 'yearly'  as const },
-    { url: `${base}/privacy`,         priority: 0.3, changeFrequency: 'yearly'  as const },
+  // Static pages
+  const staticPages: MetadataRoute.Sitemap = [
+    { url: APP_URL,              lastModified: new Date(), changeFrequency: 'daily',   priority: 1.0 },
+    { url: `${APP_URL}/search`,  lastModified: new Date(), changeFrequency: 'daily',   priority: 0.9 },
+    { url: `${APP_URL}/map`,     lastModified: new Date(), changeFrequency: 'daily',   priority: 0.8 },
+    { url: `${APP_URL}/launch`,  lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.7 },
+    { url: `${APP_URL}/about`,   lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${APP_URL}/privacy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${APP_URL}/terms`,   lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${APP_URL}/contact`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
   ]
 
-  return [...staticPages, ...businessUrls]
+  // Business pages
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: businesses } = await supabase
+      .from('businesses')
+      .select('id, updated_at')
+      .order('created_at', { ascending: false })
+
+    const businessPages: MetadataRoute.Sitemap = (businesses ?? []).map(b => ({
+      url:              `${APP_URL}/businesses/${b.id}`,
+      lastModified:     new Date(b.updated_at ?? new Date()),
+      changeFrequency:  'weekly' as const,
+      priority:         0.8,
+    }))
+
+    return [...staticPages, ...businessPages]
+  } catch {
+    return staticPages
+  }
 }

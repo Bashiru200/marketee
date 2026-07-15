@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     'African businesses', 'African diaspora', 'Nigerian businesses USA',
-    'African food Houston', 'African restaurant', 'African grocery store',
+    'African food near me', 'African restaurant', 'African grocery store',
     'African fashion', 'African beauty salon', 'African market',
   ],
   verification: { google: 'NsCTcJ4xHXlpeQhPs_NFSKQalYuOersx_oLfYLDAo8M' }

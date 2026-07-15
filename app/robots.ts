@@ -1,15 +1,26 @@
-import { MetadataRoute } from 'next'
+// app/robots.ts
+import type { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
   return {
     rules: [
       {
         userAgent: '*',
-        allow:     '/',
-        disallow:  ['/dashboard', '/account', '/auth'],
+        allow: '/',
+        disallow: [
+          '/coming-soon',
+          '/coming-soon?*',
+          '/api/',
+          '/admin',
+          '/dashboard',
+          '/auth/',
+          '/settings',
+          '/invite/',
+          '/claim/',
+        ],
       },
     ],
-    sitemap: `${base}/sitemap.xml`,
+    sitemap: 'https://markeetee.com/sitemap.xml',
+    host:    'https://markeetee.com',
   }
 }
