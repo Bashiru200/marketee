@@ -19,6 +19,7 @@ import SaveButton    from '@/components/ui/SaveButton'
 import ProductModal      from '@/components/ui/ProductModal'
 import GoogleMapsHours    from '@/components/ui/GoogleMapsHours'
 import LeadEnquiryForm    from '@/components/ui/LeadEnquiryForm'
+import ClaimBusinessModal  from '@/components/ui/ClaimBusinessModal'
 import { canAccess }      from '@/lib/planGate'
 
 // ── Airbnb-style full-screen gallery ─────────────────────────────────────
@@ -165,6 +166,7 @@ export default function BusinessDetailClient({ id }: { id: string }) {
   const [loading,         setLoading]         = useState(true)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [galleryIdx,      setGalleryIdx]      = useState<number | null>(null)
+  const [showClaim,       setShowClaim]       = useState(false)
   const [copied,          setCopied]          = useState(false)
 
   const loadAll = useCallback(async () => {
@@ -409,11 +411,13 @@ export default function BusinessDetailClient({ id }: { id: string }) {
               </p>
             </div>
           </div>
-          <a href={`/claim/${id}`}
+          <button
+            type="button"
+            onClick={() => setShowClaim(true)}
             className="flex-shrink-0 text-sm font-bold text-white px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
             style={{ background: '#1D9E75' }}>
             Claim this business →
-          </a>
+          </button>
         </div>
       )}
 
@@ -578,6 +582,16 @@ export default function BusinessDetailClient({ id }: { id: string }) {
           businessName={biz.name}
           businessPhone={biz.phone}
           onClose={() => setSelectedProduct(null)}
+        />
+      )}
+
+      {/* ── CLAIM MODAL ── */}
+      {showClaim && (
+        <ClaimBusinessModal
+          businessId={id}
+          businessName={biz.name}
+          businessPhone={biz.phone}
+          onClose={() => setShowClaim(false)}
         />
       )}
 
