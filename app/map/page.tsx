@@ -6,73 +6,35 @@ import {
   APIProvider, Map, AdvancedMarker,
   InfoWindow, useMap, useMapsLibrary
 } from '@vis.gl/react-google-maps'
-import { Search, X, MapPin, List, LayoutGrid, Loader2, Navigation } from 'lucide-react'
+import { Search, X, MapPin, Loader2, Navigation, ChevronLeft, ChevronRight, Phone, Globe, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { BusinessRow } from '@/lib/queries'
 import Link from 'next/link'
 import { getHoursStatus } from '@/lib/businessHours'
-import HoursBadge from '@/components/ui/HoursBadge'
-
-type BusinessRowWithHours = BusinessRow & {
-  hours_open?: string | null
-  days_open?: string[] | null
-}
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!
 
-// Center of the United States
 const DEFAULT_CENTER = { lat: 39.5, lng: -98.35 }
 const DEFAULT_ZOOM   = 4
 
-// Haversine formula — distance in miles between two lat/lng points
-function distanceMiles(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number
-): number {
-  const R    = 3958.8 // Earth radius in miles
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a    = Math.sin(dLat/2) ** 2 +
-               Math.cos(lat1 * Math.PI / 180) *
-               Math.cos(lat2 * Math.PI / 180) *
-               Math.sin(dLng/2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-const RADIUS_OPTIONS = [
-  { label: '10 mi',  value: 10  },
-  { label: '20 mi',  value: 20  },
-  { label: '50 mi',  value: 50  },
-  { label: '100 mi', value: 100 },
-  { label: 'All',    value: 0   },
+// ── Apple Maps style map theme ────────────────────────────────────────────
+const APPLE_MAP_STYLE = [
+  { featureType:'all',        elementType:'labels.text.fill',   stylers:[{ color:'#6b6b6b' }] },
+  { featureType:'all',        elementType:'labels.text.stroke', stylers:[{ color:'#ffffff' }, { weight:2 }] },
+  { featureType:'road',       elementType:'geometry',           stylers:[{ color:'#ffffff' }] },
+  { featureType:'road.highway', elementType:'geometry',         stylers:[{ color:'#f5f5f5' }] },
+  { featureType:'road.arterial', elementType:'geometry',        stylers:[{ color:'#ffffff' }] },
+  { featureType:'water',      elementType:'geometry',           stylers:[{ color:'#c9e8f5' }] },
+  { featureType:'landscape',  elementType:'geometry',           stylers:[{ color:'#f0f0f0' }] },
+  { featureType:'landscape.natural', elementType:'geometry',    stylers:[{ color:'#e8f0e8' }] },
+  { featureType:'poi.park',   elementType:'geometry',           stylers:[{ color:'#d4e8d4' }] },
+  { featureType:'poi',        elementType:'labels',             stylers:[{ visibility:'off' }] },
+  { featureType:'transit',    elementType:'labels',             stylers:[{ visibility:'off' }] },
+  { featureType:'administrative', elementType:'geometry',       stylers:[{ color:'#e0e0e0' }] },
+  { featureType:'administrative.country', elementType:'labels.text.fill', stylers:[{ color:'#9e9e9e' }] },
+  { featureType:'administrative.locality', elementType:'labels.text.fill', stylers:[{ color:'#757575' }] },
 ]
 
-
-
-const GRADIENTS: Record<string, string> = {
-  food:       'linear-gradient(135deg,#c5eadb,#9fdcc3)',
-  restaurant: 'linear-gradient(135deg,#EEEDFE,#AFA9EC)',
-  fashion:    'linear-gradient(135deg,#FAEEDA,#FAC775)',
-  beauty:     'linear-gradient(135deg,#FBEAF0,#ED93B1)',
-  herbs:      'linear-gradient(135deg,#EAF3DE,#C0DD97)',
-  music:      'linear-gradient(135deg,#FAECE7,#F0997B)',
-  crafts:     'linear-gradient(135deg,#E6F1FB,#85B7EB)',
-  services:   'linear-gradient(135deg,#F1EFE8,#B4B2A9)',
-  nightlife:   'linear-gradient(135deg,#2D1B69,#6B46C1)',
-}
-
-const CATEGORIES = [
-  { id: 'food',       name: 'Food & Groceries',  icon: '🍲' },
-  { id: 'restaurant', name: 'Restaurants',        icon: '🍽️' },
-  { id: 'fashion',    name: 'Fashion & Fabric',   icon: '👗' },
-  { id: 'beauty',     name: 'Beauty & Hair',      icon: '💆' },
-  { id: 'herbs',      name: 'Herbs & Wellness',   icon: '🌿' },
-  { id: 'music',      name: 'Music & Arts',       icon: '🎵' },
-  { id: 'crafts',     name: 'Crafts & Decor',     icon: '🏺' },
-  { id: 'services',   name: 'Services',           icon: '🛠️' },
-]
-
-// ── Category emoji for map pins ──────────────────────────────────────────
+// ── Category icons ────────────────────────────────────────────────────────
 const CATEGORY_PIN: Record<string, string> = {
   food:       '🍲',
   restaurant: '🍽️',
@@ -85,565 +47,403 @@ const CATEGORY_PIN: Record<string, string> = {
   nightlife:  '🍸',
 }
 
-// ── Location search box (uses Places Autocomplete) ──────────────────────────
-function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => void }) {
-  const inputRef  = useRef<HTMLInputElement>(null)
-  const placesLib = useMapsLibrary('places')
-  const acRef     = useRef<google.maps.places.Autocomplete | null>(null)
+const CATEGORIES = [
+  { id:'all',        label:'All',        icon:'🌍' },
+  { id:'restaurant', label:'Restaurants', icon:'🍽️' },
+  { id:'food',       label:'Food',        icon:'🍲' },
+  { id:'beauty',     label:'Beauty',      icon:'💇' },
+  { id:'fashion',    label:'Fashion',     icon:'👗' },
+  { id:'services',   label:'Services',    icon:'🛠️' },
+  { id:'herbs',      label:'Wellness',    icon:'🌿' },
+  { id:'music',      label:'Music',       icon:'🎵' },
+]
+
+function distanceMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R    = 3958.8
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a    = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+interface BusinessRow {
+  id: string; name: string; category: string | null; subcategory?: string | null
+  street: string | null; address: string | null; city: string | null
+  state: string | null; zip: string | null; phone: string | null
+  website: string | null; country: string | null; cover_image: string | null
+  rating: number; review_count: number; verified: boolean; featured: boolean
+  plan: string | null; lat: number; lng: number
+  hours_open?: string | null; days_open?: string[] | null
+}
+
+// ── Location search ───────────────────────────────────────────────────────
+function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number, name: string) => void }) {
+  const map         = useMap()
+  const placesLib   = useMapsLibrary('places')
+  const inputRef    = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState('')
 
   useEffect(() => {
     if (!placesLib || !inputRef.current) return
-
-    acRef.current = new placesLib.Autocomplete(inputRef.current, {
-      types:  ['(cities)'],
-      fields: ['geometry', 'formatted_address'],
-    })
-
-    const listener = acRef.current.addListener('place_changed', () => {
-      const place = acRef.current!.getPlace()
+    const ac = new placesLib.Autocomplete(inputRef.current, { types: ['(cities)'], componentRestrictions: { country:'us' } })
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace()
       if (place.geometry?.location) {
-        onPlace(
-          place.geometry.location.lat(),
-          place.geometry.location.lng(),
-        )
+        onPlace(place.geometry.location.lat(), place.geometry.location.lng(), place.name ?? '')
       }
     })
-
-    return () => google.maps.event.removeListener(listener)
   }, [placesLib, onPlace])
 
   return (
-    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all w-52 sm:w-60">
-      <Navigation size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
-      <input
-        ref={inputRef}
-        type="text"
-        placeholder="City or area…"
-        className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400 min-w-0"
-      />
+    <div className="relative flex items-center">
+      <MapPin size={14} className="absolute left-3 text-gray-400 pointer-events-none" />
+      <input ref={inputRef} value={value} onChange={e => setValue(e.target.value)}
+        placeholder="Search location…"
+        className="pl-8 pr-3 py-2 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400 w-36" />
+      {value && <button onClick={() => setValue('')}><X size={12} className="text-gray-400" /></button>}
     </div>
   )
 }
 
-// ── Map controller — pans/zooms when center changes ─────────────────────────
-function MapController({ center, zoom }: { center: google.maps.LatLngLiteral; zoom: number }) {
+// ── Main map controller ───────────────────────────────────────────────────
+function MapController({ center, zoom }: { center: { lat: number; lng: number }; zoom: number }) {
   const map = useMap()
-  useEffect(() => {
-    if (!map) return
-    map.panTo(center)
-    map.setZoom(zoom)
-  }, [map, center, zoom])
+  useEffect(() => { if (map) { map.panTo(center); map.setZoom(zoom) } }, [map, center, zoom])
   return null
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
 export default function MapPage() {
   const supabase = createClient()
+  const [businesses,    setBusinesses]    = useState<BusinessRow[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [search,        setSearch]        = useState('')
+  const [category,      setCategory]      = useState('all')
+  const [selectedId,    setSelectedId]    = useState<string | null>(null)
+  const [mapCenter,     setMapCenter]     = useState(DEFAULT_CENTER)
+  const [mapZoom,       setMapZoom]       = useState(DEFAULT_ZOOM)
+  const [userLocation,  setUserLocation]  = useState<{ lat: number; lng: number } | null>(null)
+  const [locating,      setLocating]      = useState(false)
+  const [showSearch,    setShowSearch]    = useState(false)
+  const [showList,      setShowList]      = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  const [businesses,       setBusinesses]       = useState<BusinessRowWithHours[]>([])
-  const [loading,          setLoading]          = useState(true)
-  const [selectedId,       setSelectedId]       = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [search,           setSearch]           = useState('')
-  const [view,             setView]             = useState<'map' | 'list'>('map')
-  const [mapCenter,        setMapCenter]        = useState(DEFAULT_CENTER)
-  const [mapZoom,          setMapZoom]          = useState(DEFAULT_ZOOM)
-  const [userLocation,     setUserLocation]     = useState<{ lat: number; lng: number } | null>(null)
-  const [radius,           setRadius]           = useState(20) // miles
-
-  // ── Read saved location from LocationPrompt on mount ──────────────────
-  useEffect(() => {
-    function applyStoredLocation() {
-      try {
-        const lat  = parseFloat(localStorage.getItem('user_lat')  ?? '')
-        const lng  = parseFloat(localStorage.getItem('user_lng')  ?? '')
-        const city = localStorage.getItem('user_city') ?? ''
-        if (!isNaN(lat) && !isNaN(lng)) {
-          setMapCenter({ lat, lng })
-          setMapZoom(12)
-          setUserLocation({ lat, lng })
-          if (city) setSearch(city)
-        }
-      } catch {}
-    }
-
-    // Run on mount
-    applyStoredLocation()
-
-    // Also listen for live updates when user clicks Allow on the prompt
-    window.addEventListener('storage', applyStoredLocation)
-    return () => window.removeEventListener('storage', applyStoredLocation)
-  }, [])
-
-  // ── Fetch businesses ───────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      setLoading(true)
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('businesses')
-        .select(`
-          id, name, category, subcategory, description,
-          address, street, city, state, zip, country,
-          cover_image, logo_url, rating, review_count,
-          price_range, tags, lat, lng,
-          verified, premium, featured, plan, slug,
-          phone, email, website,
-          hours_open, days_open
-        `)
-        .not('lat', 'is', null)
-        .not('lng', 'is', null)
-        .order('plan',     { ascending: false })
+        .select('id,name,category,subcategory,street,address,city,state,zip,phone,website,country,cover_image,rating,review_count,verified,featured,plan,lat,lng,hours_open,days_open')
+        .not('lat', 'is', null).not('lng', 'is', null)
         .order('featured', { ascending: false })
         .order('rating',   { ascending: false })
-      if (error) console.error('[MapPage]', error)
-      setBusinesses(data ?? [])
+      setBusinesses((data ?? []) as BusinessRow[])
       setLoading(false)
     }
     load()
   }, [])
 
-  // ── Filter ────────────────────────────────────────────────────────────
+  function locateMe() {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setUserLocation(loc); setMapCenter(loc); setMapZoom(13); setLocating(false)
+      },
+      () => setLocating(false)
+    )
+  }
+
   const filtered = businesses.filter(b => {
-    const q  = search.toLowerCase()
-    const ms = !search ||
-      b.name.toLowerCase().includes(q) ||
-      (b.city ?? '').toLowerCase().includes(q) ||
-      (b.tags ?? []).some(t => t.toLowerCase().includes(q))
-    const mc = !selectedCategory || b.category === selectedCategory
-
-    // Radius filter — only apply when we have a user/map center location
-    const mr = radius === 0 || !b.lat || !b.lng ? true :
-      distanceMiles(mapCenter.lat, mapCenter.lng, b.lat, b.lng) <= radius
-
-    return ms && mc && mr
+    const q = search.toLowerCase()
+    const matchSearch = !search
+      || b.name.toLowerCase().includes(q)
+      || (b.city ?? '').toLowerCase().includes(q)
+      || (b.category ?? '').toLowerCase().includes(q)
+    const matchCat = category === 'all' || b.category === category
+    return matchSearch && matchCat
   })
 
   const selected = businesses.find(b => b.id === selectedId) ?? null
 
-  // ── When user picks a location from search ────────────────────────────
-  const handlePlace = useCallback((lat: number, lng: number) => {
-    setMapCenter({ lat, lng })
-    setMapZoom(13)
-  }, [])
-
-  // ── Click a pin / business card ──────────────────────────────────────
   function handlePinClick(b: BusinessRow) {
-    const newId = b.id === selectedId ? null : b.id
-    setSelectedId(newId)
-    if (b.lat && b.lng) {
-      setMapCenter({ lat: b.lat, lng: b.lng })
-      setMapZoom(15)
-    }
-    // On desktop: scroll the sidebar card into view
-    if (newId) {
-      setTimeout(() => {
-        document.getElementById(`biz-${newId}`)?.scrollIntoView({
-          behavior: 'smooth',
-          block:    'nearest',
-        })
-      }, 50)
-    }
+    setSelectedId(b.id === selectedId ? null : b.id)
+    setMapCenter({ lat: b.lat - 0.002, lng: b.lng })
+    setMapZoom(15)
   }
 
+  // getHoursStatus returns a complex type; cast to any to avoid TS property errors when accessing fields below
+  const hoursStatus: any = selected ? getHoursStatus(selected.hours_open, selected.days_open ?? []) : null
+
   return (
-  <APIProvider apiKey={GOOGLE_MAPS_KEY}>
-    <div className="h-[calc(100vh-4rem)] bg-[#F8FAF9] flex flex-col">
+    <APIProvider apiKey={GOOGLE_MAPS_KEY}>
+      <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-gray-100">
 
-      {/* FILTER BAR */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 z-20">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-3 lg:items-center">
+        {/* ── FULL SCREEN MAP ── */}
+        <Map
+          defaultCenter={DEFAULT_CENTER}
+          defaultZoom={DEFAULT_ZOOM}
+          gestureHandling="greedy"
+          disableDefaultUI
+          mapId="markeetee-map"
+          styles={APPLE_MAP_STYLE}
+          className="w-full h-full"
+          onClick={() => setSelectedId(null)}>
 
-          {/* Search */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex-1">
-            <Search size={15} className="text-gray-400" />
+          <MapController center={mapCenter} zoom={mapZoom} />
+
+          {/* User location dot */}
+          {userLocation && (
+            <AdvancedMarker position={userLocation} zIndex={20}>
+              <div className="relative">
+                <div className="w-5 h-5 rounded-full border-3 border-white shadow-lg" style={{ background:'#007AFF' }} />
+                <div className="absolute inset-0 w-5 h-5 rounded-full animate-ping opacity-40" style={{ background:'#007AFF' }} />
+              </div>
+            </AdvancedMarker>
+          )}
+
+          {/* Business pins */}
+          {filtered.map(b => (
+            <AdvancedMarker
+              key={b.id}
+              position={{ lat: b.lat, lng: b.lng }}
+              onClick={() => handlePinClick(b)}
+              zIndex={selectedId === b.id ? 10 : 1}>
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                cursor: 'pointer',
+                transform: selectedId === b.id ? 'scale(1.3)' : 'scale(1)',
+                transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                filter: selectedId === b.id
+                  ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.3))'
+                  : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+              }}>
+                <div style={{
+                  width: 38, height: 38,
+                  borderRadius: '50% 50% 50% 0',
+                  transform: 'rotate(-45deg)',
+                  background: selectedId === b.id ? '#085041' : '#DC2626',
+                  border: `2.5px solid ${selectedId === b.id ? '#053528' : '#991B1B'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <span style={{ transform: 'rotate(45deg)', fontSize: 17, lineHeight: 1 }}>
+                    {CATEGORY_PIN[b.category ?? ''] ?? '📍'}
+                  </span>
+                </div>
+                <div style={{
+                  width: 6, height: 6,
+                  background: selectedId === b.id ? '#085041' : '#DC2626',
+                  borderRadius: '50%', marginTop: 2,
+                }} />
+              </div>
+            </AdvancedMarker>
+          ))}
+        </Map>
+
+        {/* ── FLOATING SEARCH BAR (Apple Maps style) ── */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-30">
+          <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 px-4 py-3">
+            <Search size={16} className="text-gray-400 flex-shrink-0" />
             <input
+              ref={searchRef}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search business, city, food, fashion..."
-              className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search African businesses…"
+              className="flex-1 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium"
             />
-            {search && (
-              <button type="button" onClick={() => setSearch('')}>
-                <X size={14} className="text-gray-400" />
-              </button>
-            )}
-          </div>
-
-          {/* Location */}
-          <LocationSearch
-            onPlace={(lat, lng) => {
+            {search
+              ? <button onClick={() => setSearch('')}><X size={15} className="text-gray-400" /></button>
+              : <div className="w-px h-4 bg-gray-200" />
+            }
+            <LocationSearch onPlace={(lat, lng) => {
               setMapCenter({ lat, lng })
               setUserLocation({ lat, lng })
               setMapZoom(13)
-            }}
-          />
-
-          {/* Category */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700"
-          >
-            <option value="">All categories</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Radius */}
-          <select
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
-            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700"
-          >
-            {RADIUS_OPTIONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-
-          {/* View toggle */}
-          <div className="flex bg-gray-100 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => setView('map')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold ${
-                view === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              <MapPin size={14} />
-              Map
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setView('list')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold ${
-                view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              <List size={14} />
-              List
-            </button>
+            }} />
           </div>
-
-          {/* Clear filters */}
-          {(search || selectedCategory || radius !== 20) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch('')
-                setSelectedCategory('')
-                setRadius(20)
-                setSelectedId(null)
-                setMapCenter(DEFAULT_CENTER)
-                setMapZoom(DEFAULT_ZOOM)
-              }}
-              className="text-xs font-semibold text-gray-500 hover:text-green-700"
-            >
-              Clear filters
-            </button>
-          )}
         </div>
 
-        <div className="max-w-7xl mx-auto mt-2">
-          <p className="text-xs text-gray-400">
-            Showing {filtered.length} of {businesses.length} businesses
-          </p>
-        </div>
-      </div>
-
-      {/* CONTENT */}
-      <div className="flex-1 min-h-0">
-        {view === 'map' ? (
-          <div className="h-full flex flex-col md:flex-row overflow-hidden">
-
-            {/* BUSINESS LIST SIDEBAR */}
-            <div className="w-full md:w-80 bg-white border-r border-gray-100 overflow-y-auto order-2 md:order-1">
-              {filtered.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  <p className="text-3xl mb-2">🔍</p>
-                  <p className="text-sm font-medium">No businesses found</p>
-                  <p className="text-xs mt-1">Try changing your filters</p>
-                </div>
-              ) : (
-                filtered.map((b) => {
-                  const isSelected = selectedId === b.id
-
-                  return (
-                    <button
-                      key={b.id}
-                      id={`biz-${b.id}`}
-                      onClick={() => handlePinClick(b)}
-                      className="w-full text-left flex gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-all"
-                      style={
-                        isSelected
-                          ? {
-                              background: '#f0faf6',
-                              borderLeft: '3px solid #1D9E75',
-                              paddingLeft: '13px',
-                            }
-                          : {}
-                      }
-                    >
-                      <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
-                        {b.cover_image ? (
-                          <img
-                            src={b.cover_image}
-                            alt={b.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div
-                            className="w-full h-full flex items-center justify-center text-2xl"
-                            style={{
-                              background:
-                                GRADIENTS[b.category ?? ''] ?? GRADIENTS.services,
-                            }}
-                          >
-                            {CATEGORIES.find((c) => c.id === b.category)?.icon ?? '🏪'}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm text-gray-900 line-clamp-1">
-                          {b.name}
-                        </p>
-
-                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                          {AFRICAN_FLAGS[b.country ?? ''] ?? '🌍'}
-                          <span className="truncate capitalize">
-                            {b.subcategory ?? b.category}
-                          </span>
-                        </p>
-
-                        <p className="text-[11px] text-gray-400 mt-1 truncate">
-                          📍 {[b.city, b.state].filter(Boolean).join(', ') || 'No location'}
-                        </p>
-
-                        <div className="flex items-center gap-1.5 mt-1">
-                          {b.rating > 0 ? (
-                            <span className="text-xs font-medium text-amber-500">
-                              ★ {b.rating.toFixed(1)}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-300">No reviews</span>
-                          )}
-
-                          {b.verified && (
-                            <span
-                              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                              style={{ background: '#E1F5EE', color: '#085041' }}
-                            >
-                              ✓ Verified
-                            </span>
-                          )}
-                        </div>
-
-                        {b.hours_open && (
-                          <div className="mt-1">
-                            <HoursBadge
-                              hoursOpen={b.hours_open}
-                              daysOpen={b.days_open}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })
-              )}
-            </div>
-
-            {/* MAP */}
-            <div className="relative flex-1 h-72 md:h-full order-1 md:order-2">
-              <Map
-                mapId="markeetee-map"
-                defaultCenter={DEFAULT_CENTER}
-                defaultZoom={DEFAULT_ZOOM}
-                gestureHandling="greedy"
-                disableDefaultUI={true}
-                style={{ width: '100%', height: '100%' }}
-              >
-                <MapController center={mapCenter} zoom={mapZoom} />
-
-                {userLocation && (
-                  <AdvancedMarker position={userLocation}>
-                    <div
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        background: '#4285F4',
-                        border: '3px solid white',
-                        boxShadow: '0 2px 8px rgba(66,133,244,0.6)',
-                      }}
-                    />
-                  </AdvancedMarker>
-                )}
-
-                {filtered.map((b) =>
-                  b.lat && b.lng ? (
-                    <AdvancedMarker
-                      key={b.id}
-                      position={{ lat: b.lat, lng: b.lng }}
-                      onClick={() => handlePinClick(b)}
-                      zIndex={selectedId === b.id ? 10 : 1}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        cursor: 'pointer',
-                        transform: selectedId === b.id ? 'scale(1.35)' : 'scale(1)',
-                        transition: 'transform 0.15s ease',
-                        filter: selectedId === b.id
-                          ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))'
-                          : 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
-                      }}>
-                        {/* Teardrop body */}
-                        <div style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: '50% 50% 50% 0',
-                          transform: 'rotate(-45deg)',
-                          background: selectedId === b.id ? '#085041' : '#DC2626',
-                          border: `2.5px solid ${selectedId === b.id ? '#053528' : '#991B1B'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                          <span style={{ transform: 'rotate(45deg)', fontSize: 16, lineHeight: 1 }}>
-                            {CATEGORY_PIN[b.category ?? ''] ?? '📍'}
-                          </span>
-                        </div>
-                        {/* Stem dot */}
-                        <div style={{
-                          width: 6, height: 6,
-                          background: selectedId === b.id ? '#085041' : '#DC2626',
-                          borderRadius: '50%',
-                          marginTop: 2,
-                        }} />
-                      </div>
-                    </AdvancedMarker>
-                  ) : null
-                )}
-
-                {selected && selected.lat && selected.lng && (
-                  <InfoWindow
-                    position={{ lat: selected.lat, lng: selected.lng }}
-                    onCloseClick={() => setSelectedId(null)}
-                    pixelOffset={[0, -40]}
-                  >
-                    <div style={{ minWidth: '210px', fontFamily: 'system-ui, sans-serif' }}>
-                      <p style={{ fontWeight: 700, fontSize: '14px', margin: '0 0 4px' }}>
-                        {selected.name}
-                      </p>
-
-                      <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 8px' }}>
-                        {[selected.city, selected.state].filter(Boolean).join(', ')}
-                      </p>
-
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <a
-                          href={`/businesses/${selected.id}`}
-                          style={{
-                            flex: 1,
-                            textAlign: 'center',
-                            background: '#1D9E75',
-                            color: 'white',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            padding: '7px 0',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          View
-                        </a>
-
-                        <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            flex: 1,
-                            textAlign: 'center',
-                            background: '#F3F4F6',
-                            color: '#374151',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            padding: '7px 0',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          Directions
-                        </a>
-                      </div>
-                    </div>
-                  </InfoWindow>
-                )}
-              </Map>
-            </div>
+        {/* ── CATEGORY PILLS (Apple Maps style horizontal scroll) ── */}
+        <div className="absolute top-20 left-0 right-0 z-30 px-4 overflow-x-auto">
+          <div className="flex gap-2 pb-1" style={{ width: 'max-content' }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat.id} onClick={() => setCategory(cat.id)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shadow-sm border"
+                style={category === cat.id
+                  ? { background:'#1D9E75', color:'white', borderColor:'#1D9E75' }
+                  : { background:'white', color:'#374151', borderColor:'rgba(255,255,255,0.8)', backdropFilter:'blur(12px)' }
+                }>
+                <span>{cat.icon}</span>
+                {cat.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="h-full overflow-y-auto p-4">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.length === 0 ? (
-                <div className="col-span-full text-center py-16 text-gray-400">
-                  <p className="text-2xl mb-2">🔍</p>
-                  <p className="text-sm">No businesses found</p>
-                </div>
-              ) : (
-                filtered.map((b) => (
-                  <Link
-                    key={b.id}
-                    href={`/businesses/${b.id}`}
-                    className="bg-white rounded-xl border border-gray-100 hover:border-green-300 hover:shadow-md transition-all flex gap-3 p-4"
-                  >
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      {b.cover_image ? (
-                        <img
-                          src={b.cover_image}
-                          alt={b.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full"
-                          style={{
-                            background:
-                              GRADIENTS[b.category ?? ''] ?? GRADIENTS.services,
-                          }}
-                        />
-                      )}
-                    </div>
+        </div>
 
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm text-gray-900 line-clamp-1">
-                        {b.name}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        📍 {[b.city, b.state].filter(Boolean).join(', ') || 'No location'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {b.rating > 0
-                          ? `⭐ ${b.rating.toFixed(1)} (${b.review_count})`
-                          : 'No reviews yet'}
-                      </p>
-                    </div>
-                  </Link>
-                ))
-              )}
+        {/* ── LOCATE ME button ── */}
+        <button onClick={locateMe} disabled={locating}
+          className="absolute bottom-48 right-4 z-30 w-12 h-12 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 flex items-center justify-center hover:scale-105 transition-transform">
+          {locating
+            ? <Loader2 size={18} className="animate-spin text-gray-500" />
+            : <Navigation size={18} style={{ color:'#007AFF' }} />
+          }
+        </button>
+
+        {/* ── RESULTS COUNT pill ── */}
+        {!loading && (
+          <div className="absolute bottom-48 left-4 z-30">
+            <div className="bg-white/95 backdrop-blur-xl rounded-full shadow-lg border border-white/50 px-4 py-2 text-xs font-semibold text-gray-600">
+              {filtered.length} {filtered.length === 1 ? 'business' : 'businesses'}
             </div>
           </div>
         )}
+
+        {/* ── BUSINESSES LIST SHEET (swipeable bottom sheet) ── */}
+        <div className={`absolute bottom-0 left-0 right-0 z-20 transition-transform duration-300 ease-out ${showList ? 'translate-y-0' : 'translate-y-[calc(100%-5rem)]'}`}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-t-3xl shadow-2xl border-t border-white/50 max-h-[70vh] flex flex-col">
+            {/* Handle + header */}
+            <button onClick={() => setShowList(v => !v)} className="w-full py-3 flex flex-col items-center gap-1">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              <p className="text-xs font-semibold text-gray-500">
+                {showList ? 'Hide list' : `${filtered.length} nearby businesses`}
+              </p>
+            </button>
+
+            {showList && (
+              <div className="overflow-y-auto flex-1 pb-6">
+                {loading ? (
+                  <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
+                    <Loader2 size={16} className="animate-spin" /> Loading…
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="text-center py-10">
+                    <p className="text-2xl mb-2">🔍</p>
+                    <p className="text-sm text-gray-500">No businesses found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 px-4">
+                    {filtered.map(b => (
+                      <button key={b.id} onClick={() => { handlePinClick(b); setShowList(false) }}
+                        className="flex gap-3 p-3 rounded-2xl text-left transition-all hover:bg-gray-50 border border-gray-100"
+                        style={selectedId === b.id ? { background:'#f0faf6', borderColor:'#1D9E75' } : {}}>
+                        <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                          {b.cover_image
+                            ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-2xl">
+                                {CATEGORY_PIN[b.category ?? ''] ?? '🏪'}
+                              </div>
+                          }
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm text-gray-900 truncate">{b.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {AFRICAN_FLAGS[b.country ?? ''] ?? '🌍'} {b.city}, {b.state}
+                          </p>
+                          {b.rating > 0 && (
+                            <p className="text-xs text-amber-500 mt-0.5">
+                              {'⭐'.repeat(Math.round(b.rating))} {b.rating.toFixed(1)}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── SELECTED BUSINESS CARD (Apple Maps style bottom card) ── */}
+        {selected && (
+          <div className="absolute bottom-[5rem] left-4 right-4 z-40 transition-all duration-300">
+            <div className="bg-white/98 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden">
+
+              {/* Cover image or gradient header */}
+              {selected.cover_image ? (
+                <div className="relative h-32">
+                  <img src={selected.cover_image} alt={selected.name}
+                    className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  <button onClick={() => setSelectedId(null)}
+                    className="absolute top-3 right-3 w-8 h-8 bg-black/30 backdrop-blur rounded-full flex items-center justify-center text-white">
+                    <X size={14} />
+                  </button>
+                  {selected.verified && (
+                    <span className="absolute top-3 left-3 text-xs font-bold px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-white">
+                      ✓ Verified
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="relative h-16 flex items-center px-4"
+                  style={{ background: 'linear-gradient(135deg, #053528, #1D9E75)' }}>
+                  <span className="text-3xl mr-3">{CATEGORY_PIN[selected.category ?? ''] ?? '🏪'}</span>
+                  <button onClick={() => setSelectedId(null)}
+                    className="absolute top-3 right-3 w-8 h-8 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Info */}
+              <div className="px-4 pt-3 pb-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-900 text-base leading-tight truncate">{selected.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 capitalize">
+                      {selected.category} · {selected.city}, {selected.state}
+                    </p>
+                  </div>
+                  {selected.rating > 0 && (
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-sm font-bold text-amber-500">⭐ {selected.rating.toFixed(1)}</p>
+                      <p className="text-[10px] text-gray-400">{selected.review_count} reviews</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Hours status */}
+                {hoursStatus && (
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Clock size={12} className="text-gray-400" />
+                    <span className="text-xs font-semibold" style={{ color: hoursStatus.open ? '#1D9E75' : '#EF4444' }}>
+                      {hoursStatus.open ? 'Open' : 'Closed'}
+                    </span>
+                    {selected.hours_open && (
+                      <span className="text-xs text-gray-400">· {selected.hours_open}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Action buttons — Apple Maps style pill buttons */}
+                <div className="flex gap-2">
+                  <Link href={`/businesses/${selected.id}`}
+                    className="flex-1 text-center text-sm font-semibold text-white py-2.5 rounded-2xl transition-opacity hover:opacity-90"
+                    style={{ background:'#1D9E75' }}>
+                    View
+                  </Link>
+                  {selected.phone && (
+                    <a href={`tel:${selected.phone}`}
+                      className="flex-1 text-center text-sm font-semibold py-2.5 rounded-2xl border-2 transition-all"
+                      style={{ borderColor:'#1D9E75', color:'#1D9E75' }}>
+                      Call
+                    </a>
+                  )}
+                  {selected.phone && (
+                    <a href={`https://wa.me/${selected.phone.replace(/\D/g,'')}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex-1 text-center text-sm font-semibold py-2.5 rounded-2xl bg-green-50 transition-all"
+                      style={{ color:'#25D366' }}>
+                      WhatsApp
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-    </div>
-  </APIProvider>
-)}
+    </APIProvider>
+  )
+}
