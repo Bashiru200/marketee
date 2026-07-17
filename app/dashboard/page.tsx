@@ -20,6 +20,7 @@ import AnalyticsDashboard from '@/components/dashboard/AnalyticDashboard'
 import LocationsManager   from '@/components/dashboard/LocationsManager'
 import PromotionsManager  from '@/components/dashboard/PromotionsManager'
 import LeadInbox          from '@/components/dashboard/LeadInbox'
+import VisibilityScore    from '@/components/dashboard/VisibilityScore'
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
@@ -566,37 +567,13 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                {/* Profile strength */}
-                <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Lightbulb size={15} style={{ color:'#1D9E75' }} />
-                      <span className="font-semibold text-sm text-gray-900">Profile strength</span>
-                    </div>
-                    <span className="text-sm font-bold" style={{ color: profileScore >= 80 ? '#1D9E75' : profileScore >= 50 ? '#D97706' : '#EF4444' }}>
-                      {profileScore}%
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width:`${profileScore}%`, background: profileScore >= 80 ? '#1D9E75' : profileScore >= 50 ? '#D97706' : '#EF4444' }} />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {recs.map(r => (
-                      <div key={r.title} className="flex items-center gap-2.5 text-sm">
-                        <span>{r.done ? '✅' : r.icon}</span>
-                        <span className={r.done ? 'text-gray-400 line-through' : 'text-gray-700'}>{r.title}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {recs.filter(r => !r.done).length > 0 && (
-                    <button onClick={() => setTab('listing')}
-                      className="mt-4 text-xs font-semibold text-white px-4 py-2 rounded-xl"
-                      style={{ background:'#1D9E75' }}>
-                      Complete your profile →
-                    </button>
-                  )}
-                </div>
+                {/* Visibility Score */}
+                <VisibilityScore
+                  biz={biz}
+                  reviews={reviews}
+                  products={products}
+                  onFix={() => setTab('listing')}
+                />
 
                 {/* Listing snapshot */}
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
