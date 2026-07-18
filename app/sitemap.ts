@@ -2,6 +2,8 @@
 import type { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
+
 const APP_URL = 'https://markeetee.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
