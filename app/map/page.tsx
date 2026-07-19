@@ -223,7 +223,7 @@ export default function MapPage() {
 
   return (
     <APIProvider apiKey={GOOGLE_MAPS_KEY}>
-      <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-gray-100">
+      <div className="relative w-full overflow-hidden bg-gray-100" style={{ height:'calc(100dvh - 4rem)' }}>
 
         {/* ── FULL SCREEN MAP ── */}
         <Map
@@ -530,12 +530,9 @@ export default function MapPage() {
                   <div className="flex items-center gap-1.5 mb-3">
                     <Clock size={11} className="text-gray-400" />
                     <span className="text-xs font-semibold"
-                      style={{ color: hoursStatus.status === 'open' ? '#1D9E75' : '#EF4444' }}>
+                      style={{ color: hoursStatus.status === 'open' || hoursStatus.status === 'closing_soon' ? '#1D9E75' : '#EF4444' }}>
                       {hoursStatus.label}
                     </span>
-                    {selected.hours_open && (
-                      <span className="text-xs text-gray-400">· {selected.hours_open}</span>
-                    )}
                   </div>
                 )}
 
