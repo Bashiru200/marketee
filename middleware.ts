@@ -3,22 +3,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-// ── Mode flags — control in Vercel env vars ───────────────────────────────
-// NEXT_PUBLIC_COMING_SOON=true  → full lock, everyone sees coming soon
-// NEXT_PUBLIC_BETA_MODE=true    → beta mode, need code to get in
-// both false                    → site is fully live
-const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === 'true'
-const BETA_MODE   = process.env.NEXT_PUBLIC_BETA_MODE   === 'true'
 
-// Always accessible regardless of mode
+
+// Always accessible — no auth required
 const PUBLIC_PATHS = [
-  '/coming-soon',
   '/sitemap',
   '/sitemap.xml',
   '/robots.txt',
   '/.well-known',
-  '/api/beta-access',
-  '/api/early-access',
   '/api/',
   '/auth/',
   '/admin',
@@ -35,31 +27,6 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
 
-  // ── Beta mode ─────────────────────────────────────────────────────────
-  if (BETA_MODE && !isPublic) {
-    // Let search engine bots through so Google can index the real site
-    const userAgent = (request.headers.get('user-agent') ?? '').toLowerCase()
-    const isBot = /googlebot|bingbot|yandex|duckduck|slurp|baidu|facebookexternalhit|twitterbot|linkedinbot|applebot|msnbot|ahrefsbot|semrushbot/i.test(userAgent)
-
-    if (!isBot) {
-      const cookie       = request.cookies.get('markeetee-beta')?.value
-      const hasBetaAccess = cookie === process.env.BETA_COOKIE_SECRET
-
-      if (!hasBetaAccess) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/coming-soon'
-        url.searchParams.set('beta', '1')
-        return NextResponse.redirect(url)
-      }
-    }
-  }
-
-  // ── Full coming soon lock ─────────────────────────────────────────────
-  if (COMING_SOON && !BETA_MODE && !isPublic) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/coming-soon'
-    return NextResponse.redirect(url)
-  }
 
   // ── Supabase session refresh ──────────────────────────────────────────
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {

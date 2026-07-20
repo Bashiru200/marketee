@@ -46,9 +46,23 @@ export const PLAN_FEATURES = {
 
 export type Feature = keyof typeof PLAN_FEATURES
 
-export function canAccess(plan: Plan | string | null, feature: Feature): boolean {
-  // Launch mode — all features unlocked during beta/launch period
+export function canAccess(
+  plan:       Plan | string | null,
+  feature:    Feature,
+  expiresAt?: string | null,
+): boolean {
+  // Launch mode env var — unlocks everything
   if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'true') return true
+
+  // Launch access period — pro_store with expiry date (6-month free access)
+  if (plan === 'pro_store' && expiresAt) {
+    const expired = new Date(expiresAt) < new Date()
+    if (!expired) return true          // still within 6-month window
+    // Expired — fall back to starter
+    const p = 'starter' as Plan
+    return (PLAN_FEATURES[feature] as readonly string[]).includes(p)
+  }
+
   const p = (plan ?? 'starter') as Plan
   return (PLAN_FEATURES[feature] as readonly string[]).includes(p)
 }

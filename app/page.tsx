@@ -168,8 +168,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Trending Now ── */}
-      <TrendingCategoriesSection />
+      {/* ── Trending Now ──
+      <TrendingCategoriesSection /> */}
 
       {/* ── Recently Joined ── */}
       <RecentlyClaimedSection />
