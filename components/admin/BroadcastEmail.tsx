@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import {
-  Mail, Send, Users, Building2, User,
+  Mail, Send, Users, Building2, User, Tag,
   Loader2, CheckCircle2, Clock, ChevronDown,
   ChevronUp, AlertTriangle
 } from 'lucide-react'
@@ -36,6 +36,58 @@ const AUDIENCE_OPTIONS: {
   { value:'customers', label:'Customers only',   desc:'Users browsing without a listing',icon:User,   color:'#8B5CF6' },
 ]
 
+const EMAIL_TYPES = [
+  {
+    value:       'announcement',
+    label:       '📢 Announcement',
+    desc:        'General news or platform updates',
+    subjectHint: 'Markeetee announcement: ',
+    bodyHint:    'We have an update to share with you...',
+  },
+  {
+    value:       'promotion',
+    label:       '🏷️ Promotion',
+    desc:        'Special offer or launch campaign',
+    subjectHint: '🎉 Special offer from Markeetee',
+    bodyHint:    'We have an exclusive offer for you...',
+  },
+  {
+    value:       'newsletter',
+    label:       '📰 Newsletter',
+    desc:        'Monthly digest or community update',
+    subjectHint: 'Markeetee Monthly — ',
+    bodyHint:    'Here\'s what\'s happening in the Markeetee community...',
+  },
+  {
+    value:       'reminder',
+    label:       '⏰ Reminder',
+    desc:        'Action required or account reminder',
+    subjectHint: 'Reminder: ',
+    bodyHint:    'This is a friendly reminder to...',
+  },
+  {
+    value:       'welcome',
+    label:       '👋 Welcome',
+    desc:        'Welcome message for new users',
+    subjectHint: 'Welcome to Markeetee!',
+    bodyHint:    'We\'re so glad you\'re here. Here\'s how to get started...',
+  },
+  {
+    value:       'upgrade',
+    label:       '⭐ Upgrade prompt',
+    desc:        'Encourage owners to upgrade their plan',
+    subjectHint: 'Unlock more with Markeetee',
+    bodyHint:    'Your listing is live! Here\'s what you can unlock with a Pro Store plan...',
+  },
+  {
+    value:       'custom',
+    label:       '✏️ Custom message',
+    desc:        'Write your own subject and body',
+    subjectHint: '',
+    bodyHint:    '',
+  },
+]
+
 export default function BroadcastEmail() {
   const supabase = createClient()
   const { user } = useAuth()
@@ -50,6 +102,7 @@ export default function BroadcastEmail() {
   const [counts,     setCounts]     = useState<AudienceCount>({ all:0, owners:0, customers:0 })
   const [showHistory,setShowHistory]= useState(false)
   const [confirmed,  setConfirmed]  = useState(false)
+  const [emailType,   setEmailType]   = useState('custom')
 
   useEffect(() => {
     loadCounts()
@@ -188,6 +241,31 @@ export default function BroadcastEmail() {
                 </div>
               </div>
 
+              {/* Email type */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  <Tag size={11} className="inline mr-1" /> Email type
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {EMAIL_TYPES.map(t => (
+                    <button key={t.value} type="button"
+                      onClick={() => {
+                        setEmailType(t.value)
+                        if (t.subjectHint && !subject) setSubject(t.subjectHint)
+                        if (t.bodyHint && !body) setBody(t.bodyHint)
+                      }}
+                      className="flex flex-col items-start p-3 rounded-xl border text-left transition-all"
+                      style={emailType === t.value
+                        ? { background:'#E1F5EE', borderColor:'#1D9E75' }
+                        : { background:'white', borderColor:'#E5E7EB' }
+                      }>
+                      <span className="text-sm font-semibold text-gray-900">{t.label}</span>
+                      <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Subject */}
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
@@ -197,7 +275,7 @@ export default function BroadcastEmail() {
                   type="text"
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  placeholder="Enter email subject"
+                  placeholder="e.g. Important update from Markeetee"
                   required
                   maxLength={150}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
@@ -212,7 +290,7 @@ export default function BroadcastEmail() {
                 <textarea
                   value={body}
                   onChange={e => setBody(e.target.value)}
-                  placeholder="Enter email message"
+                  placeholder="Write your message here. Use double line breaks to create paragraphs."
                   required
                   rows={8}
                   minLength={20}
