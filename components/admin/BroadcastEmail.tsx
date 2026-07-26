@@ -31,9 +31,9 @@ const AUDIENCE_OPTIONS: {
   icon:   React.ElementType
   color:  string
 }[] = [
-  { value:'all',       label:'Everyone',         desc:'All registered users',           icon:Users,    color:'#085041' },
-  { value:'owners',    label:'Business owners',  desc:'Users with a business listing',  icon:Building2,color:'#1D9E75' },
-  { value:'customers', label:'Customers only',   desc:'Users browsing without a listing',icon:User,   color:'#8B5CF6' },
+  { value:'all',       label:'Everyone',         desc:'All registered users',            icon:Users,     color:'#085041' },
+  { value:'owners',    label:'Business owners',  desc:'Users with a business listing',   icon:Building2, color:'#1D9E75' },
+  { value:'customers', label:'Customers only',   desc:'Users browsing without a listing', icon:User,     color:'#8B5CF6' },
 ]
 
 const EMAIL_TYPES = [
@@ -56,7 +56,7 @@ const EMAIL_TYPES = [
     label:       '📰 Newsletter',
     desc:        'Monthly digest or community update',
     subjectHint: 'Markeetee Monthly — ',
-    bodyHint:    'Here\'s what\'s happening in the Markeetee community...',
+    bodyHint:    "Here's what's happening in the Markeetee community...",
   },
   {
     value:       'reminder',
@@ -70,14 +70,14 @@ const EMAIL_TYPES = [
     label:       '👋 Welcome',
     desc:        'Welcome message for new users',
     subjectHint: 'Welcome to Markeetee!',
-    bodyHint:    'We\'re so glad you\'re here. Here\'s how to get started...',
+    bodyHint:    "We're so glad you're here. Here's how to get started...",
   },
   {
     value:       'upgrade',
     label:       '⭐ Upgrade prompt',
     desc:        'Encourage owners to upgrade their plan',
     subjectHint: 'Unlock more with Markeetee',
-    bodyHint:    'Your listing is live! Here\'s what you can unlock with a Pro Store plan...',
+    bodyHint:    "Your listing is live! Here's what you can unlock with a Pro Store plan...",
   },
   {
     value:       'custom',
@@ -92,17 +92,17 @@ export default function BroadcastEmail() {
   const supabase = createClient()
   const { user } = useAuth()
 
-  const [subject,    setSubject]    = useState('')
-  const [body,       setBody]       = useState('')
-  const [audience,   setAudience]   = useState<Audience>('owners')
-  const [sending,    setSending]    = useState(false)
-  const [success,    setSuccess]    = useState<{ sent: number } | null>(null)
-  const [error,      setError]      = useState('')
-  const [history,    setHistory]    = useState<SentEmail[]>([])
-  const [counts,     setCounts]     = useState<AudienceCount>({ all:0, owners:0, customers:0 })
-  const [showHistory,setShowHistory]= useState(false)
-  const [confirmed,  setConfirmed]  = useState(false)
+  const [subject,     setSubject]     = useState('')
+  const [body,        setBody]        = useState('')
+  const [audience,    setAudience]    = useState<Audience>('owners')
   const [emailType,   setEmailType]   = useState('custom')
+  const [sending,     setSending]     = useState(false)
+  const [success,     setSuccess]     = useState<{ sent: number } | null>(null)
+  const [error,       setError]       = useState('')
+  const [history,     setHistory]     = useState<SentEmail[]>([])
+  const [counts,      setCounts]      = useState<AudienceCount>({ all:0, owners:0, customers:0 })
+  const [showHistory, setShowHistory] = useState(false)
+  const [confirmed,   setConfirmed]   = useState(false)
 
   useEffect(() => {
     loadCounts()
@@ -112,8 +112,8 @@ export default function BroadcastEmail() {
   async function loadCounts() {
     const [all, owners, customers] = await Promise.all([
       supabase.from('profiles').select('id', { count:'exact', head:true }),
-      supabase.from('profiles').select('id', { count:'exact', head:true }).eq('role','owner'),
-      supabase.from('profiles').select('id', { count:'exact', head:true }).eq('role','customer'),
+      supabase.from('profiles').select('id', { count:'exact', head:true }).eq('role', 'owner'),
+      supabase.from('profiles').select('id', { count:'exact', head:true }).eq('role', 'customer'),
     ])
     setCounts({
       all:       all.count       ?? 0,
@@ -139,7 +139,7 @@ export default function BroadcastEmail() {
     const res = await fetch('/api/broadcast-email', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ subject, body, audience, adminId: user?.id }),
+      body:    JSON.stringify({ subject, body, audience, emailType, adminId: user?.id }),
     })
 
     const data = await res.json()
@@ -152,20 +152,21 @@ export default function BroadcastEmail() {
 
     setSuccess({ sent: data.sent })
     setSending(false)
-    setSubject('')
-    setBody('')
-    setConfirmed(false)
     await loadHistory()
   }
 
   function reset() {
     setSuccess(null)
     setError('')
+    setSubject('')
+    setBody('')
     setConfirmed(false)
+    setEmailType('custom')
   }
 
-  const recipientCount = counts[audience]
-  const selectedAudience = AUDIENCE_OPTIONS.find(o => o.value === audience)!
+  const recipientCount    = counts[audience]
+  const selectedAudience  = AUDIENCE_OPTIONS.find(o => o.value === audience)!
+  const selectedEmailType = EMAIL_TYPES.find(t => t.value === emailType)!
 
   return (
     <div className="space-y-6">
@@ -174,7 +175,7 @@ export default function BroadcastEmail() {
       <div>
         <h3 className="font-semibold text-gray-900">Broadcast email</h3>
         <p className="text-sm text-gray-400 mt-0.5">
-          Send a message to all users or a specific group
+          Send a branded message to all users or a specific group
         </p>
       </div>
 
@@ -186,8 +187,11 @@ export default function BroadcastEmail() {
             <CheckCircle2 size={28} style={{ color:'#1D9E75' }} />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">Emails sent!</h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-gray-500 mb-2">
             Successfully sent to <strong>{success.sent}</strong> recipient{success.sent !== 1 ? 's' : ''}
+          </p>
+          <p className="text-xs text-gray-400 mb-6">
+            Sent as: <strong>{selectedEmailType.label}</strong> to <strong>{selectedAudience.label}</strong>
           </p>
           <button onClick={reset}
             className="text-sm font-semibold text-white px-6 py-2.5 rounded-xl"
@@ -200,21 +204,12 @@ export default function BroadcastEmail() {
 
           {/* Compose form */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6">
-            <h4 className="font-semibold text-gray-900 mb-5">Compose</h4>
+            <form onSubmit={handleSend} className="space-y-5">
 
-            {error && (
-              <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100 flex items-center gap-2">
-                <AlertTriangle size={14} className="flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSend} className="space-y-4">
-
-              {/* Audience */}
+              {/* Audience selector */}
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                  Audience
+                  <Users size={11} className="inline mr-1" /> Send to
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {AUDIENCE_OPTIONS.map(opt => {
@@ -223,15 +218,13 @@ export default function BroadcastEmail() {
                     return (
                       <button key={opt.value} type="button"
                         onClick={() => setAudience(opt.value)}
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center"
-                        style={{
-                          borderColor: selected ? opt.color : '#E5E7EB',
-                          background:  selected ? '#f0faf6'  : '#FAFAFA',
-                        }}>
-                        <Icon size={18} style={{ color: selected ? opt.color : '#9CA3AF' }} />
-                        <span className="text-xs font-semibold" style={{ color: selected ? opt.color : '#6B7280' }}>
-                          {opt.label}
-                        </span>
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all"
+                        style={selected
+                          ? { background:'#E1F5EE', borderColor: opt.color }
+                          : { background:'white', borderColor:'#E5E7EB' }
+                        }>
+                        <Icon size={16} style={{ color: selected ? opt.color : '#9CA3AF' }} />
+                        <span className="text-xs font-semibold text-gray-800">{opt.label}</span>
                         <span className="text-[10px] font-bold" style={{ color: selected ? opt.color : '#9CA3AF' }}>
                           {counts[opt.value]} users
                         </span>
@@ -252,12 +245,12 @@ export default function BroadcastEmail() {
                       onClick={() => {
                         setEmailType(t.value)
                         if (t.subjectHint && !subject) setSubject(t.subjectHint)
-                        if (t.bodyHint && !body) setBody(t.bodyHint)
+                        if (t.bodyHint    && !body)    setBody(t.bodyHint)
                       }}
                       className="flex flex-col items-start p-3 rounded-xl border text-left transition-all"
                       style={emailType === t.value
                         ? { background:'#E1F5EE', borderColor:'#1D9E75' }
-                        : { background:'white', borderColor:'#E5E7EB' }
+                        : { background:'white',   borderColor:'#E5E7EB' }
                       }>
                       <span className="text-sm font-semibold text-gray-900">{t.label}</span>
                       <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{t.desc}</span>
@@ -280,6 +273,9 @@ export default function BroadcastEmail() {
                   maxLength={150}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
                 />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {subject.length}/150 chars · Keep under 60 for best open rates
+                </p>
               </div>
 
               {/* Body */}
@@ -299,7 +295,15 @@ export default function BroadcastEmail() {
                 <p className="text-xs text-gray-400 text-right mt-1">{body.length} chars</p>
               </div>
 
-              {/* Confirmation checkbox */}
+              {/* Error */}
+              {error && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100">
+                  <AlertTriangle size={14} className="flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              {/* Confirmation */}
               <div className="flex items-start gap-3 px-4 py-3 rounded-xl border"
                 style={{ background:'#FFFBEB', borderColor:'#FDE68A' }}>
                 <input
@@ -310,7 +314,7 @@ export default function BroadcastEmail() {
                   className="mt-0.5 flex-shrink-0 accent-amber-500"
                 />
                 <label htmlFor="confirm" className="text-sm cursor-pointer" style={{ color:'#92400E' }}>
-                  I confirm I want to send this email to{' '}
+                  I confirm I want to send this <strong>{selectedEmailType.label}</strong> email to{' '}
                   <strong>{recipientCount} {selectedAudience.label.toLowerCase()}</strong>.
                   This action cannot be undone.
                 </label>
@@ -320,18 +324,17 @@ export default function BroadcastEmail() {
                 type="submit"
                 disabled={sending || !subject.trim() || !body.trim() || !confirmed}
                 className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-                style={{ background:'#085041' }}
-              >
+                style={{ background:'#085041' }}>
                 {sending ? (
                   <><Loader2 size={15} className="animate-spin" /> Sending to {recipientCount} recipients…</>
                 ) : (
-                  <><Send size={15} /> Send to {recipientCount} {selectedAudience.label.toLowerCase()}</>
+                  <><Send size={15} /> Send {selectedEmailType.label} to {recipientCount} {selectedAudience.label.toLowerCase()}</>
                 )}
               </button>
             </form>
           </div>
 
-          {/* Sidebar — tips + history */}
+          {/* Sidebar */}
           <div className="space-y-4">
 
             {/* Tips */}
@@ -349,7 +352,7 @@ export default function BroadcastEmail() {
                   'Avoid all-caps and excessive exclamation marks — triggers spam filters',
                 ].map(tip => (
                   <li key={tip} className="flex items-start gap-2 text-xs text-gray-500">
-                    <span className="mt-1 flex-shrink-0 w-1 h-1 rounded-full bg-green-400" />
+                    <span className="mt-1 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-400" />
                     {tip}
                   </li>
                 ))}
@@ -380,6 +383,29 @@ export default function BroadcastEmail() {
                 })}
               </div>
             </div>
+
+            {/* Current selection summary */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h4 className="font-semibold text-gray-900 mb-3">Ready to send</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Type</span>
+                  <span className="font-medium text-gray-900">{selectedEmailType.label}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Audience</span>
+                  <span className="font-medium text-gray-900">{selectedAudience.label}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Recipients</span>
+                  <span className="font-bold" style={{ color:'#1D9E75' }}>{recipientCount}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Template</span>
+                  <span className="font-medium text-gray-900">Markeetee branded</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -388,14 +414,16 @@ export default function BroadcastEmail() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-        >
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
           <div className="flex items-center gap-2">
             <Clock size={15} style={{ color:'#1D9E75' }} />
             <span className="font-semibold text-gray-900">Sent history</span>
             <span className="text-xs text-gray-400">({history.length})</span>
           </div>
-          {showHistory ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+          {showHistory
+            ? <ChevronUp size={15} className="text-gray-400" />
+            : <ChevronDown size={15} className="text-gray-400" />
+          }
         </button>
 
         {showHistory && (
@@ -417,7 +445,7 @@ export default function BroadcastEmail() {
                       <span className="text-xs text-gray-400">{h.sent_count} sent</span>
                       <span className="text-xs text-gray-300">·</span>
                       <span className="text-xs text-gray-400">
-                        {new Date(h.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                        {new Date(h.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}
                       </span>
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import {
 import ImageUpload from '@/components/ui/ImageUpload'
 import { useFormValidation } from '@/lib/useFormValidation'
 import FieldError from '@/components/ui/FieldError'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 
 export const CATEGORIES = [
   { id: 'food',       label: 'Food & Groceries'  },
@@ -68,20 +69,6 @@ export const SUBCATEGORIES: Record<string, string[]> = {
     'Restaurant & bar combo', 'Live music venue', 'Shisha lounge',
   ],
 }
-
-
-export const COUNTRIES = [
-  { code:'NG',          flag:'🇳🇬', name:'Nigeria'                },
-  { code:'GH',          flag:'🇬🇭', name:'Ghana'                  },
-  { code:'KE',          flag:'🇰🇪', name:'Kenya'                  },
-  { code:'SN',          flag:'🇸🇳', name:'Senegal'                },
-  { code:'ZA',          flag:'🇿🇦', name:'South Africa'           },
-  { code:'ET',          flag:'🇪🇹', name:'Ethiopia'               },
-  { code:'CM',          flag:'🇨🇲', name:'Cameroon'               },
-  { code:'CI',          flag:'🇨🇮', name:"Côte d'Ivoire"          },
-  { code:'OTHER',       flag:'🌍', name:'Other African country'   },
-  { code:'NON_AFRICAN', flag:'🌐', name:'Not of African origin'   },
-]
 
 const PRICE_RANGES = [
   { value:'$',   label:'$ — Budget'      },
@@ -249,13 +236,14 @@ export default function BusinessDetailsForm({
       </div>
 
       <div>
-        <label className={labelCls}>Country of origin *</label>
+        <label className={labelCls}>Country or Cultural origin (optional)</label>
         <select value={form.country}
           onChange={e => { upd('country', e.target.value); clearError('country') }}
-          onBlur={() => validate('country', form.country)}
           className={inputCls}>
           <option value="">Select country</option>
-          {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
+          {Object.entries(AFRICAN_FLAGS).map(([code, flag]) => (
+                    <option key={code} value={code}>{flag} {code}</option>
+                  ))}
         </select>
         {errors.country && <FieldError message={errors.country} />}
       </div>
@@ -274,18 +262,16 @@ export default function BusinessDetailsForm({
 
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-1">
-          <label className={labelCls}>City *</label>
+          <label className={labelCls}>City</label>
           <input type="text" value={form.city}
             onChange={e => { upd('city', e.target.value); clearError('city') }}
-            onBlur={() => validate('city', form.city)}
             placeholder="Enter city" className={inputCls} />
           {errors.city && <FieldError message={errors.city} />}
         </div>
         <div>
-          <label className={labelCls}>State *</label>
+          <label className={labelCls}>State</label>
           <input type="text" value={form.state}
             onChange={e => { upd('state', e.target.value); clearError('state') }}
-            onBlur={() => validate('state', form.state)}
             placeholder="TX" maxLength={2} className={inputCls} />
           {errors.state && <FieldError message={errors.state} />}
         </div>

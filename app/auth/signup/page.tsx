@@ -11,7 +11,7 @@ import FieldError from '@/components/ui/FieldError'
 import CountriesBar from '@/components/ui/CountriesBar'
 import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import BusinessDetailsForm, {
-  BusinessFormValues, EMPTY_BUSINESS_FORM, COUNTRIES,
+  BusinessFormValues, EMPTY_BUSINESS_FORM
 } from '@/components/business/BusinessDetailsForm'
 
 type Role = 'customer' | 'owner' | null
