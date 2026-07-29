@@ -638,3 +638,178 @@ export function waitlistTemplate({ email }: { email: string }) {
     }),
   }
 }
+
+
+// ── 13. Weekly summary (to business owner) ────────────────────────────────
+export function weeklySummaryTemplate({
+  ownerName,
+  businessName,
+  reviewsThisWeek,
+  totalReviews,
+  averageRating,
+  profileViews,
+  searchViews,
+  phoneCalls,
+  directionRequests,
+  topReview,
+  recentReviews = [],
+  businessLogoUrl,
+  publicProfileUrl,
+  dashboardUrl,
+  unsubscribeUrl,
+}: {
+  ownerName:         string | null
+  businessName:      string
+  reviewsThisWeek:   number
+  totalReviews:      number
+  averageRating:     number
+  profileViews:      number
+  searchViews:       number
+  phoneCalls:        number
+  directionRequests: number
+  topReview?:        { reviewerName: string; body: string; rating: number; avatarUrl?: string | null } | null
+  recentReviews?:    { reviewerName: string; body: string; rating: number; createdAt?: string }[]
+  businessLogoUrl?:  string | null
+  publicProfileUrl?: string | null
+  dashboardUrl:      string
+  unsubscribeUrl?:   string
+}): { subject: string; html: string } {
+
+  const subject = `${businessName} — your Markeetee weekly summary`
+  const safeRating = averageRating > 0 ? averageRating.toFixed(1) : '—'
+
+  const statCard = (icon: string, value: string, label: string) => `
+    <td align="center" style="padding:16px 8px;background:#F0FAF6;border-radius:14px;border:1px solid #CFE9DF;">
+      <p style="margin:0 0 4px;font-size:20px;line-height:1;">${icon}</p>
+      <p style="margin:6px 0 2px;font-size:22px;font-weight:800;color:${BRAND_DARK};">${escapeHtml(value)}</p>
+      <p style="margin:0;font-size:10px;color:#64706C;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">${escapeHtml(label)}</p>
+    </td>`
+
+  const insightCard = (icon: string, value: number, label: string) => `
+    <td align="center" style="padding:12px 6px;">
+      <p style="margin:0;font-size:16px;line-height:1;color:${BRAND_GREEN};">${icon}</p>
+      <p style="margin:6px 0 2px;font-size:18px;font-weight:800;color:${BRAND_DARK};">${value.toLocaleString('en-US')}</p>
+      <p style="margin:0;font-size:10px;color:#64706C;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">${escapeHtml(label)}</p>
+    </td>`
+
+  const stars = (rating: number) => {
+    const filled = Math.max(0, Math.min(5, Math.round(rating)))
+    return '⭐'.repeat(filled) + '<span style="opacity:0.25;">' + '⭐'.repeat(5 - filled) + '</span>'
+  }
+
+  const topReviewBlock = topReview ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
+      <tr><td>
+        <p style="margin:0 0 10px;font-size:15px;font-weight:800;color:${BRAND_DARK};">🏆 Top review this week</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F0FAF6;border:1px solid #CFE9DF;border-radius:14px;">
+          <tr><td style="padding:18px;">
+            <p style="margin:0 0 8px;font-size:13px;">${stars(topReview.rating)}</p>
+            <p style="margin:0 0 10px;font-size:14px;font-style:italic;color:#2F3936;line-height:1.6;">"${escapeHtml(topReview.body)}"</p>
+            <p style="margin:0;font-size:12px;font-weight:700;color:#64706C;">— ${escapeHtml(topReview.reviewerName)}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>` : `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;background:#F0FAF6;border:1px solid #CFE9DF;border-radius:14px;">
+      <tr><td align="center" style="padding:22px;">
+        <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:${BRAND_DARK};">Keep building your reputation</p>
+        <p style="margin:0;font-size:13px;color:#64706C;line-height:1.6;">Share your Markeetee profile and invite customers to leave a review.</p>
+      </td></tr>
+    </table>`
+
+  const recentReviewsBlock = recentReviews.length > 0 ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border:1px solid #DCE8E3;border-radius:14px;">
+      <tr><td style="padding:18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:15px;font-weight:800;color:${BRAND_DARK};">Recent reviews</td>
+            <td align="right"><a href="${safeUrl(dashboardUrl + '/reviews')}" style="font-size:12px;font-weight:700;color:${BRAND_GREEN};text-decoration:underline;">View all</a></td>
+          </tr>
+        </table>
+        ${recentReviews.slice(0, 3).map((r, i) => `
+          <div style="padding:12px 0;${i < Math.min(recentReviews.length, 3) - 1 ? 'border-bottom:1px solid #EDF1EF;' : ''}">
+            <p style="margin:0 0 4px;font-size:13px;">${stars(r.rating)}</p>
+            <p style="margin:0 0 4px;font-size:13px;color:#2F3936;line-height:1.6;">"${escapeHtml(r.body)}"</p>
+            <p style="margin:0;font-size:11px;font-weight:700;color:#64706C;">${escapeHtml(r.reviewerName)}</p>
+          </div>
+        `).join('')}
+      </td></tr>
+    </table>` : ''
+
+  const businessCard = (businessLogoUrl || publicProfileUrl) ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border:1px solid #DCE8E3;border-radius:14px;">
+      <tr><td style="padding:16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr>
+            ${businessLogoUrl ? `<td width="60" style="padding-right:12px;"><img src="${safeUrl(businessLogoUrl)}" width="48" height="48" alt="${escapeHtml(businessName)}" style="border-radius:50%;object-fit:cover;display:block;"/></td>` : ''}
+            <td>
+              <p style="margin:0 0 4px;font-size:14px;font-weight:800;color:${BRAND_DARK};">${escapeHtml(businessName)}</p>
+              ${publicProfileUrl ? `<a href="${safeUrl(publicProfileUrl)}" style="font-size:12px;font-weight:700;color:${BRAND_GREEN};text-decoration:underline;">View public profile →</a>` : ''}
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>` : ''
+
+  const bodyHtml = `
+    <p style="margin:0 0 24px;font-size:14px;color:#47524E;line-height:1.7;">
+      Here's a quick look at your latest reviews, customer activity, and business visibility on Markeetee.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-spacing:6px;">
+      <tr>
+        ${statCard('⭐', reviewsThisWeek.toLocaleString('en-US'), 'Reviews this week')}
+        ${statCard('💬', totalReviews.toLocaleString('en-US'),   'Total reviews')}
+        ${statCard('📈', safeRating.toString() + (averageRating > 0 ? ' ★' : ''), 'Average rating')}
+      </tr>
+    </table>
+
+    ${topReviewBlock}
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+      <tr><td align="center">
+        <a href="${safeUrl(dashboardUrl)}" style="display:inline-block;background:${BRAND_GREEN};color:#fff;font-size:14px;font-weight:800;padding:14px 32px;border-radius:12px;text-decoration:none;">
+          View your dashboard →
+        </a>
+      </td></tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border:1px solid #DCE8E3;border-radius:14px;">
+      <tr><td style="padding:18px;">
+        <p style="margin:0 0 14px;font-size:15px;font-weight:800;color:${BRAND_DARK};">Insights summary</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            ${insightCard('👁',  profileViews,       'Profile views')}
+            ${insightCard('🔍', searchViews,        'Search views')}
+            ${insightCard('📞', phoneCalls,         'Phone calls')}
+            ${insightCard('🧭', directionRequests,  'Directions')}
+          </tr>
+        </table>
+        <p style="margin:14px 0 0;text-align:center;">
+          <a href="${safeUrl(dashboardUrl + '/analytics')}" style="font-size:12px;font-weight:700;color:${BRAND_GREEN};text-decoration:underline;">
+            See full insights →
+          </a>
+        </p>
+      </td></tr>
+    </table>
+
+    ${recentReviewsBlock}
+
+    ${infoBox(`<strong>Keep the momentum going.</strong><br/>Respond to new reviews and keep your profile, photos, business hours, and products updated to attract more customers.`)}
+
+    ${businessCard}
+  `
+
+  return {
+    subject,
+    html: wrap({
+      subject,
+      preheaderText: `${businessName} received ${reviewsThisWeek} ${reviewsThisWeek === 1 ? 'review' : 'reviews'} this week.`,
+      badge:    'Weekly summary',
+      headline: `Hi ${escapeHtml(ownerName ?? 'there')},`,
+      subline:  `Here's how ${businessName} performed this week.`,
+      body:     bodyHtml,
+      unsubscribeUrl,
+    }),
+  }
+}

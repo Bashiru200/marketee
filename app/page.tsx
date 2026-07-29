@@ -435,7 +435,7 @@ export default async function HomePage() {
         <div className="space-y-4">
           {[
             { q:'Is Markeetee free to use?',        a:'Yes — browsing, searching, and leaving reviews is completely free. Business listings are also free to create.' },
-            { q:'Which cities is Markeetee in?',    a:'We launched in Houston, TX and are expanding to Atlanta, Dallas, New York, and Washington DC next.' },
+            { q:'Which cities is Markeetee in?',    a:'We are currently available in select cities and are expanding rapidly.' },
             { q:'How do I list my business?',       a:'Click "List your business", create a free owner account, and fill in your details. Your listing goes live immediately.' },
             { q:'How do customers contact me?',     a:'Via WhatsApp, phone call, email, or Google Maps directions — all directly from your listing page.' },
           ].map(({ q, a }) => (

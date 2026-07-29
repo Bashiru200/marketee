@@ -483,7 +483,7 @@ export default function DashboardPage() {
       <div className="text-5xl mb-4">🏪</div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">No business linked yet</h2>
       <p className="text-sm text-gray-500 mb-6">Register your business to get started.</p>
-      <Link href="/businesses/new"
+      <Link href="/business/new"
         className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl"
         style={{ background:'#1D9E75' }}>
         Register your business
@@ -632,45 +632,89 @@ export default function DashboardPage() {
 
             {/* ── LISTING ── */}
             {tab === 'listing' && (
-              <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
-                <h2 className="font-bold text-xl text-gray-900">Edit your listing</h2>
-                {error && <div className="px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100">{error}</div>}
-                {saved && <div className="px-4 py-3 rounded-xl text-sm text-green-700 bg-green-50 border border-green-100">✓ Saved successfully</div>}
+              <form onSubmit={handleSave} className="space-y-5">
 
-                {/* Photos */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <GalleryUploader businessId={biz.id}
-                    coverImage={form.cover_image || null} images={form.images}
-                    onChange={({ cover_image, images }) => {
-                      upd('cover_image', cover_image ?? '')
-                      upd('images', images)
-                    }} />
-                  <ImageUpload bucket="businesses" folder={`${biz.id}/logo`}
-                    currentUrl={form.logo_url || null}
-                    onUpload={url => upd('logo_url', url)}
-                    onRemove={() => upd('logo_url', '')}
-                    label="Logo / profile photo" />
+                {/* Page header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-bold text-2xl text-gray-900">Edit your listing</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Update the information customers see</p>
+                  </div>
                 </div>
 
-                {/* Business info */}
-                <div>
-                  <p className={labelCls}>Business info</p>
+                {error && (
+                  <div className="px-4 py-3 rounded-2xl text-sm text-red-700 bg-red-50 border border-red-100 flex items-center gap-2">
+                    <span>⚠️</span> {error}
+                  </div>
+                )}
+                {saved && (
+                  <div className="px-4 py-3 rounded-2xl text-sm text-green-700 bg-green-50 border border-green-100 flex items-center gap-2">
+                    <CheckCircle2 size={14} /> Saved successfully
+                  </div>
+                )}
+
+                {/* ── Card 1: Photos ── */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background:'#E1F5EE' }}>
+                      <span className="text-lg">🖼️</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Photos</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Cover image, logo and gallery</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <GalleryUploader businessId={biz.id}
+                      coverImage={form.cover_image || null} images={form.images}
+                      onChange={({ cover_image, images }) => {
+                        upd('cover_image', cover_image ?? '')
+                        upd('images', images)
+                      }} />
+                    <ImageUpload bucket="businesses" folder={`${biz.id}/logo`}
+                      currentUrl={form.logo_url || null}
+                      onUpload={url => upd('logo_url', url)}
+                      onRemove={() => upd('logo_url', '')}
+                      label="Logo / profile photo" />
+                  </div>
+                </div>
+
+                {/* ── Card 2: Business info ── */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background:'#E1F5EE' }}>
+                      <span className="text-lg">🏪</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Business info</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">The basics — name, contact and category</p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelCls}>Business name</label>
-                      <input value={form.name} onChange={e => upd('name', e.target.value)} className={inputCls} />
+                      <input value={form.name} onChange={e => upd('name', e.target.value)} className={inputCls} placeholder="e.g. Oga Suya CLT" />
                     </div>
                     <div>
                       <label className={labelCls}>Phone</label>
-                      <input value={form.phone} onChange={e => upd('phone', e.target.value)} className={inputCls} />
+                      <input value={form.phone} onChange={e => upd('phone', e.target.value)} className={inputCls} placeholder="(704) 555-0123" />
                     </div>
                     <div>
                       <label className={labelCls}>Email</label>
-                      <input value={form.email} onChange={e => upd('email', e.target.value)} className={inputCls} />
+                      <input value={form.email} onChange={e => upd('email', e.target.value)} className={inputCls} placeholder="hello@yourbusiness.com" />
                     </div>
                     <div>
                       <label className={labelCls}>Website</label>
-                      <input value={form.website} onChange={e => upd('website', e.target.value)} className={inputCls} />
+                      <input
+                        type="text"
+                        value={form.website}
+                        onChange={e => upd('website', e.target.value)}
+                        className={inputCls}
+                        placeholder="yourbusiness.com"
+                      />
                     </div>
                     <div>
                       <label className={labelCls}>Category</label>
@@ -691,58 +735,91 @@ export default function DashboardPage() {
                     <div className="sm:col-span-2">
                       <label className={labelCls}>Description</label>
                       <textarea value={form.description} onChange={e => upd('description', e.target.value)}
-                        rows={3} className={`${inputCls} resize-none`} />
+                        rows={4} className={`${inputCls} resize-none`}
+                        placeholder="Tell customers what makes your business special..." />
+                      <p className="text-[10px] text-gray-400 mt-1.5">
+                        {form.description.length}/500 characters · Aim for at least 100 for better search ranking
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Location */}
-                <div>
-                  <p className={labelCls + ' flex items-center gap-1.5'}><MapPin size={11} /> Location</p>
+                {/* ── Card 3: Location ── */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background:'#E1F5EE' }}>
+                      <MapPin size={17} style={{ color:'#1D9E75' }} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Location</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Where customers can find you</p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
                     <div className="sm:col-span-6">
                       <label className={labelCls}>Street address</label>
-                      <input value={form.street} onChange={e => upd('street', e.target.value)} className={inputCls} />
+                      <input value={form.street} onChange={e => upd('street', e.target.value)} className={inputCls} placeholder="123 Main St, Suite 4" />
                     </div>
                     <div className="sm:col-span-3">
                       <label className={labelCls}>City</label>
-                      <input value={form.city} onChange={e => upd('city', e.target.value)} className={inputCls} />
+                      <input value={form.city} onChange={e => upd('city', e.target.value)} className={inputCls} placeholder="Charlotte" />
                     </div>
                     <div className="sm:col-span-1">
                       <label className={labelCls}>State</label>
-                      <input value={form.state} onChange={e => upd('state', e.target.value)} maxLength={2} className={inputCls} />
+                      <input value={form.state} onChange={e => upd('state', e.target.value)} maxLength={2} className={inputCls} placeholder="NC" />
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelCls}>ZIP</label>
-                      <input value={form.zip} onChange={e => upd('zip', e.target.value)} className={inputCls} />
+                      <input value={form.zip} onChange={e => upd('zip', e.target.value)} className={inputCls} placeholder="28273" />
                     </div>
                   </div>
                 </div>
 
-                {/* Hours */}
-                <div>
-                  <p className={labelCls + ' flex items-center gap-1.5'}><Clock size={11} /> Opening hours</p>
-                  <div className="mb-3">
+                {/* ── Card 4: Hours ── */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background:'#E1F5EE' }}>
+                      <Clock size={17} style={{ color:'#1D9E75' }} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Opening hours</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">When customers can visit you</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className={labelCls}>Hours</label>
                     <input value={form.hours_open} onChange={e => upd('hours_open', e.target.value)}
                       placeholder="9:00 AM – 9:00 PM" className={inputCls} />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {DAYS.map(day => {
-                      const on = form.days_open.includes(day)
-                      return (
-                        <button key={day} type="button"
-                          onClick={() => setForm(f => ({
-                            ...f,
-                            days_open: f.days_open.includes(day)
-                              ? f.days_open.filter(d => d !== day)
-                              : [...f.days_open, day],
-                          }))}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors"
-                          style={{ background: on ? '#1D9E75' : 'transparent', borderColor: on ? '#1D9E75' : '#E5E7EB', color: on ? 'white' : '#6B7280' }}>
-                          {day.slice(0,3)}
-                        </button>
-                      )
-                    })}
+
+                  <div>
+                    <label className={labelCls}>Open days</label>
+                    <div className="flex flex-wrap gap-2">
+                      {DAYS.map(day => {
+                        const on = form.days_open.includes(day)
+                        return (
+                          <button key={day} type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              days_open: f.days_open.includes(day)
+                                ? f.days_open.filter(d => d !== day)
+                                : [...f.days_open, day],
+                            }))}
+                            className="px-4 py-2 rounded-full text-xs font-semibold border transition-all"
+                            style={{
+                              background:   on ? '#1D9E75'  : 'white',
+                              borderColor:  on ? '#1D9E75'  : '#E5E7EB',
+                              color:        on ? 'white'    : '#6B7280',
+                            }}>
+                            {day.slice(0,3)}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
 
