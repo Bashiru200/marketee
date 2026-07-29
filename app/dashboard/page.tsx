@@ -483,7 +483,7 @@ export default function DashboardPage() {
       <div className="text-5xl mb-4">🏪</div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">No business linked yet</h2>
       <p className="text-sm text-gray-500 mb-6">Register your business to get started.</p>
-      <Link href="/business/new"
+      <Link href="/businesses/new"
         className="inline-block text-sm font-semibold text-white px-6 py-3 rounded-xl"
         style={{ background:'#1D9E75' }}>
         Register your business
