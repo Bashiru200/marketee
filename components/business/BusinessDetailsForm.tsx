@@ -1,4 +1,5 @@
 'use client'
+import { AFRICAN_FLAGS, getCountryFlag } from '@/lib/africanFlags'
 import { useState } from 'react'
 import {
   Building2, MapPin, Phone, Mail, Globe, Home,
@@ -7,7 +8,6 @@ import {
 import ImageUpload from '@/components/ui/ImageUpload'
 import { useFormValidation } from '@/lib/useFormValidation'
 import FieldError from '@/components/ui/FieldError'
-import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 
 export const CATEGORIES = [
   { id: 'food',       label: 'Food & Groceries'  },
@@ -70,6 +70,9 @@ export const SUBCATEGORIES: Record<string, string[]> = {
   ],
 }
 
+
+
+
 const PRICE_RANGES = [
   { value:'$',   label:'$ — Budget'      },
   { value:'$$',  label:'$$ — Moderate'   },
@@ -81,6 +84,7 @@ const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 export interface BusinessFormValues {
   name:         string
   category:     string
+  location_type: 'physical' | 'online' | 'both'
   subcategory:  string
   description:  string
   country:      string
@@ -101,6 +105,7 @@ export interface BusinessFormValues {
 
 export const EMPTY_BUSINESS_FORM: BusinessFormValues = {
   name:'', category:'', subcategory:'', description:'',
+  location_type: 'physical',
   country:'', street:'', city:'', state:'', zip:'',
   phone:'', email:'', website:'',
   price_range:'', tags:'', days_open:[], hours_open:'',
@@ -132,12 +137,13 @@ export default function BusinessDetailsForm({
   }
 
   // ── Inline UI validation — no native browser popups ─────────────────────
+  const requiresPhysical = form.location_type === 'physical' || form.location_type === 'both'
   const { errors, validate, validateAll, clearError } = useFormValidation({
     name:     { required: true, label: 'Business name' },
     category: { required: true, label: 'Category' },
     country:  { required: true, label: 'Country of origin' },
-    city:     { required: true, label: 'City' },
-    state:    { required: true, label: 'State' },
+    city:     { required: requiresPhysical, label: 'City' },
+    state:    { required: requiresPhysical, label: 'State' },
     phone:    { required: true, label: 'Phone number' },
   })
 
@@ -236,14 +242,13 @@ export default function BusinessDetailsForm({
       </div>
 
       <div>
-        <label className={labelCls}>Country or Cultural origin (optional)</label>
+        <label className={labelCls}>Country of origin *</label>
         <select value={form.country}
           onChange={e => { upd('country', e.target.value); clearError('country') }}
+          onBlur={() => validate('country', form.country)}
           className={inputCls}>
           <option value="">Select country</option>
-          {Object.entries(AFRICAN_FLAGS).map(([code, flag]) => (
-                    <option key={code} value={code}>{flag} {code}</option>
-                  ))}
+          {Object.entries(AFRICAN_FLAGS).map(([name, flag]) => <option key={name} value={name}>{flag} {name}</option>)}
         </select>
         {errors.country && <FieldError message={errors.country} />}
       </div>
@@ -251,36 +256,79 @@ export default function BusinessDetailsForm({
       {/* ══════════ Location ══════════ */}
       <p className={sectionCls} style={{ color:'#085041' }}>Location</p>
 
+      {/* Location type selector */}
       <div>
-        <label className={labelCls}>Street address <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+        <label className={labelCls}>Where do you operate? *</label>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            ['physical', '🏪', 'In-person',    'Customers visit in person'],
+            ['online',   '💻', 'Online only',  'You sell online only'],
+            ['both',     '🌍', 'Both',         'Physical + online'],
+          ] as const).map(([value, icon, title, desc]) => {
+            const selected = form.location_type === value
+            return (
+              <button key={value} type="button"
+                onClick={() => upd('location_type', value)}
+                className="relative rounded-xl border p-3 text-left transition-all"
+                style={{
+                  borderColor:     selected ? '#1D9E75'   : '#E5E7EB',
+                  background:      selected ? '#F4FBF8'   : 'white',
+                }}>
+                <div className="text-xl mb-1">{icon}</div>
+                <p className="text-xs font-bold text-gray-900">{title}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">{desc}</p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {(form.location_type === 'physical' || form.location_type === 'both') && (
+      <div>
+        <label className={labelCls}>Street address {form.location_type === 'both' ? '*' : <span className="font-normal normal-case text-gray-400">(optional)</span>}</label>
         <div className="relative">
           <Home size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input type="text" value={form.street} onChange={e => upd('street', e.target.value)}
             placeholder="Enter your street address" className={`${inputCls} pl-9`} />
         </div>
       </div>
+      )}
 
+      {(form.location_type === 'physical' || form.location_type === 'both') && (
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-1">
-          <label className={labelCls}>City</label>
+          <label className={labelCls}>City *</label>
           <input type="text" value={form.city}
             onChange={e => { upd('city', e.target.value); clearError('city') }}
-            placeholder="Enter city" className={inputCls} />
+            onBlur={() => validate('city', form.city)}
+            placeholder="City" className={inputCls} />
           {errors.city && <FieldError message={errors.city} />}
         </div>
         <div>
-          <label className={labelCls}>State</label>
+          <label className={labelCls}>State *</label>
           <input type="text" value={form.state}
             onChange={e => { upd('state', e.target.value); clearError('state') }}
+            onBlur={() => validate('state', form.state)}
             placeholder="TX" maxLength={2} className={inputCls} />
           {errors.state && <FieldError message={errors.state} />}
         </div>
         <div>
           <label className={labelCls}>ZIP code <span className="font-normal normal-case text-gray-400">(optional)</span></label>
           <input type="text" value={form.zip} onChange={e => upd('zip', e.target.value)}
-            placeholder="Enter ZIP code" maxLength={10} className={inputCls} />
+            placeholder="77001" maxLength={10} className={inputCls} />
         </div>
       </div>
+      )}
+
+      {form.location_type === 'online' && (
+        <div className="rounded-xl p-4" style={{ background: '#F0FAF6', border: '1px solid #9FE1CB' }}>
+          <p className="text-sm font-semibold" style={{ color: '#085041' }}>💻 Online only</p>
+          <p className="text-xs mt-1" style={{ color: '#085041', opacity: 0.7 }}>
+            Great — customers will reach you through your website, phone, or online store links below.
+            You won't appear on the map, but you'll show up in search and category listings.
+          </p>
+        </div>
+      )}
 
       {/* ══════════ Contact ══════════ */}
       <p className={sectionCls} style={{ color:'#085041' }}>Contact</p>
@@ -292,7 +340,7 @@ export default function BusinessDetailsForm({
           <input type="tel" value={form.phone}
             onChange={e => { upd('phone', e.target.value); clearError('phone') }}
             onBlur={() => validate('phone', form.phone)}
-            placeholder="Enter phone number" className={`${inputCls} pl-9`} />
+            placeholder="Used for WhatsApp & calls" className={`${inputCls} pl-9`} />
         </div>
         {errors.phone && <FieldError message={errors.phone} />}
       </div>
@@ -311,7 +359,7 @@ export default function BusinessDetailsForm({
           <div className="relative">
             <Globe size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input type="url" value={form.website} onChange={e => upd('website', e.target.value)}
-              placeholder="Enter website URL" className={`${inputCls} pl-9`} />
+              placeholder="https://..." className={`${inputCls} pl-9`} />
           </div>
         </div>
       </div>
