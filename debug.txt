@@ -1,330 +1,247 @@
-<Html lang="en">
-      <Tailwind config={tailwindConfig}>
-        <Head />
+// app/search/page.tsx
 
-        <Preview>
-          {businessName} received {reviewsThisWeek}{' '}
-          {reviewsThisWeek === 1 ? 'review' : 'reviews'} this
-          week.
-        </Preview>
+import { Suspense } from 'react'
+import type { Metadata } from 'next'
 
-        <Body className="m-0 bg-[#F4F7F6] px-3 py-8 font-sans">
-          <Container className="mx-auto max-w-[680px] overflow-hidden rounded-[20px] bg-white">
-            <Section className="bg-brand-900 px-8 py-9">
-              <Row>
-                <Column>
-                  <Text className="m-0 text-[29px] font-extrabold leading-none text-white">
-                    Markeetee
-                  </Text>
+import { createClient } from '@/lib/supabase/server'
 
-                  <Text className="mt-2 mb-0 text-[13px] font-semibold text-brand-300">
-                    Africa is here. Find it.
-                  </Text>
-                </Column>
+import SearchClient  from './SearchClient'
+import SearchLoading from './loading'
 
-                <Column align="right">
-                  <Text className="m-0 inline-block rounded-full border border-solid border-[#FFFFFF3D] bg-[#FFFFFF1F] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white">
-                    Weekly summary
-                  </Text>
-                </Column>
-              </Row>
+export const dynamic = 'force-dynamic'
 
-              <Heading className="mt-8 mb-2 text-[30px] font-extrabold leading-tight text-white">
-                Hi {ownerName},
-              </Heading>
+export const metadata: Metadata = {
+  title: 'Search African-Owned Businesses | Markeetee',
+  description:
+    'Search African-owned restaurants, grocery stores, fashion businesses, beauty professionals, wellness providers, services, and more across the United States.',
 
-              <Text className="m-0 text-[17px] leading-7 text-[#E6F5EF]">
-                Here&apos;s how{' '}
-                <span className="font-bold text-brand-300">
-                  {businessName}
-                </span>{' '}
-                performed this week.
-              </Text>
-            </Section>
+  alternates: {
+    canonical: '/search',
+  },
 
-            <Section className="px-8 py-9">
-              <Text className="mt-0 mb-7 text-[15px] leading-7 text-[#47524E]">
-                Here is a quick look at your latest reviews,
-                customer activity, and business visibility on
-                Markeetee.
-              </Text>
+  openGraph: {
+    title: 'Search African-Owned Businesses | Markeetee',
+    description:
+      'Discover African-owned businesses, products, food, beauty, fashion, and services near you.',
+    url: '/search',
+    type: 'website',
+    images: [
+      {
+        url: '/og-default.png',
+        width: 1200,
+        height: 630,
+        alt: 'Search African-owned businesses on Markeetee',
+      },
+    ],
+  },
 
-              <Row>
-                <Column className="w-1/3 pr-1">
-                  <StatCard
-                    icon="☆"
-                    value={reviewsThisWeek.toLocaleString()}
-                    label="Reviews this week"
-                  />
-                </Column>
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Search African-Owned Businesses | Markeetee',
+    description: 'Discover African-owned businesses across the United States.',
+    images: ['/og-default.png'],
+  },
 
-                <Column className="w-1/3 px-1">
-                  <StatCard
-                    icon="💬"
-                    value={totalReviews.toLocaleString()}
-                    label="Total reviews"
-                  />
-                </Column>
+  // Filtered search URLs create many combinations — keep noindex on /search itself.
+  // Category and city landing pages (built separately) handle SEO indexing.
+  robots: {
+    index: false,
+    follow: true,
+  },
+}
 
-                <Column className="w-1/3 pl-1">
-                  <StatCard
-                    icon="↗"
-                    value={
-                      safeRating > 0
-                        ? `${safeRating.toFixed(1)} ★`
-                        : '—'
-                    }
-                    label="Average rating"
-                  />
-                </Column>
-              </Row>
+const PAGE_SIZE = 12
 
-              {topReview ? (
-                <Section className="mt-8">
-                  <Heading className="mt-0 mb-4 text-[17px] font-extrabold text-[#17211E]">
-                    🏆 Top review this week
-                  </Heading>
+// Only select columns that exist in the current businesses schema
+const BUSINESS_FIELDS = `
+  id,
+  name,
+  category,
+  description,
+  street,
+  address,
+  city,
+  state,
+  zip,
+  country,
+  phone,
+  website,
+  cover_image,
+  logo_url,
+  rating,
+  review_count,
+  tags,
+  lat,
+  lng,
+  verified,
+  premium,
+  featured,
+  plan
+`
 
-                  <Section className="rounded-2xl border border-solid border-[#CFE9DF] bg-brand-50 p-6">
-                    <Row>
-                      <Column
-                        className="w-[68px]"
-                        valign="top"
-                      >
-                        <ReviewerAvatar
-                          name={topReview.reviewerName}
-                          avatarUrl={topReview.avatarUrl}
-                        />
-                      </Column>
+const CATEGORIES = [
+  { id: 'food',       name: 'Food & Groceries', icon: '🍲' },
+  { id: 'restaurant', name: 'Restaurants',       icon: '🍽️' },
+  { id: 'fashion',    name: 'Fashion & Fabric',  icon: '👗' },
+  { id: 'beauty',     name: 'Beauty & Hair',     icon: '💇' },
+  { id: 'herbs',      name: 'Herbs & Wellness',  icon: '🌿' },
+  { id: 'music',      name: 'Music & Arts',      icon: '🎵' },
+  { id: 'crafts',     name: 'Crafts & Decor',    icon: '🏺' },
+  { id: 'services',   name: 'Services',          icon: '🛠️' },
+  { id: 'nightlife',  name: 'Bars & Nightlife',  icon: '🍹' },
+] as const
 
-                      <Column valign="top">
-                        <StarRating
-                          rating={topReview.rating}
-                        />
+type BusinessCategory = (typeof CATEGORIES)[number]
 
-                        <Text className="mt-2 mb-3 text-[15px] italic leading-7 text-[#2F3936]">
-                          “{topReview.body}”
-                        </Text>
+export interface SearchBusiness {
+  id:            string
+  name:          string
+  category:      string | null
+  description:   string | null
+  street:        string | null
+  address:       string | null
+  city:          string | null
+  state:         string | null
+  zip:           string | null
+  country:       string | null
+  phone:         string | null
+  website:       string | null
+  cover_image:   string | null
+  logo_url:      string | null
+  rating:        number | null
+  review_count:  number | null
+  tags:          string[] | null
+  lat:           number | null
+  lng:           number | null
+  verified:      boolean
+  premium:       boolean
+  featured:      boolean
+  plan:          string | null
+}
 
-                        <Text className="m-0 text-[13px] font-bold text-[#64706C]">
-                          — {topReview.reviewerName}
-                        </Text>
-                      </Column>
-                    </Row>
-                  </Section>
-                </Section>
-              ) : (
-                <Section className="mt-8 rounded-2xl border border-solid border-[#CFE9DF] bg-brand-50 p-6 text-center">
-                  <Heading className="m-0 text-[17px] font-extrabold text-brand-900">
-                    Keep building your reputation
-                  </Heading>
+export interface SearchCategory extends BusinessCategory {
+  count: number
+}
 
-                  <Text className="mt-2 mb-0 text-[14px] leading-6 text-[#64706C]">
-                    Share your Markeetee profile and invite
-                    customers to leave a review.
-                  </Text>
-                </Section>
-              )}
+async function getInitialSearchData(): Promise<{
+  businesses:    SearchBusiness[]
+  totalCount:    number
+  categories:    SearchCategory[]
+  errorMessage:  string | null
+}> {
+  const supabase = await createClient()
 
-              <Section className="my-8 text-center">
-                <Button
-                  href={dashboardUrl}
-                  className="rounded-xl bg-brand-700 px-8 py-4 text-[15px] font-extrabold text-white no-underline"
-                >
-                  View your dashboard →
-                </Button>
-              </Section>
+  // ── Businesses ───────────────────────────────────────────────────────
+  const { data, count, error } = await supabase
+    .from('businesses')
+    .select(BUSINESS_FIELDS, { count: 'exact' })
+    .order('featured', { ascending: false, nullsFirst: false })
+    .order('verified', { ascending: false, nullsFirst: false })
+    .order('rating',   { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .range(0, PAGE_SIZE - 1)
 
-              <Section className="rounded-2xl border border-solid border-[#DCE8E3] bg-white p-5">
-                <Heading className="mt-0 mb-5 text-[17px] font-extrabold text-[#17211E]">
-                  Insights summary
-                </Heading>
+  if (error) {
+    console.error('[search-page] Initial business query failed:', {
+      message: error.message,
+      code:    error.code,
+      details: error.details,
+      hint:    error.hint,
+    })
+    return {
+      businesses:   [],
+      totalCount:   0,
+      categories:   await buildCategoriesWithCounts(supabase),
+      errorMessage: 'Businesses could not be loaded. Please refresh the page and try again.',
+    }
+  }
 
-                <Row>
-                  <Column className="w-1/4 pr-1">
-                    <InsightCard
-                      icon="◉"
-                      value={profileViews}
-                      label="Profile views"
-                    />
-                  </Column>
+  return {
+    businesses:   normalizeBusinesses(data),
+    totalCount:   count ?? 0,
+    categories:   await buildCategoriesWithCounts(supabase),
+    errorMessage: null,
+  }
+}
 
-                  <Column className="w-1/4 px-1">
-                    <InsightCard
-                      icon="⌕"
-                      value={searchViews}
-                      label="Search views"
-                    />
-                  </Column>
+/**
+ * Build the categories list with real per-category counts from the DB.
+ * Uses a lightweight SELECT category, count() grouping.
+ */
+async function buildCategoriesWithCounts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<SearchCategory[]> {
+  try {
+    const results = await Promise.all(
+      CATEGORIES.map(async cat => {
+        const { count } = await supabase
+          .from('businesses')
+          .select('id', { count: 'exact', head: true })
+          .eq('category', cat.id)
+        return { ...cat, count: count ?? 0 }
+      }),
+    )
+    return results
+  } catch (err) {
+    console.error('[search-page] Category counts failed:', err)
+    return CATEGORIES.map(cat => ({ ...cat, count: 0 }))
+  }
+}
 
-                  <Column className="w-1/4 px-1">
-                    <InsightCard
-                      icon="☎"
-                      value={phoneCalls}
-                      label="Phone calls"
-                    />
-                  </Column>
+function normalizeBusinesses(businesses: unknown[] | null): SearchBusiness[] {
+  if (!Array.isArray(businesses)) return []
 
-                  <Column className="w-1/4 pl-1">
-                    <InsightCard
-                      icon="↗"
-                      value={directionRequests}
-                      label="Directions"
-                    />
-                  </Column>
-                </Row>
+  return businesses.map(item => {
+    const b = item as Partial<SearchBusiness>
+    return {
+      id:            String(b.id ?? ''),
+      name:          b.name?.trim() || 'Unnamed business',
+      category:      b.category      ?? null,
+      description:   b.description   ?? null,
+      street:        b.street        ?? null,
+      address:       b.address       ?? null,
+      city:          b.city          ?? null,
+      state:         b.state         ?? null,
+      zip:           b.zip           ?? null,
+      country:       b.country       ?? null,
+      phone:         b.phone         ?? null,
+      website:       b.website       ?? null,
+      cover_image:   b.cover_image   ?? null,
+      logo_url:      b.logo_url      ?? null,
+      rating:        typeof b.rating       === 'number' ? b.rating       : 0,
+      review_count:  typeof b.review_count === 'number' ? b.review_count : 0,
+      tags:          Array.isArray(b.tags) ? b.tags : null,
+      lat:           typeof b.lat === 'number' ? b.lat : null,
+      lng:           typeof b.lng === 'number' ? b.lng : null,
+      verified:      Boolean(b.verified),
+      premium:       Boolean(b.premium),
+      featured:      Boolean(b.featured),
+      plan:          b.plan ?? null,
+    }
+  })
+}
 
-                <Text className="mt-5 mb-0 text-center">
-                  <Link
-                    href={`${dashboardUrl}/insights`}
-                    className="text-[13px] font-extrabold text-brand-500 underline"
-                  >
-                    See full insights →
-                  </Link>
-                </Text>
-              </Section>
+async function SearchContent() {
+  const { businesses, totalCount, categories, errorMessage } = await getInitialSearchData()
 
-              {recentReviews.length > 0 ? (
-                <Section className="mt-7 rounded-2xl border border-solid border-[#DCE8E3] bg-white p-5">
-                  <Row>
-                    <Column>
-                      <Heading className="m-0 text-[17px] font-extrabold text-[#17211E]">
-                        Recent reviews
-                      </Heading>
-                    </Column>
-
-                    <Column align="right">
-                      <Link
-                        href={`${dashboardUrl}/reviews`}
-                        className="text-[13px] font-extrabold text-brand-500 underline"
-                      >
-                        View all
-                      </Link>
-                    </Column>
-                  </Row>
-
-                  {recentReviews
-                    .slice(0, 3)
-                    .map((review, index) => (
-                      <React.Fragment
-                        key={`${review.reviewerName}-${index}`}
-                      >
-                        <RecentReviewRow
-                          review={review}
-                        />
-
-                        {index <
-                        Math.min(
-                          recentReviews.length,
-                          3,
-                        ) -
-                          1 ? (
-                          <Hr className="my-2 border-[#EDF1EF]" />
-                        ) : null}
-                      </React.Fragment>
-                    ))}
-                </Section>
-              ) : null}
-
-              <Section className="mt-7 rounded-r-2xl border-0 border-l-4 border-solid border-brand-500 bg-[#F0FAF6] p-5">
-                <Heading className="mt-0 mb-2 text-[15px] font-extrabold text-brand-900">
-                  Keep the momentum going
-                </Heading>
-
-                <Text className="m-0 text-[13px] leading-6 text-[#4C5652]">
-                  Respond to new reviews and keep your
-                  profile, photos, business hours, products,
-                  and services updated to attract more
-                  customers.
-                </Text>
-              </Section>
-
-              {businessLogoUrl || publicProfileUrl ? (
-                <Section className="mt-7 rounded-2xl border border-solid border-[#DCE8E3] bg-white p-4">
-                  <Row>
-                    {businessLogoUrl ? (
-                      <Column className="w-[64px]">
-                        <Img
-                          src={businessLogoUrl}
-                          width="48"
-                          height="48"
-                          alt={businessName}
-                          className="rounded-full object-cover"
-                        />
-                      </Column>
-                    ) : null}
-
-                    <Column>
-                      <Text className="mt-0 mb-1 text-[14px] font-extrabold text-[#17211E]">
-                        {businessName}
-                      </Text>
-
-                      {publicProfileUrl ? (
-                        <Link
-                          href={publicProfileUrl}
-                          className="text-[13px] font-extrabold text-brand-500 underline"
-                        >
-                          View public profile →
-                        </Link>
-                      ) : null}
-                    </Column>
-                  </Row>
-                </Section>
-              ) : null}
-            </Section>
-
-            <Section className="border-0 border-t border-solid border-[#DCE8E3] bg-[#F8FAF9] px-7 py-8 text-center">
-              <Text className="mt-0 mb-2 text-[18px] font-extrabold text-brand-700">
-                Markeetee
-              </Text>
-
-              <Text className="mx-auto mt-0 mb-4 max-w-[420px] text-[12px] leading-6 text-[#64706C]">
-                Helping people discover and support
-                African-owned businesses.
-              </Text>
-
-              <Text className="mt-0 mb-4">
-                <Link
-                  href="https://markeetee.com"
-                  className="text-[12px] font-bold text-brand-700 underline"
-                >
-                  Website
-                </Link>
-
-                <span className="px-2 text-[#A2AAA7]">
-                  •
-                </span>
-
-                <Link
-                  href="https://markeetee.com/contact"
-                  className="text-[12px] font-bold text-brand-700 underline"
-                >
-                  Support
-                </Link>
-
-                {unsubscribeUrl ? (
-                  <>
-                    <span className="px-2 text-[#A2AAA7]">
-                      •
-                    </span>
-
-                    <Link
-                      href={unsubscribeUrl}
-                      className="text-[12px] font-bold text-brand-700 underline"
-                    >
-                      Unsubscribe
-                    </Link>
-                  </>
-                ) : null}
-              </Text>
-
-              <Text className="m-0 text-[11px] leading-5 text-[#9AA19F]">
-                © {new Date().getFullYear()} Markeetee.
-                All rights reserved.
-              </Text>
-            </Section>
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
+  return (
+    <SearchClient
+      initialBusinesses={businesses}
+      totalCount={totalCount}
+      pageSize={PAGE_SIZE}
+      categories={categories}
+      initialTab="businesses"
+      initialError={errorMessage}
+    />
   )
+}
+
+export default function SearchPage() {
+  return (
+    <main className="min-h-screen bg-[#F7FAF8]">
+      <Suspense fallback={<SearchLoading />}>
+        <SearchContent />
+      </Suspense>
+    </main>
+  )
+}

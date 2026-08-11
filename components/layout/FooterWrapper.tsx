@@ -1,8 +1,9 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Footer from '@/components/layout/Footer'
 
-// Routes where the footer should be hidden — auth pages and onboarding
+// Routes where the footer should be hidden
 const HIDDEN_ON = [
   '/auth/login',
   '/auth/signup',
@@ -19,10 +20,18 @@ const HIDDEN_ON = [
 
 export default function FooterWrapper() {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
 
-  // Hide footer if current path starts with any of the hidden routes
-  const hidden = HIDDEN_ON.some(route => pathname === route || pathname.startsWith(route + '/'))
+  useEffect(() => setMounted(true), [])
 
+  // On first paint (server + hydration), render nothing to avoid mismatch.
+  // After mount, decide based on pathname.
+  if (!mounted) return null
+
+  const hidden = HIDDEN_ON.some(route =>
+    pathname === route || pathname.startsWith(route + '/')
+  )
   if (hidden) return null
+
   return <Footer />
 }

@@ -4,12 +4,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import ListBusinessButton from '@/components/ui/ListBusinessButton'
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
-import ThemeToggle      from '@/components/ui/ThemeToggle'
+import ThemeToggle       from '@/components/ui/ThemeToggle'
 import {
   Search, Menu, X, MapPin, LayoutDashboard,
   User, Settings, LogOut, ChevronDown,
-  Heart, Star, Building2, BookOpen
+  Heart, Star, Building2, BookOpen, Rocket
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
@@ -45,17 +44,17 @@ export default function Navbar() {
   const displayName = profile?.name?.split(' ')?.[0] ?? user?.email?.split('@')?.[0] ?? 'Account'
 
   const ownerMenu = [
-    { icon: LayoutDashboard, label: 'Dashboard',       href: '/dashboard'         },
-    { icon: Building2,       label: 'My business',     href: '/dashboard?tab=listing' },
-    { icon: Star,            label: 'My reviews',      href: '/dashboard?tab=reviews' },
-    { icon: Settings,        label: 'Account settings',href: '/account/settings'  },
+    { icon: LayoutDashboard, label: 'Dashboard',         href: '/dashboard'              },
+    { icon: Building2,       label: 'My business',       href: '/dashboard?tab=listing' },
+    { icon: Star,            label: 'My reviews',        href: '/dashboard?tab=reviews' },
+    { icon: Settings,        label: 'Account settings',  href: '/settings'              },
   ]
 
   const customerMenu = [
-    { icon: User,     label: 'My profile',     href: '/account/profile'  },
-    { icon: Heart,    label: 'Saved places',   href: '/account/saved'    },
-    { icon: BookOpen, label: 'My reviews',     href: '/account/reviews'  },
-    { icon: Settings, label: 'Settings',       href: '/account/settings' },
+    { icon: User,     label: 'My profile',     href: '/settings'         },
+    { icon: Heart,    label: 'Saved places',   href: '/saved'            },
+    { icon: BookOpen, label: 'My reviews',     href: '/my-reviews'       },
+    { icon: Settings, label: 'Settings',       href: '/settings'         },
   ]
 
   const menuItems = isOwner ? ownerMenu : customerMenu
@@ -83,6 +82,9 @@ export default function Navbar() {
           </Link>
           <Link href="/map" className="text-sm text-gray-600 hover:text-green-700 flex items-center gap-1.5 transition-colors">
             <MapPin size={14} /> Map
+          </Link>
+          <Link href="/blog" className="text-sm text-gray-600 hover:text-green-700 flex items-center gap-1.5 transition-colors">
+            <BookOpen size={14} /> Blog
           </Link>
           <Link href="/about" className="text-sm text-gray-600 hover:text-green-700 transition-colors">
             About
@@ -159,7 +161,7 @@ export default function Navbar() {
                       >
                         <span className="flex items-center gap-3">
                           <Building2 size={15} style={{ color: '#1D9E75' }} className="flex-shrink-0" />
-                          Upgrade your business
+                          List your business
                         </span>
                       </ListBusinessButton>
                     )}
@@ -178,22 +180,19 @@ export default function Navbar() {
             </div>
           ) : (
             <>
-              <Link href="/about" className="text-sm text-gray-600 hover:text-green-700 transition-colors hidden lg:inline">
-                About
-              </Link>
               <Link href="/auth/login" className="text-sm font-medium border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:border-green-300 hover:text-green-700 transition-colors">
                 Sign in
               </Link>
-              <Link href="/auth/signup"
-                className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-colors hover:opacity-90"
+              <ListBusinessButton
+                className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-colors hover:opacity-90 inline-block"
                 style={{ background: '#1D9E75' }}>
-                Sign up
-              </Link>
+                List your business
+              </ListBusinessButton>
             </>
           )}
         </nav>
 
-        {/* Theme toggle — visible on all screen sizes */}
+        {/* Theme toggle */}
         <ThemeToggle />
 
         {/* Mobile hamburger */}
@@ -235,13 +234,13 @@ export default function Navbar() {
               className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
               <MapPin size={14} className="text-gray-400" /> Map
             </Link>
-            <Link href="/how-it-works" onClick={() => setMobileOpen(false)}
+            <Link href="/blog" onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
-              How it works
+              <BookOpen size={14} className="text-gray-400" /> Blog
             </Link>
             <Link href="/about" onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
-              About us
+              About
             </Link>
 
             {isLoggedIn ? (
@@ -265,7 +264,7 @@ export default function Navbar() {
                   >
                     <span className="flex items-center gap-2">
                       <Building2 size={14} style={{ color: '#1D9E75' }} />
-                      Upgrade your business
+                      List your business
                     </span>
                   </ListBusinessButton>
                 )}
@@ -276,7 +275,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/business/new" onClick={() => setMobileOpen(false)}
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
                   <User size={14} className="text-gray-400" /> Sign in
                 </Link>
@@ -286,18 +285,22 @@ export default function Navbar() {
                     style={{ background: '#1D9E75' }}>
                     Sign up free
                   </Link>
-                  <Link href="/auth/signup?intent=owner" onClick={() => setMobileOpen(false)}
+                  <ListBusinessButton
                     className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold border-2"
                     style={{ borderColor: '#1D9E75', color: '#1D9E75' }}>
                     List business
-                  </Link>
+                  </ListBusinessButton>
                 </div>
               </>
             )}
+
+            {/* Launch access banner */}
+            <Link href="/launch" onClick={() => setMobileOpen(false)}
+              className="mt-4 flex items-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #053528, #1D9E75)' }}>
+              <Rocket size={14} /> 🚀 Free launch access
+            </Link>
           </div>
-          <Link href="/launch" className="...">
-          🚀 Free launch access
-          </Link>
         </div>
       )}
     </header>

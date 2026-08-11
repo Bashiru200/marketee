@@ -62,9 +62,9 @@ export default function RevenueDashboard() {
 
     const { data: bizData } = await supabase
       .from('businesses')
-      .select('id, name, plan, city, category, cover_image, created_at, updated_at, profiles(name, email)')
+      .select('id, name, plan, city, category, cover_image, created_at, profiles(name, email)')
       .in('plan', ['premium', 'storefront'])
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     const subs = (bizData ?? []).map((b: any) => ({
       id:          b.id,
@@ -75,7 +75,7 @@ export default function RevenueDashboard() {
       category:    b.category,
       cover_image: b.cover_image,
       created_at:  b.created_at,
-      updated_at:  b.updated_at,
+      updated_at:  b.created_at,   // no updated_at column, use created_at
       owner:       b.profiles ?? null,
     })) as Subscriber[]
 
