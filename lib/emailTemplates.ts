@@ -1,815 +1,158 @@
+// Add this function to /lib/emailTemplates.ts
+
 /**
- * lib/emailTemplates.ts
- * Markeetee production-ready transactional email templates
+ * Rich business message email — with images, link buttons, and markdown formatting.
+ * Used by SendEmailModal to send messages from business owners to customers.
  */
+export function businessMessageTemplate({
+  recipientName,
+  businessName,
+  messageBody,
+  images,
+  links,
+  businessId,
+}: {
+  recipientName: string
+  businessName:  string
+  messageBody:   string
+  images:        string[]
+  links:         Array<{ label: string; url: string }>
+  businessId?:   string
+}): string {
+  const APP_URL     = process.env.NEXT_PUBLIC_APP_URL || 'https://markeetee.com'
+  const BRAND_DARK  = '#053528'
+  const BRAND_MID   = '#085041'
+  const BRAND_GREEN = '#1D9E75'
+  const BRAND_MINT  = '#9FE1CB'
+  const BRAND_LIGHT = '#E1F5EE'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.markeetee.com'
-const LOGO_URL = `${APP_URL}/apple-touch-icon.png`
+  // Convert markdown-lite to HTML — bold, italic, bullets
+  const formattedBody = escapeHtml(messageBody)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g,       '<em>$1</em>')
+    .split('\n')
+    .map(line => {
+      const trimmed = line.trim()
+      if (trimmed.startsWith('• ')) {
+        return `<li style="margin-bottom:6px;">${trimmed.slice(2)}</li>`
+      }
+      return line ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#374151;">${line}</p>` : ''
+    })
+    .join('')
+    .replace(/(<li[^>]*>[\s\S]*?<\/li>)+/g, m => `<ul style="padding-left:20px;margin:0 0 16px;color:#374151;">${m}</ul>`)
 
-const BRAND_DARK = '#053528'
-const BRAND_GREEN = '#1D9E75'
-const BRAND_MINT = '#C5EADB'
-const TEXT_DARK = '#111827'
-const TEXT_MUTED = '#6B7280'
-const BORDER = '#E5E7EB'
+  // Image grid — up to 5 photos
+  const imageGrid = images.length === 0 ? '' : `
+    <div style="margin:24px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          ${images.slice(0, 3).map(img => `
+            <td width="${100 / Math.min(images.length, 3)}%" style="padding:2px;">
+              <img src="${img}" alt="" style="display:block;width:100%;height:auto;border-radius:8px;" />
+            </td>
+          `).join('')}
+        </tr>
+        ${images.length > 3 ? `
+          <tr>
+            ${images.slice(3, 5).map(img => `
+              <td width="50%" style="padding:2px;">
+                <img src="${img}" alt="" style="display:block;width:100%;height:auto;border-radius:8px;" />
+              </td>
+            `).join('')}
+            ${images.length === 4 ? '<td width="50%"></td>' : ''}
+          </tr>
+        ` : ''}
+      </table>
+    </div>`
 
-function escapeHtml(value?: string | null) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
-}
-
-function safeUrl(url?: string | null) {
-  const fallback = APP_URL
-  if (!url) return fallback
-
-  try {
-    const parsed = new URL(url)
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'mailto:') {
-      return parsed.toString()
-    }
-    return fallback
-  } catch {
-    return fallback
-  }
-}
-
-function money(value: number) {
-  return `$${Number(value || 0).toFixed(2)}`
-}
-
-function textPreview(html: string) {
-  return escapeHtml(html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 120))
-}
-
-function preheader(text: string) {
-  return `
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-      ${escapeHtml(text)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
-    </div>
-  `
-}
-
-function greeting(name?: string | null) {
-  return `
-    <p style="margin:0 0 20px;font-size:16px;line-height:1.7;color:${TEXT_DARK};">
-      Hi${name ? ` <strong>${escapeHtml(name)}</strong>` : ''},
-    </p>
-  `
-}
-
-function button(label: string, url: string, secondary = false) {
-  return `
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 0;">
-      <tr>
-        <td align="center" style="border-radius:12px;background:${secondary ? '#ffffff' : BRAND_GREEN};border:${secondary ? `2px solid ${BRAND_GREEN}` : '0'};">
-          <a href="${safeUrl(url)}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:700;color:${secondary ? BRAND_GREEN : '#ffffff'};text-decoration:none;border-radius:12px;">
-            ${escapeHtml(label)}
+  // Link buttons — stacked on mobile
+  const linkButtons = links.length === 0 ? '' : `
+    <div style="margin:28px 0;">
+      ${links.map((link, i) => `
+        <div style="margin-bottom:${i === links.length - 1 ? '0' : '10px'};">
+          <a href="${link.url}"
+            style="display:block;background:${i === 0 ? BRAND_GREEN : BRAND_LIGHT};color:${i === 0 ? '#ffffff' : BRAND_DARK};font-size:14px;font-weight:700;padding:14px 24px;border-radius:12px;text-decoration:none;text-align:center;">
+            ${escapeHtml(link.label)} →
           </a>
-        </td>
-      </tr>
-    </table>
-  `
-}
+        </div>
+      `).join('')}
+    </div>`
 
-function infoBox(content: string, color = '#F0FAF6', border = BRAND_MINT) {
-  return `
-    <div style="background:${color};border-left:4px solid ${border};border-radius:0 12px 12px 0;padding:16px 18px;margin:22px 0;font-size:14px;line-height:1.7;color:#374151;">
-      ${content}
+  const businessLink = businessId ? `${APP_URL}/businesses/${businessId}` : APP_URL
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#F4F7F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F6;padding:32px 12px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:20px;overflow:hidden;">
+
+  <!-- Header -->
+  <tr><td style="background:${BRAND_DARK};padding:28px 32px;">
+    <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">Markeetee</p>
+    <p style="margin:4px 0 0;font-size:12px;color:${BRAND_MINT};">Africa is here. Find it.</p>
+  </td></tr>
+
+  <!-- Sender badge -->
+  <tr><td style="padding:28px 32px 0;">
+    <div style="display:inline-block;background:${BRAND_LIGHT};padding:6px 14px;border-radius:20px;">
+      <p style="margin:0;font-size:11px;font-weight:700;color:${BRAND_DARK};text-transform:uppercase;letter-spacing:0.05em;">
+        Message from ${escapeHtml(businessName)}
+      </p>
     </div>
-  `
-}
+  </td></tr>
 
-function divider() {
-  return `<hr style="border:none;border-top:1px solid #F3F4F6;margin:26px 0;" />`
-}
+  <!-- Greeting -->
+  <tr><td style="padding:16px 32px 0;">
+    <h1 style="margin:0 0 6px;font-size:22px;font-weight:800;color:#111827;">
+      Hi ${escapeHtml(recipientName ?? 'there')} 👋
+    </h1>
+  </td></tr>
 
-function wrap({
-  subject,
-  preheaderText,
-  badge,
-  headline,
-  subline,
-  body,
-  cta,
-  unsubscribeUrl,
-}: {
-  subject: string
-  preheaderText?: string
-  badge?: string
-  headline: string
-  subline?: string
-  body: string
-  cta?: { label: string; url: string; secondary?: boolean }
-  unsubscribeUrl?: string
-}) {
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="x-apple-disable-message-reformatting" />
-  <title>${escapeHtml(subject)}</title>
-</head>
+  <!-- Body -->
+  <tr><td style="padding:16px 32px 8px;">
+    ${formattedBody}
+    ${imageGrid}
+    ${linkButtons}
+  </td></tr>
 
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:${TEXT_DARK};">
-  ${preheaderText ? preheader(preheaderText) : ''}
+  <!-- Business card footer -->
+  <tr><td style="padding:16px 32px 32px;">
+    <div style="background:${BRAND_LIGHT};border-radius:16px;padding:20px;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:${BRAND_MID};font-weight:600;">Sent by</p>
+      <p style="margin:0 0 12px;font-size:16px;color:${BRAND_DARK};font-weight:800;">${escapeHtml(businessName)}</p>
+      <a href="${businessLink}"
+        style="display:inline-block;background:${BRAND_GREEN};color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;text-decoration:none;">
+        View business →
+      </a>
+    </div>
+  </td></tr>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:32px 14px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid ${BORDER};">
-
-          <tr>
-            <td style="background:${BRAND_DARK};padding:34px 32px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td>
-                    <table role="presentation" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td><img src="${LOGO_URL}" width="40" height="40" alt="M" style="display:block;border-radius:10px;" /></td>
-                        <td style="padding-left:10px;font-size:22px;font-weight:800;color:#ffffff;vertical-align:middle;letter-spacing:-0.02em;">Markeetee</td>
-                      </tr>
-                    </table>
-                  </td>
-                  ${
-                    badge
-                      ? `<td align="right"><span style="display:inline-block;background:rgba(159,225,203,.18);color:${BRAND_MINT};font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:999px;">${escapeHtml(badge)}</span></td>`
-                      : ''
-                  }
-                </tr>
-              </table>
-
-              <h1 style="margin:28px 0 8px;font-size:28px;line-height:1.25;color:#ffffff;font-weight:800;">
-                ${escapeHtml(headline)}
-              </h1>
-
-              ${
-                subline
-                  ? `<p style="margin:0;font-size:14px;line-height:1.6;color:${BRAND_MINT};">${escapeHtml(subline)}</p>`
-                  : ''
-              }
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:36px 32px;background:#ffffff;">
-              ${body}
-              ${cta ? button(cta.label, cta.url, cta.secondary) : ''}
-            </td>
-          </tr>
-
-          <tr>
-            <td style="background:#FAFAF9;border-top:1px solid ${BORDER};padding:30px 32px;text-align:center;">
-              <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:${BRAND_DARK};">
-                Markeetee
-              </p>
-
-              <p style="margin:0 0 18px;font-size:13px;line-height:1.7;color:${TEXT_MUTED};">
-                Africa is here. Find it.<br />
-                The African business directory for the diaspora.
-              </p>
-
-              <p style="margin:0 0 14px;font-size:12px;line-height:1.8;color:#9CA3AF;">
-                <a href="${APP_URL}" style="color:${BRAND_GREEN};text-decoration:none;">Website</a>
-                &nbsp;·&nbsp;
-                <a href="${APP_URL}/privacy" style="color:${BRAND_GREEN};text-decoration:none;">Privacy</a>
-                &nbsp;·&nbsp;
-                <a href="${APP_URL}/terms" style="color:${BRAND_GREEN};text-decoration:none;">Terms</a>
-                &nbsp;·&nbsp;
-                <a href="${APP_URL}/contact" style="color:${BRAND_GREEN};text-decoration:none;">Contact</a>
-              </p>
-
-              ${
-                unsubscribeUrl
-                  ? `<p style="margin:0 0 12px;font-size:12px;color:#9CA3AF;">
-                      <a href="${safeUrl(unsubscribeUrl)}" style="color:#9CA3AF;text-decoration:underline;">Unsubscribe</a>
-                    </p>`
-                  : ''
-              }
-
-              <p style="margin:0;font-size:11px;line-height:1.6;color:#B0B7C3;">
-                © 2026 Markeetee. All rights reserved.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
-}
-
-export function confirmEmailTemplate({
-  name,
-  confirmUrl,
-}: {
-  name?: string | null
-  confirmUrl: string
-}) {
-  const subject = 'Confirm your Markeetee account'
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: 'Confirm your email to activate your Markeetee account.',
-      badge: 'Welcome',
-      headline: "You're almost in",
-      subline: 'Confirm your email to activate your account.',
-      body: `
-        ${greeting(name)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          Welcome to Markeetee — your place to discover African-owned restaurants, markets, beauty, fashion, wellness, services, and more.
-        </p>
-        ${infoBox('This confirmation link may expire soon. If it expires, request a new one from the sign-in page.')}
-        <p style="margin:22px 0 0;font-size:12px;line-height:1.7;color:#9CA3AF;text-align:center;">
-          If the button does not work, copy and paste this link:<br />
-          <a href="${safeUrl(confirmUrl)}" style="color:${BRAND_GREEN};word-break:break-all;">${escapeHtml(confirmUrl)}</a>
-        </p>
-      `,
-      cta: { label: 'Confirm my email', url: confirmUrl },
-    }),
-  }
-}
-
-export function resetPasswordTemplate({
-  name,
-  resetUrl,
-}: {
-  name?: string | null
-  resetUrl: string
-}) {
-  const subject = 'Reset your Markeetee password'
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: 'Use this secure link to reset your Markeetee password.',
-      badge: 'Security',
-      headline: 'Reset your password',
-      subline: 'Create a new password for your account.',
-      body: `
-        ${greeting(name)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          We received a request to reset your Markeetee password. Use the button below to create a new one.
-        </p>
-        ${infoBox("If you did not request this, you can safely ignore this email. Your password will not change.", '#FFF7F0', '#FED7AA')}
-      `,
-      cta: { label: 'Reset password', url: resetUrl },
-    }),
-  }
-}
-
-export function magicLinkTemplate({
-  name,
-  magicUrl,
-}: {
-  name?: string | null
-  magicUrl: string
-}) {
-  const subject = 'Your Markeetee sign-in link'
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: 'Use this one-time link to sign in to Markeetee.',
-      badge: 'Sign in',
-      headline: 'Your sign-in link',
-      subline: 'One click to securely access your account.',
-      body: `
-        ${greeting(name)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          Click the button below to sign in to your Markeetee account.
-        </p>
-        ${infoBox('This link can only be used once. Do not share it with anyone.')}
-      `,
-      cta: { label: 'Sign in to Markeetee', url: magicUrl },
-    }),
-  }
-}
-
-export function welcomeEmailTemplate({
-  name,
-  role,
-}: {
-  name?: string | null
-  role: 'customer' | 'owner'
-}) {
-  const isOwner = role === 'owner'
-  const subject = isOwner ? 'Welcome to Markeetee Business' : 'Welcome to Markeetee'
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: isOwner
-        ? 'Your business dashboard is ready.'
-        : 'Start discovering African-owned businesses near you.',
-      badge: isOwner ? 'Business Owner' : 'Welcome',
-      headline: isOwner ? 'Your business dashboard is ready' : 'Welcome to the community',
-      subline: isOwner ? 'Set up your listing and start reaching customers.' : 'Africa is here. Find it.',
-      body: `
-        ${greeting(name)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          ${
-            isOwner
-              ? 'You can now manage your business profile, add photos, list products, update hours, and track customer activity from your dashboard.'
-              : 'You can now search, save, review, and support African-owned businesses across the Markeetee community.'
-          }
-        </p>
-
-        ${infoBox(
-          isOwner
-            ? 'Next step: complete your business profile with photos, hours, contact details, and products.'
-            : 'Start by exploring restaurants, grocery stores, beauty, fashion, wellness, services, and more.'
-        )}
-      `,
-      cta: {
-        label: isOwner ? 'Go to dashboard' : 'Explore businesses',
-        url: isOwner ? `${APP_URL}/dashboard` : `${APP_URL}/search`,
-      },
-    }),
-  }
-}
-
-export function reviewNotificationTemplate({
-  ownerName,
-  reviewerName,
-  businessName,
-  rating,
-  reviewText,
-  businessUrl,
-}: {
-  ownerName?: string | null
-  reviewerName?: string | null
-  businessName: string
-  rating: number
-  reviewText: string
-  businessUrl: string
-}) {
-  const safeRating = Math.max(1, Math.min(5, Math.round(rating)))
-  const subject = `New ${safeRating}-star review for ${businessName}`
-
-  return {
-    subject: escapeHtml(subject),
-    html: wrap({
-      subject,
-      preheaderText: `${reviewerName || 'A customer'} left a review for ${businessName}.`,
-      badge: 'New Review',
-      headline: 'You received a new review',
-      subline: businessName,
-      body: `
-        ${greeting(ownerName)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          ${escapeHtml(reviewerName || 'A customer')} left a ${safeRating}-star review for <strong>${escapeHtml(businessName)}</strong>.
-        </p>
-
-        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:20px;margin:22px 0;">
-          <p style="margin:0 0 10px;font-size:18px;color:#F59E0B;">${'★'.repeat(safeRating)}${'☆'.repeat(5 - safeRating)}</p>
-          <p style="margin:0;font-size:14px;line-height:1.8;color:#374151;font-style:italic;">
-            “${escapeHtml(reviewText)}”
-          </p>
-        </div>
-      `,
-      cta: { label: 'View review', url: businessUrl },
-    }),
-  }
-}
-
-export function saleNotificationTemplate({
-  recipientName,
-  businessName,
-  productName,
-  originalPrice,
-  salePrice,
-  saleLabel,
-  message,
-  businessUrl,
-  unsubscribeUrl,
-}: {
-  recipientName?: string | null
-  businessName: string
-  productName: string
-  originalPrice: number
-  salePrice: number
-  saleLabel: string
-  message?: string
-  businessUrl: string
-  unsubscribeUrl?: string
-}) {
-  const discount =
-    originalPrice > 0 ? Math.max(0, Math.round(((originalPrice - salePrice) / originalPrice) * 100)) : 0
-
-  const subject = `${discount}% off at ${businessName}`
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: `${businessName} has a special offer on ${productName}.`,
-      badge: `${discount}% OFF`,
-      headline: 'Sale alert',
-      subline: businessName,
-      body: `
-        ${greeting(recipientName)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          One of your saved businesses has a new offer.
-        </p>
-
-        <div style="background:#F0FAF6;border:1px solid ${BRAND_MINT};border-radius:16px;padding:24px;text-align:center;margin:22px 0;">
-          <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:${TEXT_MUTED};">
-            ${escapeHtml(productName)}
-          </p>
-          <p style="margin:0;font-size:16px;color:#9CA3AF;text-decoration:line-through;">${money(originalPrice)}</p>
-          <p style="margin:6px 0 10px;font-size:34px;font-weight:800;color:${BRAND_GREEN};">${money(salePrice)}</p>
-          <p style="margin:0;font-size:12px;font-weight:700;color:#92400E;background:#FEF3C7;display:inline-block;padding:5px 12px;border-radius:999px;">
-            ${escapeHtml(saleLabel)}
-          </p>
-        </div>
-
-        ${message ? infoBox(`Message from ${escapeHtml(businessName)}: <em>${escapeHtml(message)}</em>`) : ''}
-      `,
-      cta: { label: 'View offer', url: businessUrl },
-      unsubscribeUrl,
-    }),
-  }
-}
-
-export function claimOtpTemplate({
-  name,
-  businessName,
-  otp,
-}: {
-  name?: string | null
-  businessName: string
-  otp: string
-}) {
-  const subject = `${otp} is your Markeetee verification code`
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: `Use ${otp} to verify your business claim.`,
-      badge: 'Verify',
-      headline: 'Verification code',
-      subline: `Claiming ${businessName}`,
-      body: `
-        ${greeting(name)}
-        <p style="margin:0 0 22px;font-size:15px;line-height:1.8;color:#374151;">
-          Use this code to verify ownership of <strong>${escapeHtml(businessName)}</strong>.
-        </p>
-
-        <div style="text-align:center;margin:26px 0;">
-          <div style="display:inline-block;background:#F0FAF6;border:2px solid ${BRAND_MINT};border-radius:18px;padding:20px 36px;">
-            <p style="margin:0;font-family:monospace;font-size:40px;font-weight:800;letter-spacing:.18em;color:${BRAND_GREEN};">
-              ${escapeHtml(otp)}
-            </p>
-          </div>
-        </div>
-
-        ${infoBox('This code expires soon. Do not share it with anyone.', '#FFF7F0', '#FED7AA')}
-      `,
-    }),
-  }
-}
-
-export function changeEmailTemplate({
-  name,
-  newEmail,
-  confirmUrl,
-}: {
-  name?: string | null
-  newEmail: string
-  confirmUrl: string
-}) {
-  const subject = 'Confirm your new Markeetee email'
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: `Confirm your new email address: ${newEmail}`,
-      badge: 'Email Change',
-      headline: 'Confirm your new email',
-      subline: newEmail,
-      body: `
-        ${greeting(name)}
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          You requested to change your Markeetee email address to:
-        </p>
-        ${infoBox(`<strong>${escapeHtml(newEmail)}</strong>`)}
-        <p style="margin:0;font-size:14px;line-height:1.8;color:#374151;">
-          If you did not request this change, contact us immediately.
-        </p>
-      `,
-      cta: { label: 'Confirm new email', url: confirmUrl },
-    }),
-  }
-}
-
-export function adminMessageTemplate({
-  recipientName,
-  subject,
-  message,
-  ctaLabel,
-  ctaUrl,
-}: {
-  recipientName?: string | null
-  subject: string
-  message: string
-  ctaLabel?: string
-  ctaUrl?: string
-}) {
-  const finalSubject = `Markeetee: ${subject}`
-
-  return {
-    subject: finalSubject,
-    html: wrap({
-      subject: finalSubject,
-      preheaderText: message.slice(0, 120),
-      badge: 'Markeetee',
-      headline: subject,
-      body: `
-        ${greeting(recipientName)}
-        <div style="font-size:15px;line-height:1.8;color:#374151;white-space:pre-line;">
-          ${escapeHtml(message)}
-        </div>
-      `,
-      cta: ctaLabel && ctaUrl ? { label: ctaLabel, url: ctaUrl } : undefined,
-    }),
-  }
-}
-
-export function broadcastEmailTemplate({
-  recipientName,
-  subject,
-  headline,
-  body,
-  ctaLabel,
-  ctaUrl,
-  unsubscribeUrl,
-}: {
-  recipientName?: string | null
-  subject: string
-  headline: string
-  body: string
-  ctaLabel?: string
-  ctaUrl?: string
-  unsubscribeUrl?: string
-}) {
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: textPreview(body),
-      badge: 'Update',
-      headline,
-      body: `
-        ${recipientName ? greeting(recipientName) : ''}
-        <div style="font-size:15px;line-height:1.8;color:#374151;">
-          ${body}
-        </div>
-      `,
-      cta: ctaLabel && ctaUrl ? { label: ctaLabel, url: ctaUrl } : undefined,
-      unsubscribeUrl,
-    }),
-  }
-}
-
-export function contactFormTemplate({
-  name,
-  email,
-  subject,
-  message,
-}: {
-  name: string
-  email: string
-  subject: string
-  message: string
-}) {
-  const finalSubject = `New contact form message: ${subject}`
-
-  return {
-    subject: finalSubject,
-    html: wrap({
-      subject: finalSubject,
-      preheaderText: `New message from ${name}`,
-      badge: 'Contact',
-      headline: 'New contact message',
-      subline: name,
-      body: `
-        ${infoBox(`<strong>Name:</strong> ${escapeHtml(name)}<br/><strong>Email:</strong> ${escapeHtml(email)}<br/><strong>Subject:</strong> ${escapeHtml(subject)}`)}
-        <div style="background:#F9FAFB;border-radius:14px;padding:18px;font-size:14px;line-height:1.8;color:#374151;white-space:pre-line;">
-          ${escapeHtml(message)}
-        </div>
-      `,
-      cta: { label: `Reply to ${name}`, url: `mailto:${email}?subject=Re:%20${encodeURIComponent(subject)}` },
-    }),
-  }
-}
-
-export function waitlistTemplate({ email }: { email: string }) {
-  const subject = "You're on the Markeetee waitlist"
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: "You're on the list. We'll keep you updated.",
-      badge: 'Waitlist',
-      headline: "You're on the list",
-      subline: 'We will notify you as Markeetee grows.',
-      body: `
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
-          Thank you for joining the Markeetee waitlist with <strong>${escapeHtml(email)}</strong>.
-        </p>
-        ${infoBox('We are building a trusted place to discover African-owned businesses, products, services, and community favorites.')}
-      `,
-      cta: { label: 'Visit Markeetee', url: APP_URL },
-    }),
-  }
-}
-
-
-// ── 13. Weekly summary (to business owner) ────────────────────────────────
-export function weeklySummaryTemplate({
-  ownerName,
-  businessName,
-  reviewsThisWeek,
-  totalReviews,
-  averageRating,
-  profileViews,
-  searchViews,
-  phoneCalls,
-  directionRequests,
-  topReview,
-  recentReviews = [],
-  businessLogoUrl,
-  publicProfileUrl,
-  dashboardUrl,
-  unsubscribeUrl,
-}: {
-  ownerName:         string | null
-  businessName:      string
-  reviewsThisWeek:   number
-  totalReviews:      number
-  averageRating:     number
-  profileViews:      number
-  searchViews:       number
-  phoneCalls:        number
-  directionRequests: number
-  topReview?:        { reviewerName: string; body: string; rating: number; avatarUrl?: string | null } | null
-  recentReviews?:    { reviewerName: string; body: string; rating: number; createdAt?: string }[]
-  businessLogoUrl?:  string | null
-  publicProfileUrl?: string | null
-  dashboardUrl:      string
-  unsubscribeUrl?:   string
-}): { subject: string; html: string } {
-
-  const subject = `${businessName} — your Markeetee weekly summary`
-  const safeRating = averageRating > 0 ? averageRating.toFixed(1) : '—'
-
-  const statCard = (icon: string, value: string, label: string) => `
-    <td align="center" style="padding:16px 8px;background:#F0FAF6;border-radius:14px;border:1px solid #CFE9DF;">
-      <p style="margin:0 0 4px;font-size:20px;line-height:1;">${icon}</p>
-      <p style="margin:6px 0 2px;font-size:22px;font-weight:800;color:${BRAND_DARK};">${escapeHtml(value)}</p>
-      <p style="margin:0;font-size:10px;color:#64706C;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">${escapeHtml(label)}</p>
-    </td>`
-
-  const insightCard = (icon: string, value: number, label: string) => `
-    <td align="center" style="padding:12px 6px;">
-      <p style="margin:0;font-size:16px;line-height:1;color:${BRAND_GREEN};">${icon}</p>
-      <p style="margin:6px 0 2px;font-size:18px;font-weight:800;color:${BRAND_DARK};">${value.toLocaleString('en-US')}</p>
-      <p style="margin:0;font-size:10px;color:#64706C;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">${escapeHtml(label)}</p>
-    </td>`
-
-  const stars = (rating: number) => {
-    const filled = Math.max(0, Math.min(5, Math.round(rating)))
-    return '⭐'.repeat(filled) + '<span style="opacity:0.25;">' + '⭐'.repeat(5 - filled) + '</span>'
-  }
-
-  const topReviewBlock = topReview ? `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
-      <tr><td>
-        <p style="margin:0 0 10px;font-size:15px;font-weight:800;color:${BRAND_DARK};">🏆 Top review this week</p>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F0FAF6;border:1px solid #CFE9DF;border-radius:14px;">
-          <tr><td style="padding:18px;">
-            <p style="margin:0 0 8px;font-size:13px;">${stars(topReview.rating)}</p>
-            <p style="margin:0 0 10px;font-size:14px;font-style:italic;color:#2F3936;line-height:1.6;">"${escapeHtml(topReview.body)}"</p>
-            <p style="margin:0;font-size:12px;font-weight:700;color:#64706C;">— ${escapeHtml(topReview.reviewerName)}</p>
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>` : `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;background:#F0FAF6;border:1px solid #CFE9DF;border-radius:14px;">
-      <tr><td align="center" style="padding:22px;">
-        <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:${BRAND_DARK};">Keep building your reputation</p>
-        <p style="margin:0;font-size:13px;color:#64706C;line-height:1.6;">Share your Markeetee profile and invite customers to leave a review.</p>
-      </td></tr>
-    </table>`
-
-  const recentReviewsBlock = recentReviews.length > 0 ? `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border:1px solid #DCE8E3;border-radius:14px;">
-      <tr><td style="padding:18px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="font-size:15px;font-weight:800;color:${BRAND_DARK};">Recent reviews</td>
-            <td align="right"><a href="${safeUrl(dashboardUrl + '/reviews')}" style="font-size:12px;font-weight:700;color:${BRAND_GREEN};text-decoration:underline;">View all</a></td>
-          </tr>
-        </table>
-        ${recentReviews.slice(0, 3).map((r, i) => `
-          <div style="padding:12px 0;${i < Math.min(recentReviews.length, 3) - 1 ? 'border-bottom:1px solid #EDF1EF;' : ''}">
-            <p style="margin:0 0 4px;font-size:13px;">${stars(r.rating)}</p>
-            <p style="margin:0 0 4px;font-size:13px;color:#2F3936;line-height:1.6;">"${escapeHtml(r.body)}"</p>
-            <p style="margin:0;font-size:11px;font-weight:700;color:#64706C;">${escapeHtml(r.reviewerName)}</p>
-          </div>
-        `).join('')}
-      </td></tr>
-    </table>` : ''
-
-  const businessCard = (businessLogoUrl || publicProfileUrl) ? `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border:1px solid #DCE8E3;border-radius:14px;">
-      <tr><td style="padding:16px;">
-        <table role="presentation" cellpadding="0" cellspacing="0">
-          <tr>
-            ${businessLogoUrl ? `<td width="60" style="padding-right:12px;"><img src="${safeUrl(businessLogoUrl)}" width="48" height="48" alt="${escapeHtml(businessName)}" style="border-radius:50%;object-fit:cover;display:block;"/></td>` : ''}
-            <td>
-              <p style="margin:0 0 4px;font-size:14px;font-weight:800;color:${BRAND_DARK};">${escapeHtml(businessName)}</p>
-              ${publicProfileUrl ? `<a href="${safeUrl(publicProfileUrl)}" style="font-size:12px;font-weight:700;color:${BRAND_GREEN};text-decoration:underline;">View public profile →</a>` : ''}
-            </td>
-          </tr>
-        </table>
-      </td></tr>
-    </table>` : ''
-
-  const bodyHtml = `
-    <p style="margin:0 0 24px;font-size:14px;color:#47524E;line-height:1.7;">
-      Here's a quick look at your latest reviews, customer activity, and business visibility on Markeetee.
+  <!-- Small footer -->
+  <tr><td style="background:#F9FBFA;padding:20px 32px;border-top:1px solid #E5E7EB;text-align:center;">
+    <p style="margin:0 0 6px;font-size:11px;color:#6B7280;">
+      This email was sent via Markeetee, the African business directory.
     </p>
+    <p style="margin:0;font-size:11px;">
+      <a href="${APP_URL}" style="color:${BRAND_GREEN};text-decoration:none;font-weight:600;">markeetee.com</a>
+      <span style="padding:0 6px;color:#D1D5DB;">·</span>
+      <a href="${APP_URL}/contact" style="color:${BRAND_GREEN};text-decoration:none;font-weight:600;">Report abuse</a>
+    </p>
+  </td></tr>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-spacing:6px;">
-      <tr>
-        ${statCard('⭐', reviewsThisWeek.toLocaleString('en-US'), 'Reviews this week')}
-        ${statCard('💬', totalReviews.toLocaleString('en-US'),   'Total reviews')}
-        ${statCard('📈', safeRating.toString() + (averageRating > 0 ? ' ★' : ''), 'Average rating')}
-      </tr>
-    </table>
+</table>
+</td></tr>
+</table>
+</body></html>`
+}
 
-    ${topReviewBlock}
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
-      <tr><td align="center">
-        <a href="${safeUrl(dashboardUrl)}" style="display:inline-block;background:${BRAND_GREEN};color:#fff;font-size:14px;font-weight:800;padding:14px 32px;border-radius:12px;text-decoration:none;">
-          View your dashboard →
-        </a>
-      </td></tr>
-    </table>
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border:1px solid #DCE8E3;border-radius:14px;">
-      <tr><td style="padding:18px;">
-        <p style="margin:0 0 14px;font-size:15px;font-weight:800;color:${BRAND_DARK};">Insights summary</p>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            ${insightCard('👁',  profileViews,       'Profile views')}
-            ${insightCard('🔍', searchViews,        'Search views')}
-            ${insightCard('📞', phoneCalls,         'Phone calls')}
-            ${insightCard('🧭', directionRequests,  'Directions')}
-          </tr>
-        </table>
-        <p style="margin:14px 0 0;text-align:center;">
-          <a href="${safeUrl(dashboardUrl + '/analytics')}" style="font-size:12px;font-weight:700;color:${BRAND_GREEN};text-decoration:underline;">
-            See full insights →
-          </a>
-        </p>
-      </td></tr>
-    </table>
-
-    ${recentReviewsBlock}
-
-    ${infoBox(`<strong>Keep the momentum going.</strong><br/>Respond to new reviews and keep your profile, photos, business hours, and products updated to attract more customers.`)}
-
-    ${businessCard}
-  `
-
-  return {
-    subject,
-    html: wrap({
-      subject,
-      preheaderText: `${businessName} received ${reviewsThisWeek} ${reviewsThisWeek === 1 ? 'review' : 'reviews'} this week.`,
-      badge:    'Weekly summary',
-      headline: `Hi ${escapeHtml(ownerName ?? 'there')},`,
-      subline:  `Here's how ${businessName} performed this week.`,
-      body:     bodyHtml,
-      unsubscribeUrl,
-    }),
-  }
+function escapeHtml(s: string | null | undefined): string {
+  if (!s) return ''
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
