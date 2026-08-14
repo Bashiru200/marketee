@@ -17,7 +17,8 @@ function getSupabase() {
   )
 }
 
-export const config = { api: { bodyParser: false } }
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 // ── Helper: update business plan in DB ───────────────────────────────────
 async function updatePlan(
