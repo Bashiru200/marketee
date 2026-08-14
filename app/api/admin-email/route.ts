@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
-import { adminMessageTemplate } from '@/lib/emailTemplates'
+// import { adminMessageTemplate } from '@/lib/emailTemplates'
 
 export async function POST(req: NextRequest) {
   const resend   = new Resend(process.env.RESEND_API_KEY!)
@@ -29,18 +29,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 403 })
     }
 
-    const template = adminMessageTemplate({
-      recipientName: toName ?? null,
-      subject,
-      message:       body,
-    })
-
     await resend.emails.send({
       from:    process.env.EMAIL_FROM!,
       to:      toEmail,
       replyTo: process.env.CONTACT_EMAIL ?? process.env.EMAIL_FROM!,
-      subject: template.subject,
-      html:    template.html,
+      subject,
+      html:    body,
     })
 
     // Log to audit

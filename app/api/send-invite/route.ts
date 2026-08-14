@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
-import { adminMessageTemplate } from '@/lib/emailTemplates'
+// import { adminMessageTemplate } from '@/lib/emailTemplates'
 import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
@@ -69,19 +69,11 @@ Click the button below to accept your invitation and set up your account.
 
 Your invitation link expires in 48 hours.`
 
-    const template = adminMessageTemplate({
-      recipientName: inviteeName,
-      subject,
-      message,
-      ctaLabel: 'Accept invitation →',
-      ctaUrl:   inviteUrl,
-    })
-
     await resend.emails.send({
       from:    process.env.EMAIL_FROM!,
       to:      email,
-      subject: template.subject,
-      html:    template.html,
+      subject,
+      html:    message,
     })
 
     return NextResponse.json({ ok: true })
