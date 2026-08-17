@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const html = businessMessageTemplate({
+    const { html } = businessMessageTemplate({
       recipientName:  toName,
       businessName:   fromBusiness,
       messageBody:    body,
