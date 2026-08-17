@@ -1,9 +1,10 @@
 // components/dashboard/LeadInbox.tsx
-// Dashboard inbox for owner to view/manage lead enquiries
+// Dashboard inbox for owner to view/manage lead enquiries + reply with rich emails
 'use client'
 import { useState, useEffect } from 'react'
-import { Mail, Loader2, Check, Phone, ExternalLink } from 'lucide-react'
+import { Mail, Loader2, Check, Phone, MessageSquare, Send } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import SendEmailModal from '@/components/dashboard/SendEmailModal'
 
 interface Lead {
   id:         string
@@ -15,17 +16,29 @@ interface Lead {
   created_at: string
 }
 
+interface Business {
+  id:   string
+  name: string
+}
+
 export default function LeadInbox({ businessId }: { businessId: string }) {
   const supabase = createClient()
-  const [leads,   setLeads]   = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
+  const [leads,    setLeads]    = useState<Lead[]>([])
+  const [business, setBusiness] = useState<Business | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [replyTo,  setReplyTo]  = useState<Lead | null>(null)
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('lead_enquiries')
-        .select('*').eq('business_id', businessId)
-        .order('created_at', { ascending: false })
-      setLeads(data ?? [])
+      const [{ data: leadsData }, { data: bizData }] = await Promise.all([
+        supabase.from('lead_enquiries')
+          .select('*').eq('business_id', businessId)
+          .order('created_at', { ascending: false }),
+        supabase.from('businesses')
+          .select('id, name').eq('id', businessId).single(),
+      ])
+      setLeads(leadsData ?? [])
+      setBusiness(bizData ?? null)
       setLoading(false)
     }
     load()
@@ -34,6 +47,11 @@ export default function LeadInbox({ businessId }: { businessId: string }) {
   async function markRead(id: string) {
     await supabase.from('lead_enquiries').update({ status: 'read' }).eq('id', id)
     setLeads(ls => ls.map(l => l.id === id ? { ...l, status: 'read' } : l))
+  }
+
+  async function markReplied(id: string) {
+    await supabase.from('lead_enquiries').update({ status: 'replied' }).eq('id', id)
+    setLeads(ls => ls.map(l => l.id === id ? { ...l, status: 'replied' } : l))
   }
 
   const unread = leads.filter(l => l.status === 'new').length
@@ -56,7 +74,7 @@ export default function LeadInbox({ businessId }: { businessId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-gray-900">Lead Enquiries</h3>
+          <h3 className="font-bold text-gray-900">Lead enquiries</h3>
           <p className="text-xs text-gray-400">
             {unread > 0 ? <span className="font-semibold" style={{ color: '#1D9E75' }}>{unread} new</span> : 'All read'} · {leads.length} total
           </p>
@@ -78,6 +96,10 @@ export default function LeadInbox({ businessId }: { businessId: string }) {
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{ background: '#E1F5EE', color: '#085041' }}>New</span>
                   )}
+                  {l.status === 'replied' && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: '#DBEAFE', color: '#1E40AF' }}>Replied</span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {new Date(l.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' })}
@@ -92,28 +114,51 @@ export default function LeadInbox({ businessId }: { businessId: string }) {
             </div>
 
             {/* Message */}
-            <p className="text-sm text-gray-700 leading-relaxed mb-3 bg-gray-50 rounded-xl p-3">
+            <p className="text-sm text-gray-700 leading-relaxed mb-4 bg-gray-50 rounded-xl p-3">
               {l.message}
             </p>
 
-            {/* Contact actions */}
+            {/* Action buttons */}
             <div className="flex gap-2 flex-wrap">
-              <a href={`mailto:${l.email}?subject=Re: Your enquiry`}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 hover:border-green-300 transition-colors"
-                style={{ color: '#1D9E75' }}>
-                <Mail size={12} /> {l.email}
-              </a>
+              {/* PRIMARY — Reply with rich email (photos, links, formatting) */}
+              <button onClick={() => setReplyTo(l)}
+                className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl text-white transition-opacity hover:opacity-90"
+                style={{ background: '#1D9E75' }}>
+                <Send size={12} /> Reply with photos & links
+              </button>
+
+              {/* Secondary — WhatsApp */}
               {l.phone && (
-                <a href={`https://wa.me/${l.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 hover:border-green-300 transition-colors"
+                <a href={`https://wa.me/${l.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${l.name}, thanks for your enquiry`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:border-green-300 transition-colors"
                   style={{ color: '#25D366' }}>
-                  <Phone size={12} /> WhatsApp
+                  <MessageSquare size={12} /> WhatsApp
                 </a>
               )}
+
+              {/* Fallback — mailto */}
+              <a href={`mailto:${l.email}?subject=Re: Your enquiry`}
+                className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-xl text-gray-500 hover:text-gray-700 transition-colors">
+                <Mail size={12} /> Quick email
+              </a>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Reply modal — auto-opens when a lead's Reply button is clicked */}
+      {replyTo && business && (
+        <SendEmailModal
+          recipientEmail={replyTo.email}
+          recipientName={replyTo.name}
+          businessName={business.name}
+          businessId={business.id}
+          startOpen
+          onSent={() => markReplied(replyTo.id)}
+          onClose={() => setReplyTo(null)}
+        />
+      )}
     </div>
   )
 }
