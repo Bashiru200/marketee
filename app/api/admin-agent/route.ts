@@ -1,12 +1,17 @@
 // app/api/admin-agent/route.ts
+// Hybrid AI agent — routes between Claude (analysis, SEO, content) and GPT (design, visual, code generation)
+// Both models receive your platform context and can collaborate on the same conversation.
+
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const openai    = new OpenAI({    apiKey: process.env.OPENAI_API_KEY!    })
 
 interface Insight {
   type: string; priority: string; title: string; detail: string
@@ -16,50 +21,135 @@ interface HistoryMessage {
   role: 'user' | 'agent'; content: string
 }
 
-const SYSTEM_PROMPT = `You are the Markeetee AI Assistant — an expert advisor built into the admin dashboard of Markeetee, the African business directory for the US diaspora.
+type Engine = 'claude' | 'gpt' | 'both'
 
-Your job:
-1. Help the admin identify platform issues and fix them
-2. Analyze SEO & Google crawlability — suggest schema, sitemaps, internal linking, meta tags
-3. Suggest marketing campaigns and growth strategies
-4. Draft emails, blog posts, social content, and structured data
+// ═══════════════════════════════════════════════════════════════════════════
+// System prompts — each model gets a role-specific prompt
+// ═══════════════════════════════════════════════════════════════════════════
 
-Context about Markeetee:
-- Platform: African-owned business directory starting in Charlotte, NC
-- Target: African diaspora in the US (Nigerian, Ghanaian, Kenyan, Ethiopian, Senegalese communities)
-- Tech: Next.js 15, Supabase, Tailwind v4, Vercel, Algolia
-- Launch offer: 6 months of free Pro Store until Jan 20, 2027
+const CLAUDE_PROMPT = `You are the **Markeetee Strategist** — Claude, the analytical half of a 2-model advisor team for Markeetee (African business directory, US diaspora, launched Charlotte NC).
+
+Your strengths:
+- Deep analysis of platform health & user behavior
+- SEO, Google crawlability, schema markup, meta tags
+- Marketing strategy, campaign copy, outreach sequences
+- Content writing: blog posts, emails, scripts
+- Business logic and data interpretation
+
+Context:
+- markeetee.com — Next.js 15, Supabase, Tailwind v4, Vercel, Algolia
 - Pricing: Starter (free), Growth ($40/mo), Pro Store ($60/mo)
-- Live at markeetee.com
+- Launch offer: 6 months free Pro Store until Jan 20, 2027
+- Target: Nigerian, Ghanaian, Kenyan, Ethiopian, Senegalese diaspora
 
-SEO expertise you should apply:
-- LocalBusiness Schema.org JSON-LD for /businesses/[id] pages
-- Internal linking: city landing pages (/charlotte/restaurants), category pages
-- Meta title/description best practices (under 60 and 160 chars)
-- Open Graph and Twitter Card tags for social sharing
-- Core Web Vitals: LCP <2.5s, CLS <0.1, INP <200ms
-- Robots.txt and sitemap.xml health
-- E-E-A-T (Expertise, Experience, Authoritativeness, Trustworthiness)
-- Long-tail keyword targeting ("best [cuisine] in [city]")
-- Google Business Profile integration recommendations
-- Image optimization (WebP, lazy loading, alt text)
+When you receive a question, focus on your strengths: analysis, SEO, marketing, copy.
+If the question is about **design, visuals, UI mockups, animation, or CSS/component styling** — say briefly: "This is a design question — let me hand it to GPT." and keep your answer short.
 
-Your personality:
-- Direct, practical, action-oriented — not generic
-- Use specific numbers and examples from the data
-- When asked for code (schema, meta tags), give ready-to-paste snippets
-- Reference specific findings from the insights context
+Keep responses under 200 words unless drafting content. Use markdown-light (**bold**, bullets, code blocks).`
 
-Keep answers under 200 words unless the admin asks for a draft or code. Use markdown-light (**bold**, bullets, code blocks).`
+const GPT_PROMPT = `You are the **Markeetee Designer** — GPT, the creative half of a 2-model advisor team for Markeetee (African business directory, US diaspora, launched Charlotte NC).
+
+Your strengths:
+- Visual design, UI/UX, component mockups
+- Tailwind CSS, animation, micro-interactions
+- Design system refinement (colors, spacing, typography)
+- Figma-style layout descriptions and CSS
+- Icons, illustrations, visual hierarchy
+
+Brand:
+- Colors: #053528 (dark green), #085041 (mid green), #1D9E75 (brand green), #9FE1CB (mint), #E1F5EE (light mint)
+- Tagline: "Africa is here. Find it."
+- Vibe: Warm, modern, diaspora-focused, rounded corners (rounded-2xl, rounded-3xl)
+- Typography: System fonts, bold hierarchy, tight tracking on headlines
+
+When you receive a question focus on your strengths: visuals, UI, design, components, styling.
+If the question is about **strategy, analytics, SEO, email copy, or marketing plans** — say briefly: "This is a strategy question — let me hand it to Claude." and keep your answer short.
+
+Keep responses under 300 words. Give ready-to-paste Tailwind / React / CSS code. Use markdown with code blocks.`
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Engine router — decides who answers (or if both should collaborate)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function pickEngine(message: string): Engine {
+  const m = message.toLowerCase()
+
+  // Explicit routing
+  if (m.includes('@gpt') || m.includes('@chatgpt'))       return 'gpt'
+  if (m.includes('@claude') || m.includes('@anthropic')) return 'claude'
+  if (m.includes('@both') || m.includes('collab'))        return 'both'
+
+  // Design keywords → GPT
+  const designWords = ['design', 'layout', 'ui', 'component', 'tailwind',
+    'css', 'animation', 'animate', 'color', 'spacing', 'typography',
+    'mockup', 'figma', 'style', 'visual', 'look', 'theme', 'icon',
+    'illustration', 'hero', 'landing page', 'redesign']
+  if (designWords.some(w => m.includes(w))) return 'gpt'
+
+  // Strategy keywords → Claude
+  const strategyWords = ['seo', 'schema', 'ranking', 'google', 'meta tag',
+    'sitemap', 'crawlability', 'blog post', 'email', 'outreach',
+    'marketing', 'campaign', 'strategy', 'analytics', 'metric',
+    'conversion', 'growth', 'launch']
+  if (strategyWords.some(w => m.includes(w))) return 'claude'
+
+  // Default to Claude for general analysis
+  return 'claude'
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Model callers
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function callClaude(
+  system: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  message: string,
+): Promise<string> {
+  const messages = [...history, { role: 'user' as const, content: message }]
+  const response = await anthropic.messages.create({
+    model: 'claude-opus-4-7',
+    max_tokens: 1200,
+    system,
+    messages,
+  })
+  return response.content[0].type === 'text' ? response.content[0].text : ''
+}
+
+async function callGpt(
+  system: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  message: string,
+): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 1200,
+    messages: [
+      { role: 'system', content: system },
+      ...history.map(h => ({
+        role: h.role === 'assistant' ? 'assistant' as const : 'user' as const,
+        content: h.content,
+      })),
+      { role: 'user' as const, content: message },
+    ],
+  })
+  return response.choices[0]?.message?.content ?? ''
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Main handler
+// ═══════════════════════════════════════════════════════════════════════════
 
 export async function POST(request: Request) {
   try {
-    const { message, history, context } = await request.json() as {
-      message: string
-      history: HistoryMessage[]
-      context: { insights: Insight[]; adminId?: string }
+    const { message, history, context, engineOverride } = await request.json() as {
+      message:         string
+      history:         HistoryMessage[]
+      context:         { insights: Insight[]; adminId?: string }
+      engineOverride?: Engine
     }
 
+    // Admin check
     const supabase = await createClient()
     if (context.adminId) {
       const { data: profile } = await supabase.from('profiles')
@@ -69,49 +159,79 @@ export async function POST(request: Request) {
       }
     }
 
+    // Build shared platform context
     const insightSummary = (context.insights ?? [])
       .slice(0, 15)
       .map(i => `[${i.priority.toUpperCase()} - ${i.type.toUpperCase()}] ${i.title}: ${i.detail}`)
       .join('\n')
 
-    const contextualSystem = `${SYSTEM_PROMPT}
+    const contextBlock = `
 
-CURRENT PLATFORM & SEO FINDINGS (from latest scan):
+CURRENT PLATFORM & SEO FINDINGS (both models see this):
 ${insightSummary || 'No insights yet.'}
 
-Reference these findings when the admin asks about health, SEO, or growth.`
+Reference these when relevant.`
 
-    const messages = history
+    const claudeSystem = CLAUDE_PROMPT + contextBlock
+    const gptSystem    = GPT_PROMPT    + contextBlock
+
+    // Build cleaned history
+    const cleanHistory = history
       .filter(h => h.content.trim())
       .map(h => ({
         role: h.role === 'user' ? 'user' as const : 'assistant' as const,
         content: h.content,
       }))
 
-    messages.push({ role: 'user' as const, content: message })
+    // Decide who answers
+    const engine: Engine = engineOverride ?? pickEngine(message)
 
-    const response = await anthropic.messages.create({
-      model: 'claude-opus-4-7',
-      max_tokens: 1200,
-      system: contextualSystem,
-      messages,
-    })
+    let reply = ''
+    let modelUsed: string = ''
 
-    const reply = response.content[0].type === 'text'
-      ? response.content[0].text
-      : 'I had trouble generating a response.'
+    if (engine === 'claude') {
+      reply = await callClaude(claudeSystem, cleanHistory, message)
+      modelUsed = 'Claude (Strategist)'
+    }
+    else if (engine === 'gpt') {
+      reply = await callGpt(gptSystem, cleanHistory, message)
+      modelUsed = 'GPT (Designer)'
+    }
+    else {
+      // BOTH — Claude answers first, GPT reviews and adds visual/design angle
+      const claudeReply = await callClaude(claudeSystem, cleanHistory, message)
 
+      const gptPrompt = `The admin asked: "${message}"
+
+My partner Claude (strategist) answered:
+"""
+${claudeReply}
+"""
+
+Review this and add YOUR design/visual perspective. Don't repeat what Claude said — expand it with concrete UI, Tailwind code, or visual suggestions. Keep it short (under 200 words).`
+
+      const gptReply = await callGpt(gptSystem, cleanHistory, gptPrompt)
+
+      reply = `**🧠 Claude (Strategist):**\n\n${claudeReply}\n\n---\n\n**🎨 GPT (Designer):**\n\n${gptReply}`
+      modelUsed = 'Claude + GPT (Collaboration)'
+    }
+
+    // Log
     await supabase.from('agent_logs').insert({
       admin_id: context.adminId,
-      message, reply,
+      message,
+      reply,
+      model: modelUsed,
     }).then(() => {}, () => {})
 
-    return NextResponse.json({ reply })
+    return NextResponse.json({ reply, modelUsed })
+
   } catch (err) {
     console.error('[admin-agent] Error:', err)
-    return NextResponse.json(
-      { error: 'Server error', reply: "I'm having trouble right now. Please try again shortly." },
-      { status: 500 }
-    )
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({
+      error: 'Server error',
+      reply: `I'm having trouble. ${msg.includes('OPENAI') ? 'OpenAI key may be missing.' : msg.includes('ANTHROPIC') ? 'Anthropic key may be missing.' : 'Please try again shortly.'}`,
+    }, { status: 500 })
   }
 }

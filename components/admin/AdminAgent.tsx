@@ -24,9 +24,10 @@ interface Insight {
 }
 
 interface AgentMessage {
-  role: 'user' | 'agent'
-  content: string
+  role:      'user' | 'agent'
+  content:   string
   timestamp: string
+  model?:    string
 }
 
 const TYPE_META: Record<InsightType, { icon: React.ElementType; color: string; bg: string; label: string }> = {
@@ -50,10 +51,11 @@ export default function AdminAgent() {
   const [insights, setInsights] = useState<Insight[]>([])
   const [seoInsights, setSeoInsights] = useState<Insight[]>([])
   const [messages, setMessages] = useState<AgentMessage[]>([
-    { role: 'agent', content: "Hi! I'm your Markeetee AI assistant. I monitor platform health, SEO & Google crawlability, and help with marketing. What would you like to work on?", timestamp: new Date().toISOString() },
+    { role: 'agent', content: "Hi! I'm your Markeetee AI team — Claude handles strategy, SEO & copy. GPT handles design & UI. I auto-route your questions, or mention @gpt, @claude, or @both to pick manually.", timestamp: new Date().toISOString() },
   ])
-  const [input,    setInput]    = useState('')
-  const [thinking, setThinking] = useState(false)
+  const [input,       setInput]       = useState('')
+  const [thinking,    setThinking]    = useState(false)
+  const [engineForce, setEngineForce] = useState<'auto' | 'claude' | 'gpt' | 'both'>('auto')
   const [lastScan, setLastScan] = useState<Date | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -276,7 +278,7 @@ export default function AdminAgent() {
       }
 
       // 7. Blog posts missing meta_title / meta_desc
-      const blogsWithoutMeta = (oldBlogs ?? []).filter(b => !b.meta_title || !b.meta_desc).length
+      const blogsWithoutMeta = (oldBlogs ?? []).filter((b: any) => !b.meta_title || !b.meta_desc).length
       if (blogsWithoutMeta > 0) {
         seoFindings.push({
           id: 'seo-blog-meta', type: 'seo', priority: 'medium',
@@ -288,7 +290,7 @@ export default function AdminAgent() {
       }
 
       // 8. Blog posts missing cover images (OG image for social)
-      const blogsWithoutCover = (oldBlogs ?? []).filter(b => !b.cover_image).length
+      const blogsWithoutCover = (oldBlogs ?? []).filter((b: any) => !b.cover_image).length
       if (blogsWithoutCover > 0) {
         seoFindings.push({
           id: 'seo-blog-og', type: 'seo', priority: 'medium',
@@ -391,13 +393,15 @@ export default function AdminAgent() {
             insights: [...insights, ...seoInsights].slice(0, 15),
             adminId: user?.id,
           },
+          engineOverride: engineForce === 'auto' ? undefined : engineForce,
         }),
       })
       const data = await res.json()
       setMessages(m => [...m, {
-        role:'agent',
+        role:    'agent',
         content: data.reply ?? 'I had trouble processing that.',
         timestamp: new Date().toISOString(),
+        model:   data.modelUsed,
       }])
     } catch {
       setMessages(m => [...m, {
@@ -591,7 +595,20 @@ export default function AdminAgent() {
         <>
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                {m.role === 'agent' && m.model && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mb-1"
+                    style={{
+                      background: m.model.includes('GPT') && m.model.includes('Claude') ? '#EDE9FE'
+                                : m.model.includes('GPT') ? '#DCFCE7'
+                                : '#DBEAFE',
+                      color:      m.model.includes('GPT') && m.model.includes('Claude') ? '#5B21B6'
+                                : m.model.includes('GPT') ? '#15803D'
+                                : '#1E40AF',
+                    }}>
+                    {m.model}
+                  </span>
+                )}
                 <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
                   style={m.role === 'user'
                     ? { background:'#1D9E75', color:'white' }
@@ -618,10 +635,10 @@ export default function AdminAgent() {
             <div className="px-4 pb-3 flex flex-wrap gap-2 flex-shrink-0">
               {[
                 "What's hurting growth?",
+                '@gpt Redesign the hero',
                 'Write LocalBusiness schema',
-                'Draft an SEO blog post',
-                'Why aren\'t we ranking?',
-                'Give me a marketing plan',
+                '@both Improve map UX',
+                '@gpt New business card',
               ].map(prompt => (
                 <button key={prompt}
                   onClick={() => { setInput(prompt); setTimeout(() => sendMessage(), 0) }}
@@ -632,7 +649,27 @@ export default function AdminAgent() {
             </div>
           )}
 
-          <form onSubmit={sendMessage} className="p-3 border-t border-gray-100 flex gap-2 flex-shrink-0">
+          {/* Engine switcher — route between Claude, GPT, both, or auto */}
+          <div className="px-3 pt-2 flex gap-1 flex-shrink-0 border-t border-gray-100">
+            {([
+              { value:'auto',   label:'Auto',   emoji:'✨', bg:'#E1F5EE', color:'#085041' },
+              { value:'claude', label:'Claude', emoji:'🧠', bg:'#DBEAFE', color:'#1E40AF' },
+              { value:'gpt',    label:'GPT',    emoji:'🎨', bg:'#DCFCE7', color:'#15803D' },
+              { value:'both',   label:'Both',   emoji:'🤝', bg:'#EDE9FE', color:'#5B21B6' },
+            ] as const).map(e => (
+              <button key={e.value} type="button"
+                onClick={() => setEngineForce(e.value)}
+                className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
+                style={engineForce === e.value
+                  ? { background: e.bg, color: e.color }
+                  : { background: 'transparent', color: '#9CA3AF' }
+                }>
+                {e.emoji} {e.label}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={sendMessage} className="p-3 flex gap-2 flex-shrink-0">
             <input value={input} onChange={e => setInput(e.target.value)}
               placeholder="Ask about growth, SEO, marketing…"
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent" />
