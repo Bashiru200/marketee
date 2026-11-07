@@ -26,6 +26,7 @@ import BroadcastEmail from '@/components/admin/BroadcastEmail'
 import BusinessClaimsManager from '@/components/admin/BusinessClaimsManager'
 import ReportsQueue from '@/components/admin/ReportsQueue'
 import BetaList from '@/components/admin/BetaList'
+import AdminAgent from '@/components/admin/AdminAgent'
 
 type Plan = 'starter' | 'growth' | 'pro_store'
 type OldPlan = 'free' | 'premium' | 'storefront'
@@ -45,6 +46,7 @@ type ActiveTab =
   | 'claims'
   | 'reports'
   | 'beta'
+  | 'agents'
 
 interface Business {
   id: string
@@ -124,6 +126,7 @@ const NAV_TABS: {
   { id: 'claims', label: 'Claims', icon: Building2, permission: 'manage_businesses' },
   { id: 'reports', label: 'Reports', icon: Flag, permission: 'moderate_reviews' },
   { id: 'beta', label: 'Beta & Waitlist', icon: Users, permission: '__super_admin__' },
+  { id: 'agents', label: 'Agents', icon: Users, permission: '__super_admin__' },
 ]
 
 function normalizePlan(plan: Business['plan']): Plan {
@@ -609,6 +612,7 @@ export default function AdminPage() {
           {activeTab === 'claims' && <BusinessClaimsManager />}
           {activeTab === 'reports' && <ReportsQueue />}
           {activeTab === 'beta' && <BetaList />}
+          {activeTab === 'agents' && <AdminAgent />}
 
           {activeTab === 'businesses' && (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
