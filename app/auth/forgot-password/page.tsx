@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="w-full max-w-md bg-white border border-gray-100 rounded-2xl p-8">
 
         <Link href="/auth/login"

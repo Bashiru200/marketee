@@ -1,12 +1,15 @@
 'use client'
 import { AFRICAN_FLAGS } from '@/lib/africanFlags'
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import type { ElementType } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
   Search, X, MapPin, Star, BadgeCheck,
-  SlidersHorizontal, Loader2, ChevronDown
+  SlidersHorizontal, Loader2, ChevronDown,
+  Store, Utensils, ShoppingBag, Scissors, Shirt,
+  Leaf, Music, Palette, Wrench
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import SaveButton from '@/components/ui/SaveButton'
@@ -82,75 +85,126 @@ const SORT_OPTIONS = [
   { value:'reviews',  label:'Most reviewed'  },
 ]
 
+const CATEGORY_META: Record<string, { label: string; icon: ElementType; tone: string }> = {
+  food:       { label:'Food & Groceries', icon: ShoppingBag, tone:'#0F6E56' },
+  restaurant: { label:'Restaurants',      icon: Utensils,    tone:'#7C3AED' },
+  fashion:   { label:'Fashion',          icon: Shirt,       tone:'#B45309' },
+  beauty:    { label:'Beauty & Hair',    icon: Scissors,    tone:'#BE185D' },
+  herbs:     { label:'Herbs & Wellness', icon: Leaf,        tone:'#4D7C0F' },
+  music:     { label:'Music & Arts',     icon: Music,       tone:'#C2410C' },
+  crafts:    { label:'Crafts & Decor',   icon: Palette,     tone:'#0369A1' },
+  services:  { label:'Services',         icon: Wrench,      tone:'#475569' },
+  nightlife: { label:'Bars & Nightlife', icon: Store,       tone:'#5B21B6' },
+}
+
+function getCategoryMeta(category: string | null) {
+  return CATEGORY_META[category ?? ''] ?? { label: category ?? 'Business', icon: Store, tone:'#085041' }
+}
+
+function BusinessImageFallback({ business }: { business: Business }) {
+  const meta = getCategoryMeta(business.category)
+  const Icon = meta.icon
+
+  return (
+    <div className="flex h-full w-full items-center justify-center" style={{ background: GRADIENTS[business.category ?? ''] ?? GRADIENTS.services }}>
+      <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/50 bg-white/80 shadow-lg backdrop-blur-sm">
+        <Icon size={34} style={{ color: meta.tone }} aria-hidden="true" />
+      </div>
+    </div>
+  )
+}
+
 // ── Card component ────────────────────────────────────────────────────────
 function BizCard({ b }: { b: Business }) {
-  const grad = GRADIENTS[b.category ?? ''] ?? GRADIENTS.services
+  const meta = getCategoryMeta(b.category)
+
   return (
-    <Link href={`/businesses/${b.id}`}
-      className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md transition-all">
+    <article className="group overflow-hidden rounded-3xl border border-[#E7DDCA] bg-[#FFFDF8] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#9FDCC3] hover:shadow-xl hover:shadow-[#085041]/10 dark:border-[#20362d] dark:bg-[#101b17] dark:shadow-black/20 dark:hover:border-[#9FE1CB]/45">
       {/* Cover */}
-      <div className="relative h-44 overflow-hidden">
+      <Link href={`/businesses/${b.id}`} className="relative block h-48 overflow-hidden bg-gray-100 outline-none focus:ring-2 focus:ring-[#085041] focus:ring-offset-2 dark:bg-[#0c1713] dark:focus:ring-[#9FE1CB] dark:focus:ring-offset-[#07130f]">
         {b.cover_image ? (
-          <Image src={b.cover_image} alt={b.name} fill
+          <Image
+            src={b.cover_image}
+            alt={b.name}
+            fill
             sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full" style={{ background: grad }} />
-        )}
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        ) : <BusinessImageFallback business={b} />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
+
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex gap-1.5">
+        <div className="absolute left-3 top-3 flex gap-1.5">
           {b.featured && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">
+            <span className="rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
               Featured
             </span>
           )}
           {b.verified && (
-            <span className="flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+            <span className="flex items-center gap-0.5 rounded-full px-2.5 py-1 text-[10px] font-bold text-white shadow-sm"
               style={{ background:'#1D9E75' }}>
               <BadgeCheck size={9} /> Verified
             </span>
           )}
         </div>
-        {/* Save + flag */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5">
-          <SaveButton businessId={b.id} size="sm" />
+
+        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <span className="inline-flex max-w-full items-center rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-bold text-[#085041] shadow-sm dark:bg-[#10231d]/92 dark:text-[#9FE1CB]">
+              <span className="truncate">{b.subcategory ?? meta.label}</span>
+            </span>
+          </div>
           {b.country && (
-            <div className="w-7 h-7 bg-white dark:bg-gray-800/90 rounded-full flex items-center justify-center text-sm shadow">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/95 text-sm shadow dark:bg-[#10231d]/95">
               {AFRICAN_FLAGS[b.country] ?? '🌍'}
             </div>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Info */}
-      <div className="p-4">
-        <p className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-green-700 transition-colors line-clamp-1">
-          {b.name}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5 capitalize">
-          {b.subcategory ?? b.category}
-          {b.city ? ` · ${b.city}` : ''}
-          {b.state ? `, ${b.state}` : ''}
-        </p>
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-1.5">
-            <div className="flex gap-0.5">
-              {[1,2,3,4,5].map(i => (
-                <Star key={i} size={11}
-                  className={i <= Math.round(b.rating ?? 0) ? 'text-amber-400 fill-current' : 'text-gray-200'} />
-              ))}
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-              {b.rating > 0 ? b.rating.toFixed(1) : '—'}
-              <span className="text-gray-400 dark:text-gray-500"> ({b.review_count})</span>
-            </span>
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href={`/businesses/${b.id}`}
+              className="line-clamp-1 text-lg font-bold text-gray-950 transition-colors hover:text-[#085041] dark:text-gray-100"
+            >
+              {b.name}
+            </Link>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <MapPin size={12} className="shrink-0 text-[#1D9E75]" />
+              <span className="truncate">
+                {[b.city, b.state].filter(Boolean).join(', ') || 'Location available on profile'}
+              </span>
+            </p>
           </div>
-          {b.price_range && (
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">{b.price_range}</span>
-          )}
+          <SaveButton businessId={b.id} size="sm" />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-4 dark:border-[#20362d]">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5" aria-label={`${b.rating ?? 0} out of 5 stars`}>
+              <Star size={14} className="fill-amber-400 text-amber-400" />
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                {b.rating > 0 ? b.rating.toFixed(1) : 'New'}
+              </span>
+              <span className="text-xs text-gray-400">({b.review_count ?? 0})</span>
+            </div>
+            {b.price_range && (
+              <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">{b.price_range}</p>
+            )}
+          </div>
+
+          <Link
+            href={`/businesses/${b.id}`}
+            className="shrink-0 rounded-xl bg-[#085041] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#053528] focus:outline-none focus:ring-2 focus:ring-[#085041] focus:ring-offset-2 dark:bg-[#1D9E75] dark:text-[#03110d] dark:hover:bg-[#9FE1CB] dark:focus:ring-[#9FE1CB] dark:focus:ring-offset-[#07130f]"
+          >
+            View
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   )
 }
 
@@ -166,10 +220,10 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
 
   return (
     <button type="button"
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md transition-all flex flex-col cursor-pointer text-left w-full"
+      className="bg-[#FFFDF8] dark:bg-gray-800 rounded-2xl border border-[#E7DDCA] dark:border-gray-700 overflow-hidden hover:border-green-200 hover:shadow-md hover:shadow-[#085041]/10 transition-all flex flex-col cursor-pointer text-left w-full"
       onClick={() => onOpen(p)}>
       {/* Product image */}
-      <div className="relative h-44 overflow-hidden bg-gray-50 dark:bg-gray-700 pointer-events-none">
+      <div className="relative h-44 overflow-hidden bg-[#F8F2E8] dark:bg-gray-700 pointer-events-none">
         {p.image_url ? (
           <Image src={p.image_url} alt={p.name} fill
             sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
@@ -189,13 +243,13 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
         {((p.like_count ?? 0) > 0 || (p.rating_count ?? 0) > 0) && (
           <div className="absolute bottom-2 left-2 flex gap-1.5 pointer-events-none">
             {(p.rating_count ?? 0) > 0 && (
-              <div className="flex items-center gap-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1 bg-[#FFFDF8] dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
                 <Star size={10} fill="#F59E0B" style={{ color: '#F59E0B' }} />
                 <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{p.rating_avg?.toFixed(1)}</span>
               </div>
             )}
             {(p.like_count ?? 0) > 0 && (
-              <div className="flex items-center gap-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1 bg-[#FFFDF8] dark:bg-gray-800/95 backdrop-blur-sm px-2 py-1 rounded-full">
                 <Heart size={10} fill="#D4537E" style={{ color: '#D4537E' }} />
                 <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{p.like_count}</span>
               </div>
@@ -218,7 +272,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
         {p.businesses && (
           <Link href={`/businesses/${p.businesses.id}`}
             onClick={e => e.stopPropagation()}
-            className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 hover:opacity-80 transition-opacity">
+            className="flex items-center gap-2 mt-2 pt-2 border-t border-[#E7DDCA] dark:border-gray-700 hover:opacity-80 transition-opacity">
             {p.businesses.cover_image ? (
               <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
                 <Image src={p.businesses.cover_image} alt={p.businesses.name}
@@ -313,6 +367,7 @@ export default function SearchClient({
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const skippedInitialBusinessFetch = useRef(false)
 
   // ── Fetch page from Supabase ──────────────────────────────────────────
   const fetchPage = useCallback(async (pageNum: number, replace = false) => {
@@ -355,6 +410,7 @@ export default function SearchClient({
     const results = (data ?? []) as Business[]
 
     if (replace) {
+      setPage(pageNum)
       setBusinesses(results)
     } else {
       setBusinesses(prev => [...prev, ...results])
@@ -385,7 +441,7 @@ export default function SearchClient({
     if (query.trim())    q = q.ilike('name', `%${query.trim()}%`)
     if (inStockOnly)     q = q.eq('available', true)
     if (maxPrice > 0)    q = q.lte('price', maxPrice)
-    if (cat)             q = (q as any).eq('businesses.category', cat)
+    if (cat)             q = q.eq('businesses.category', cat)
 
     q = q.order('name', { ascending: true })
          .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
@@ -394,8 +450,12 @@ export default function SearchClient({
 
     const results = (data ?? []) as Product[]
 
-    if (replace) setProducts(results)
-    else         setProducts(prev => [...prev, ...results])
+    if (replace) {
+      setProductPage(pageNum)
+      setProducts(results)
+    } else {
+      setProducts(prev => [...prev, ...results])
+    }
 
     setProductTotal(cnt ?? 0)
     setProductHasMore((pageNum + 1) * pageSize < (cnt ?? 0))
@@ -405,17 +465,27 @@ export default function SearchClient({
 
   // ── Re-fetch when filters change ──────────────────────────────────────
   useEffect(() => {
-    setPage(0)
-    fetchPage(0, true)
-  }, [query, city, cat, country, verified, price, minRating, sort])
+    if (!skippedInitialBusinessFetch.current) {
+      skippedInitialBusinessFetch.current = true
+      return
+    }
+
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) void fetchPage(0, true)
+    })
+    return () => { cancelled = true }
+  }, [fetchPage])
 
   // Re-fetch products when filters change
   useEffect(() => {
-    if (activeTab === 'products') {
-      setProductPage(0)
-      fetchProducts(0, true)
-    }
-  }, [query, cat, inStockOnly, maxPrice, activeTab])
+    if (activeTab !== 'products') return
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) void fetchProducts(0, true)
+    })
+    return () => { cancelled = true }
+  }, [fetchProducts, activeTab])
 
   // ── Infinite scroll observer ──────────────────────────────────────────
   useEffect(() => {
@@ -464,10 +534,11 @@ export default function SearchClient({
   const COUNTRIES = ['Nigeria','Ghana','Kenya','Senegal','South Africa','Ethiopia','Cameroon']
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#FBF7EF] px-4 py-8 dark:bg-[#07130f]">
+      <div className="mx-auto max-w-7xl">
 
       {/* Tab switcher */}
-      <div className="flex gap-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-1 mb-5 w-fit">
+      <div className="flex gap-1 bg-[#FFFDF8] dark:bg-[#101b17] border border-[#E7DDCA] dark:border-[#20362d] rounded-2xl p-1 mb-5 w-fit shadow-sm dark:shadow-black/20">
         {([
           ['businesses', '🏪', 'Businesses'],
           ['products',   '📦', 'Products'  ],
@@ -476,7 +547,7 @@ export default function SearchClient({
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={activeTab === tab
               ? { background:'#1D9E75', color:'white' }
-              : { color:'#6B7280' }
+              : { color:'var(--search-tab-muted, #6B7280)' }
             }>
             <span>{icon}</span> {label}
           </button>
@@ -485,7 +556,7 @@ export default function SearchClient({
 
       {/* Search bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex items-center gap-2 flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-2 flex-1 bg-[#FFFDF8] dark:bg-[#101b17] border border-[#D9CBB4] dark:border-[#20362d] rounded-xl px-4 py-3 shadow-sm dark:shadow-black/15">
           <Search size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
           <input
             value={query}
@@ -495,7 +566,7 @@ export default function SearchClient({
           />
           {query && <button onClick={() => setQuery('')}><X size={14} className="text-gray-400 dark:text-gray-500" /></button>}
         </div>
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 shadow-sm sm:w-52">
+        <div className="flex items-center gap-2 bg-[#FFFDF8] dark:bg-[#101b17] border border-[#D9CBB4] dark:border-[#20362d] rounded-xl px-4 py-3 shadow-sm dark:shadow-black/15 sm:w-52">
           <MapPin size={14} style={{ color:'#1D9E75' }} className="flex-shrink-0" />
           <input
             value={city}
@@ -507,7 +578,7 @@ export default function SearchClient({
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 text-sm font-medium transition-colors hover:border-green-300 shadow-sm"
+          className="flex items-center gap-2 px-4 py-3 rounded-xl border border-[#D9CBB4] bg-[#FFFDF8] dark:bg-[#101b17] text-sm font-medium transition-colors hover:border-green-300 shadow-sm dark:border-[#20362d] dark:text-[#b8cec5] dark:shadow-black/15 dark:hover:border-[#9FE1CB]/45"
           style={activeFilters > 0 ? { borderColor:'#1D9E75', color:'#1D9E75', background:'#f0faf6' } : { color:'#374151' }}
         >
           <SlidersHorizontal size={15} />
@@ -527,7 +598,7 @@ export default function SearchClient({
         <div>
           {/* Product filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 bg-[#FFFDF8] dark:bg-[#101b17] border border-[#D9CBB4] dark:border-[#20362d] rounded-xl px-3 py-2">
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide whitespace-nowrap">Max price</span>
               <input type="number" min={0} max={500} step={5}
                 value={maxPrice || ''}
@@ -540,7 +611,7 @@ export default function SearchClient({
                 </button>
               )}
             </div>
-            <label className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 cursor-pointer hover:border-green-300 transition-colors">
+            <label className="flex items-center gap-2 bg-[#FFFDF8] dark:bg-[#101b17] border border-[#D9CBB4] dark:border-[#20362d] rounded-xl px-4 py-2 cursor-pointer hover:border-green-300 transition-colors dark:hover:border-[#9FE1CB]/45">
               <input type="checkbox" checked={inStockOnly} onChange={e => setInStockOnly(e.target.checked)}
                 className="rounded accent-green-600" />
               <span className="text-sm text-gray-700 dark:text-gray-300">In stock only</span>
@@ -559,7 +630,7 @@ export default function SearchClient({
           {productLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length:6 }).map((_, i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden">
+                <div key={i} className="bg-[#FFFDF8] dark:bg-gray-800 rounded-2xl border border-[#E7DDCA] dark:border-gray-700 dark:border-gray-700 overflow-hidden">
                   <div className="h-44 bg-gray-200 dark:bg-gray-600" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
                   <div className="p-4 space-y-2">
                     <div className="h-5 w-2/3 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
@@ -601,7 +672,7 @@ export default function SearchClient({
       <>
       {/* Filter panel */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 p-5 mb-6 shadow-sm">
+        <div className="bg-[#FFFDF8] dark:bg-[#101b17] rounded-2xl border border-[#E7DDCA] dark:border-[#20362d] p-5 mb-6 shadow-sm dark:shadow-black/20">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
             {/* Category */}
@@ -625,7 +696,7 @@ export default function SearchClient({
             <div>
               <label className="block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Country of origin</label>
               <select value={country} onChange={e => setCountry(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:border-transparent">
+                className="w-full border border-gray-200 dark:border-[#20362d] dark:bg-[#0c1713] dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:border-transparent">
                 <option value="">All countries</option>
                 {COUNTRIES.map(c => (
                   <option key={c} value={c}>{AFRICAN_FLAGS[c] ?? '🌍'} {c}</option>
@@ -706,7 +777,7 @@ export default function SearchClient({
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">Sort:</span>
           <select value={sort} onChange={e => setSort(e.target.value)}
-            className="text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:border-transparent cursor-pointer">
+            className="text-sm border border-gray-200 dark:border-[#20362d] dark:bg-[#101b17] dark:text-gray-100 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:border-transparent cursor-pointer">
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
@@ -716,7 +787,7 @@ export default function SearchClient({
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 dark:border-gray-700 overflow-hidden">
+            <div key={i} className="bg-[#FFFDF8] dark:bg-gray-800 rounded-2xl border border-[#E7DDCA] dark:border-gray-700 dark:border-gray-700 overflow-hidden">
               <div className="h-44 bg-gray-200 dark:bg-gray-600" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
               <div className="p-4 space-y-2">
                 <div className="h-5 w-2/3 bg-gray-200 dark:bg-gray-600 rounded" style={{ animation:'shimmer 1.8s ease-in-out infinite' }} />
@@ -776,6 +847,7 @@ export default function SearchClient({
           onClose={() => setSelectedProduct(null)}
         />
       )}
+      </div>
     </div>
   )
 }

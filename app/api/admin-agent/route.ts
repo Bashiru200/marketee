@@ -6,12 +6,10 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { authErrorResponse, requireAdminAccess } from '@/lib/adminAuth'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-const openai    = new OpenAI({    apiKey: process.env.OPENAI_API_KEY!    })
 
 interface Insight {
   type: string; priority: string; title: string; detail: string
@@ -106,6 +104,11 @@ async function callClaude(
   history: Array<{ role: 'user' | 'assistant'; content: string }>,
   message: string,
 ): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not configured')
+  }
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const messages = [...history, { role: 'user' as const, content: message }]
   const response = await anthropic.messages.create({
     model: 'claude-opus-4-7',
@@ -121,6 +124,11 @@ async function callGpt(
   history: Array<{ role: 'user' | 'assistant'; content: string }>,
   message: string,
 ): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured')
+  }
+
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
     max_tokens: 1200,
@@ -142,6 +150,7 @@ async function callGpt(
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdminAccess()
     const { message, history, context, engineOverride } = await request.json() as {
       message:         string
       history:         HistoryMessage[]
@@ -149,15 +158,7 @@ export async function POST(request: Request) {
       engineOverride?: Engine
     }
 
-    // Admin check
     const supabase = await createClient()
-    if (context.adminId) {
-      const { data: profile } = await supabase.from('profiles')
-        .select('role').eq('id', context.adminId).single()
-      if (profile?.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-      }
-    }
 
     // Build shared platform context
     const insightSummary = (context.insights ?? [])
@@ -218,7 +219,7 @@ Review this and add YOUR design/visual perspective. Don't repeat what Claude sai
 
     // Log
     await supabase.from('agent_logs').insert({
-      admin_id: context.adminId,
+      admin_id: admin.id,
       message,
       reply,
       model: modelUsed,
@@ -227,6 +228,10 @@ Review this and add YOUR design/visual perspective. Don't repeat what Claude sai
     return NextResponse.json({ reply, modelUsed })
 
   } catch (err) {
+    try {
+      return authErrorResponse(err)
+    } catch {}
+
     console.error('[admin-agent] Error:', err)
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({

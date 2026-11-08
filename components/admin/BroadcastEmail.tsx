@@ -1,459 +1,507 @@
 'use client'
-import { useEffect, useState } from 'react'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ElementType } from 'react'
 import {
-  Mail, Send, Users, Building2, User, Tag,
-  Loader2, CheckCircle2, Clock, ChevronDown,
-  ChevronUp, AlertTriangle
+  AlertTriangle,
+  Building2,
+  CheckCircle2,
+  Clock,
+  Eye,
+  Loader2,
+  Mail,
+  Send,
+  User,
+  Users,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 
-type Audience = 'all' | 'owners' | 'customers'
+type Audience = 'owners' | 'customers' | 'all'
+type EmailType = 'announcement' | 'newsletter' | 'promotion' | 'owner_update'
 
 interface SentEmail {
-  id:         string
-  subject:    string
-  audience:   Audience
+  id: string
+  subject: string
+  audience: Audience
   sent_count: number
   created_at: string
 }
 
 interface AudienceCount {
-  all:       number
-  owners:    number
-  customers: number
+  count: number
+  skippedByPreferences: number
 }
 
-const AUDIENCE_OPTIONS: {
-  value:  Audience
-  label:  string
-  desc:   string
-  icon:   React.ElementType
-  color:  string
-}[] = [
-  { value:'all',       label:'Everyone',         desc:'All registered users',            icon:Users,     color:'#085041' },
-  { value:'owners',    label:'Business owners',  desc:'Users with a business listing',   icon:Building2, color:'#1D9E75' },
-  { value:'customers', label:'Customers only',   desc:'Users browsing without a listing', icon:User,     color:'#8B5CF6' },
+const AUDIENCES: Array<{
+  value: Audience
+  label: string
+  desc: string
+  icon: ElementType
+}> = [
+  { value: 'owners', label: 'Business owners', desc: 'Owners with Markeetee accounts', icon: Building2 },
+  { value: 'customers', label: 'Customers', desc: 'People discovering businesses', icon: User },
+  { value: 'all', label: 'Everyone', desc: 'All subscribed users', icon: Users },
 ]
 
-const EMAIL_TYPES = [
+const EMAIL_TYPES: Array<{
+  value: EmailType
+  label: string
+  desc: string
+  subject: string
+  body: string
+  ctaLabel: string
+}> = [
   {
-    value:       'announcement',
-    label:       '📢 Announcement',
-    desc:        'General news or platform updates',
-    subjectHint: 'Markeetee announcement: ',
-    bodyHint:    'We have an update to share with you...',
+    value: 'announcement',
+    label: 'Announcement',
+    desc: 'Platform news, launches, and important updates',
+    subject: 'Important update from Markeetee',
+    body: 'We have an update to share with the Markeetee community.\n\nThank you for helping us build a stronger way to discover and support African-owned businesses across the United States.',
+    ctaLabel: 'Explore Markeetee',
   },
   {
-    value:       'promotion',
-    label:       '🏷️ Promotion',
-    desc:        'Special offer or launch campaign',
-    subjectHint: '🎉 Special offer from Markeetee',
-    bodyHint:    'We have an exclusive offer for you...',
+    value: 'newsletter',
+    label: 'Newsletter',
+    desc: 'Community roundup or monthly digest',
+    subject: 'Markeetee community update',
+    body: 'Here is what is new in the Markeetee community this month.\n\nWe are highlighting helpful updates, new businesses, and ways to discover African restaurants, groceries, beauty services, fashion, wellness, and more.',
+    ctaLabel: 'Read more',
   },
   {
-    value:       'newsletter',
-    label:       '📰 Newsletter',
-    desc:        'Monthly digest or community update',
-    subjectHint: 'Markeetee Monthly — ',
-    bodyHint:    "Here's what's happening in the Markeetee community...",
+    value: 'promotion',
+    label: 'Promotion',
+    desc: 'Marketing campaigns and offers',
+    subject: 'A new way to grow with Markeetee',
+    body: 'We are sharing a special Markeetee update that may help you get more from the platform.\n\nUse the link below to learn more and decide whether it is right for you.',
+    ctaLabel: 'Learn more',
   },
   {
-    value:       'reminder',
-    label:       '⏰ Reminder',
-    desc:        'Action required or account reminder',
-    subjectHint: 'Reminder: ',
-    bodyHint:    'This is a friendly reminder to...',
-  },
-  {
-    value:       'welcome',
-    label:       '👋 Welcome',
-    desc:        'Welcome message for new users',
-    subjectHint: 'Welcome to Markeetee!',
-    bodyHint:    "We're so glad you're here. Here's how to get started...",
-  },
-  {
-    value:       'upgrade',
-    label:       '⭐ Upgrade prompt',
-    desc:        'Encourage owners to upgrade their plan',
-    subjectHint: 'Unlock more with Markeetee',
-    bodyHint:    "Your listing is live! Here's what you can unlock with a Pro Store plan...",
-  },
-  {
-    value:       'custom',
-    label:       '✏️ Custom message',
-    desc:        'Write your own subject and body',
-    subjectHint: '',
-    bodyHint:    '',
+    value: 'owner_update',
+    label: 'Owner update',
+    desc: 'Helpful message for business owners',
+    subject: 'Keep your Markeetee listing fresh',
+    body: 'A quick note for Markeetee business owners: listings with clear photos, current hours, and helpful descriptions are easier for customers to trust.\n\nTake a few minutes to review your profile and make sure customers have the details they need.',
+    ctaLabel: 'Open dashboard',
   },
 ]
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://markeetee.com'
+
+function PreviewBody({ body }: { body: string }) {
+  const paragraphs = body.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+
+  return (
+    <>
+      {paragraphs.map((paragraph) => (
+        <p key={paragraph} className="mb-4 text-sm leading-7 text-gray-600">
+          {paragraph}
+        </p>
+      ))}
+    </>
+  )
+}
 
 export default function BroadcastEmail() {
-  const supabase = createClient()
-  const { user } = useAuth()
+  const supabase = useRef(createClient()).current
+  const { profile } = useAuth()
 
-  const [subject,     setSubject]     = useState('')
-  const [body,        setBody]        = useState('')
-  const [audience,    setAudience]    = useState<Audience>('owners')
-  const [emailType,   setEmailType]   = useState('custom')
-  const [sending,     setSending]     = useState(false)
-  const [success,     setSuccess]     = useState<{ sent: number } | null>(null)
-  const [error,       setError]       = useState('')
-  const [history,     setHistory]     = useState<SentEmail[]>([])
-  const [counts,      setCounts]      = useState<AudienceCount>({ all:0, owners:0, customers:0 })
-  const [showHistory, setShowHistory] = useState(false)
-  const [confirmed,   setConfirmed]   = useState(false)
+  const [audience, setAudience] = useState<Audience>('owners')
+  const [emailType, setEmailType] = useState<EmailType>('announcement')
+  const [subject, setSubject] = useState(EMAIL_TYPES[0].subject)
+  const [body, setBody] = useState(EMAIL_TYPES[0].body)
+  const [ctaLabel, setCtaLabel] = useState(EMAIL_TYPES[0].ctaLabel)
+  const [ctaUrl, setCtaUrl] = useState(APP_URL)
+  const [counts, setCounts] = useState<Record<Audience, AudienceCount>>({
+    owners: { count: 0, skippedByPreferences: 0 },
+    customers: { count: 0, skippedByPreferences: 0 },
+    all: { count: 0, skippedByPreferences: 0 },
+  })
+  const [history, setHistory] = useState<SentEmail[]>([])
+  const [loadingCounts, setLoadingCounts] = useState(true)
+  const [sending, setSending] = useState<'test' | 'bulk' | null>(null)
+  const [confirmed, setConfirmed] = useState(false)
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  useEffect(() => {
-    loadCounts()
-    loadHistory()
+  const selectedType = EMAIL_TYPES.find((type) => type.value === emailType) ?? EMAIL_TYPES[0]
+  const selectedAudience = AUDIENCES.find((item) => item.value === audience) ?? AUDIENCES[0]
+  const recipientCount = counts[audience].count
+  const skippedCount = counts[audience].skippedByPreferences
+  const isValid = subject.trim().length >= 4 && body.trim().length >= 20 && (!ctaUrl || /^https?:\/\//i.test(ctaUrl))
+
+  const markDirty = useCallback(() => {
+    setConfirmed(false)
   }, [])
 
-  async function loadCounts() {
-    const [all, owners, customers] = await Promise.all([
-      supabase.from('profiles').select('id', { count:'exact', head:true }),
-      supabase.from('profiles').select('id', { count:'exact', head:true }).eq('role', 'owner'),
-      supabase.from('profiles').select('id', { count:'exact', head:true }).eq('role', 'customer'),
-    ])
-    setCounts({
-      all:       all.count       ?? 0,
-      owners:    owners.count    ?? 0,
-      customers: customers.count ?? 0,
-    })
-  }
+  const loadCounts = useCallback(async () => {
+    setLoadingCounts(true)
+    const nextCounts: Record<Audience, AudienceCount> = {
+      owners: { count: 0, skippedByPreferences: 0 },
+      customers: { count: 0, skippedByPreferences: 0 },
+      all: { count: 0, skippedByPreferences: 0 },
+    }
 
-  async function loadHistory() {
+    await Promise.all(AUDIENCES.map(async ({ value }) => {
+      const response = await fetch(`/api/broadcast-email?audience=${value}`)
+      if (!response.ok) return
+      const data = await response.json()
+      nextCounts[value] = {
+        count: data.count ?? 0,
+        skippedByPreferences: data.skippedByPreferences ?? 0,
+      }
+    }))
+
+    setCounts(nextCounts)
+    setLoadingCounts(false)
+  }, [])
+
+  const loadHistory = useCallback(async () => {
     const { data } = await supabase
       .from('broadcast_emails')
       .select('id, subject, audience, sent_count, created_at')
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(8)
+
     setHistory((data ?? []) as SentEmail[])
+  }, [supabase])
+
+  useEffect(() => {
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+      void loadCounts()
+      void loadHistory()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadCounts, loadHistory])
+
+  function applyTemplate(nextType: EmailType) {
+    const template = EMAIL_TYPES.find((type) => type.value === nextType) ?? EMAIL_TYPES[0]
+    markDirty()
+    setEmailType(nextType)
+    setSubject(template.subject)
+    setBody(template.body)
+    setCtaLabel(template.ctaLabel)
+    setCtaUrl(template.value === 'owner_update' ? `${APP_URL}/dashboard` : APP_URL)
   }
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault()
-    if (!confirmed) { setError('Please confirm you want to send this email'); return }
-    setSending(true); setError('')
-
-    const res = await fetch('/api/broadcast-email', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ subject, body, audience, emailType, adminId: user?.id }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error ?? 'Failed to send')
-      setSending(false)
+  async function send(mode: 'test' | 'bulk') {
+    if (!isValid) {
+      setNotice({ type: 'error', message: 'Complete the subject, message, and CTA URL before sending.' })
       return
     }
 
-    setSuccess({ sent: data.sent })
-    setSending(false)
+    if (mode === 'bulk' && !confirmed) {
+      setNotice({ type: 'error', message: 'Confirm the recipient count before sending a bulk email.' })
+      return
+    }
+
+    setSending(mode)
+    setNotice(null)
+
+    const response = await fetch('/api/broadcast-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode,
+        audience,
+        subject,
+        headline: subject,
+        body,
+        ctaLabel,
+        ctaUrl,
+        confirmed: mode === 'bulk' ? confirmed : true,
+        expectedRecipientCount: recipientCount,
+      }),
+    })
+
+    const data = await response.json()
+    setSending(null)
+
+    if (!response.ok && response.status !== 207) {
+      setNotice({ type: 'error', message: data.error ?? 'Email send failed.' })
+      return
+    }
+
+    const dryRunCopy = data.dryRun ? ' Dry run only; no live email was sent.' : ''
+    const partialCopy = data.failedCount ? ` ${data.failedCount} recipient(s) failed and can be retried later.` : ''
+    const action = mode === 'test' ? 'Test prepared' : 'Bulk send complete'
+
+    setNotice({
+      type: data.failedCount ? 'error' : 'success',
+      message: `${action}: ${data.sent} recipient(s).${partialCopy}${dryRunCopy}`,
+    })
+    setConfirmed(false)
+    await loadCounts()
     await loadHistory()
   }
 
-  function reset() {
-    setSuccess(null)
-    setError('')
-    setSubject('')
-    setBody('')
-    setConfirmed(false)
-    setEmailType('custom')
-  }
-
-  const recipientCount    = counts[audience]
-  const selectedAudience  = AUDIENCE_OPTIONS.find(o => o.value === audience)!
-  const selectedEmailType = EMAIL_TYPES.find(t => t.value === emailType)!
-
   return (
     <div className="space-y-6">
-
-      {/* Header */}
-      <div>
-        <h3 className="font-semibold text-gray-900">Broadcast email</h3>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Send a branded message to all users or a specific group
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-gray-950">Send email</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Compose branded Markeetee emails with preference-aware bulk delivery.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={loadCounts}
+          disabled={loadingCounts}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-60"
+        >
+          {loadingCounts ? <Loader2 size={15} className="animate-spin" /> : <Users size={15} />}
+          Refresh counts
+        </button>
       </div>
 
-      {/* Success state */}
-      {success ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ background:'#E1F5EE' }}>
-            <CheckCircle2 size={28} style={{ color:'#1D9E75' }} />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Emails sent!</h3>
-          <p className="text-gray-500 mb-2">
-            Successfully sent to <strong>{success.sent}</strong> recipient{success.sent !== 1 ? 's' : ''}
-          </p>
-          <p className="text-xs text-gray-400 mb-6">
-            Sent as: <strong>{selectedEmailType.label}</strong> to <strong>{selectedAudience.label}</strong>
-          </p>
-          <button onClick={reset}
-            className="text-sm font-semibold text-white px-6 py-2.5 rounded-xl"
-            style={{ background:'#1D9E75' }}>
-            Send another
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Compose form */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6">
-            <form onSubmit={handleSend} className="space-y-5">
-
-              {/* Audience selector */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                  <Users size={11} className="inline mr-1" /> Send to
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {AUDIENCE_OPTIONS.map(opt => {
-                    const Icon     = opt.icon
-                    const selected = audience === opt.value
-                    return (
-                      <button key={opt.value} type="button"
-                        onClick={() => setAudience(opt.value)}
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all"
-                        style={selected
-                          ? { background:'#E1F5EE', borderColor: opt.color }
-                          : { background:'white', borderColor:'#E5E7EB' }
-                        }>
-                        <Icon size={16} style={{ color: selected ? opt.color : '#9CA3AF' }} />
-                        <span className="text-xs font-semibold text-gray-800">{opt.label}</span>
-                        <span className="text-[10px] font-bold" style={{ color: selected ? opt.color : '#9CA3AF' }}>
-                          {counts[opt.value]} users
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Email type */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                  <Tag size={11} className="inline mr-1" /> Email type
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {EMAIL_TYPES.map(t => (
-                    <button key={t.value} type="button"
-                      onClick={() => {
-                        setEmailType(t.value)
-                        if (t.subjectHint && !subject) setSubject(t.subjectHint)
-                        if (t.bodyHint    && !body)    setBody(t.bodyHint)
-                      }}
-                      className="flex flex-col items-start p-3 rounded-xl border text-left transition-all"
-                      style={emailType === t.value
-                        ? { background:'#E1F5EE', borderColor:'#1D9E75' }
-                        : { background:'white',   borderColor:'#E5E7EB' }
-                      }>
-                      <span className="text-sm font-semibold text-gray-900">{t.label}</span>
-                      <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{t.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                  Subject line *
-                </label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={e => setSubject(e.target.value)}
-                  placeholder="e.g. Important update from Markeetee"
-                  required
-                  maxLength={150}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {subject.length}/150 chars · Keep under 60 for best open rates
-                </p>
-              </div>
-
-              {/* Body */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                  Message body *
-                </label>
-                <textarea
-                  value={body}
-                  onChange={e => setBody(e.target.value)}
-                  placeholder="Write your message here. Use double line breaks to create paragraphs."
-                  required
-                  rows={8}
-                  minLength={20}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none"
-                />
-                <p className="text-xs text-gray-400 text-right mt-1">{body.length} chars</p>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-100">
-                  <AlertTriangle size={14} className="flex-shrink-0" />
-                  {error}
-                </div>
-              )}
-
-              {/* Confirmation */}
-              <div className="flex items-start gap-3 px-4 py-3 rounded-xl border"
-                style={{ background:'#FFFBEB', borderColor:'#FDE68A' }}>
-                <input
-                  type="checkbox"
-                  id="confirm"
-                  checked={confirmed}
-                  onChange={e => setConfirmed(e.target.checked)}
-                  className="mt-0.5 flex-shrink-0 accent-amber-500"
-                />
-                <label htmlFor="confirm" className="text-sm cursor-pointer" style={{ color:'#92400E' }}>
-                  I confirm I want to send this <strong>{selectedEmailType.label}</strong> email to{' '}
-                  <strong>{recipientCount} {selectedAudience.label.toLowerCase()}</strong>.
-                  This action cannot be undone.
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={sending || !subject.trim() || !body.trim() || !confirmed}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-                style={{ background:'#085041' }}>
-                {sending ? (
-                  <><Loader2 size={15} className="animate-spin" /> Sending to {recipientCount} recipients…</>
-                ) : (
-                  <><Send size={15} /> Send {selectedEmailType.label} to {recipientCount} {selectedAudience.label.toLowerCase()}</>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4">
-
-            {/* Tips */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Mail size={15} style={{ color:'#1D9E75' }} />
-                Tips
-              </h4>
-              <ul className="space-y-2.5">
-                {[
-                  'Keep subject lines under 60 characters for best open rates',
-                  'Use double line breaks to separate paragraphs',
-                  'Send to owners first before sending to everyone',
-                  'Mention Markeetee in the opening line so users recognise you',
-                  'Avoid all-caps and excessive exclamation marks — triggers spam filters',
-                ].map(tip => (
-                  <li key={tip} className="flex items-start gap-2 text-xs text-gray-500">
-                    <span className="mt-1 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-400" />
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Audience counts */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h4 className="font-semibold text-gray-900 mb-3">Audience sizes</h4>
-              <div className="space-y-3">
-                {AUDIENCE_OPTIONS.map(opt => {
-                  const Icon = opt.icon
-                  return (
-                    <div key={opt.value} className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background:'#E1F5EE' }}>
-                        <Icon size={13} style={{ color: opt.color }} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-700">{opt.label}</span>
-                          <span className="text-sm font-bold text-gray-900">{counts[opt.value]}</span>
-                        </div>
-                        <p className="text-xs text-gray-400">{opt.desc}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Current selection summary */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h4 className="font-semibold text-gray-900 mb-3">Ready to send</h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Type</span>
-                  <span className="font-medium text-gray-900">{selectedEmailType.label}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Audience</span>
-                  <span className="font-medium text-gray-900">{selectedAudience.label}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Recipients</span>
-                  <span className="font-bold" style={{ color:'#1D9E75' }}>{recipientCount}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Template</span>
-                  <span className="font-medium text-gray-900">Markeetee branded</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      {notice && (
+        <div className={`flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm ${
+          notice.type === 'success'
+            ? 'border-green-100 bg-green-50 text-green-800'
+            : 'border-amber-200 bg-amber-50 text-amber-900'
+        }`}>
+          {notice.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+          <span>{notice.message}</span>
         </div>
       )}
 
-      {/* Sent history */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
-          <div className="flex items-center gap-2">
-            <Clock size={15} style={{ color:'#1D9E75' }} />
-            <span className="font-semibold text-gray-900">Sent history</span>
-            <span className="text-xs text-gray-400">({history.length})</span>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <form className="space-y-5 rounded-2xl border border-gray-100 bg-white p-5">
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-400">
+              Recipient group
+            </label>
+            <div className="grid gap-2 md:grid-cols-3">
+              {AUDIENCES.map((option) => {
+                const Icon = option.icon
+                const selected = option.value === audience
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                  onClick={() => {
+                    markDirty()
+                    setAudience(option.value)
+                  }}
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      selected ? 'border-[#1D9E75] bg-[#F0FAF6]' : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon size={18} className={selected ? 'text-[#085041]' : 'text-gray-400'} />
+                    <p className="mt-2 text-sm font-bold text-gray-950">{option.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">{option.desc}</p>
+                    <p className="mt-3 text-xs font-bold text-[#085041]">
+                      {loadingCounts ? 'Loading...' : `${counts[option.value].count} subscribed`}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          {showHistory
-            ? <ChevronUp size={15} className="text-gray-400" />
-            : <ChevronDown size={15} className="text-gray-400" />
-          }
-        </button>
 
-        {showHistory && (
-          history.length === 0 ? (
-            <div className="px-5 pb-5 text-sm text-gray-400">No emails sent yet</div>
-          ) : (
-            <div className="divide-y divide-gray-50">
-              {history.map(h => (
-                <div key={h.id} className="flex items-center gap-4 px-5 py-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background:'#E1F5EE' }}>
-                    <Mail size={14} style={{ color:'#1D9E75' }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{h.subject}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400 capitalize">{h.audience}</span>
-                      <span className="text-xs text-gray-300">·</span>
-                      <span className="text-xs text-gray-400">{h.sent_count} sent</span>
-                      <span className="text-xs text-gray-300">·</span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(h.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-400">
+              Template
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {EMAIL_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => applyTemplate(type.value)}
+                  className={`rounded-2xl border p-4 text-left transition ${
+                    emailType === type.value ? 'border-[#1D9E75] bg-[#F0FAF6]' : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <p className="text-sm font-bold text-gray-950">{type.label}</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">{type.desc}</p>
+                </button>
               ))}
             </div>
-          )
-        )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+            <div>
+              <label htmlFor="broadcast-subject" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-400">
+                Subject
+              </label>
+              <input
+                id="broadcast-subject"
+                value={subject}
+                onChange={(event) => {
+                  markDirty()
+                  setSubject(event.target.value)
+                }}
+                maxLength={150}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
+              />
+              <p className="mt-1 text-[11px] text-gray-400">{subject.length}/150 characters</p>
+            </div>
+            <div>
+              <label htmlFor="broadcast-cta-label" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-400">
+                CTA label
+              </label>
+              <input
+                id="broadcast-cta-label"
+                value={ctaLabel}
+                onChange={(event) => {
+                  markDirty()
+                  setCtaLabel(event.target.value)
+                }}
+                maxLength={40}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="broadcast-cta-url" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-400">
+              CTA URL
+            </label>
+            <input
+              id="broadcast-cta-url"
+              value={ctaUrl}
+              onChange={(event) => {
+                markDirty()
+                setCtaUrl(event.target.value)
+              }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="broadcast-body" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-400">
+              Message
+            </label>
+            <textarea
+              id="broadcast-body"
+              value={body}
+              onChange={(event) => {
+                markDirty()
+                setBody(event.target.value)
+              }}
+              rows={9}
+              minLength={20}
+              className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm leading-6 outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
+            />
+            <p className="mt-1 text-right text-xs text-gray-400">{body.length} characters</p>
+          </div>
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <label className="flex items-start gap-3 text-sm text-amber-900">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(event) => setConfirmed(event.target.checked)}
+                className="mt-0.5 accent-amber-500"
+              />
+              <span>
+                I confirm this bulk email should go to <strong>{recipientCount}</strong> subscribed {selectedAudience.label.toLowerCase()}.
+                {skippedCount > 0 ? ` ${skippedCount} opted-out recipient(s) will be skipped.` : ''}
+              </span>
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => send('test')}
+              disabled={sending !== null || !isValid}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#085041] bg-white px-4 py-3 text-sm font-bold text-[#085041] disabled:opacity-50"
+            >
+              {sending === 'test' ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
+              Send test to {profile?.email ?? 'admin'}
+            </button>
+            <button
+              type="button"
+              onClick={() => send('bulk')}
+              disabled={sending !== null || !isValid || !confirmed || recipientCount === 0}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#085041] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {sending === 'bulk' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              Send to {recipientCount} recipient{recipientCount === 1 ? '' : 's'}
+            </button>
+          </div>
+        </form>
+
+        <aside className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+            <div className="border-b border-gray-100 bg-[#085041] px-5 py-4 text-white">
+              <div className="flex items-center gap-2">
+                <Mail size={18} />
+                <p className="font-bold">Email preview</p>
+              </div>
+              <p className="mt-1 text-xs text-white/70">Branded template with unsubscribe footer.</p>
+            </div>
+            <div className="p-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Subject</p>
+              <h4 className="mt-1 text-lg font-black leading-tight text-gray-950">{subject || 'Subject line'}</h4>
+              <div className="mt-5 rounded-2xl border border-gray-100 bg-[#FAFAF9] p-4">
+                <p className="mb-4 text-sm text-gray-600">Hi {profile?.name ?? 'there'},</p>
+                <PreviewBody body={body} />
+                {ctaLabel && ctaUrl ? (
+                  <div className="mt-5">
+                    <span className="inline-flex rounded-xl bg-[#1D9E75] px-4 py-2 text-xs font-bold text-white">
+                      {ctaLabel}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5">
+            <h4 className="font-bold text-gray-950">Delivery summary</h4>
+            <div className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Audience</span>
+                <span className="font-semibold text-gray-900">{selectedAudience.label}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Subscribed recipients</span>
+                <span className="font-semibold text-gray-900">{recipientCount}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Skipped by preferences</span>
+                <span className="font-semibold text-gray-900">{skippedCount}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Type</span>
+                <span className="font-semibold text-gray-900">{selectedType.label}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Clock size={16} className="text-[#1D9E75]" />
+              <h4 className="font-bold text-gray-950">Recent sends</h4>
+            </div>
+            {history.length === 0 ? (
+              <p className="text-sm text-gray-400">No broadcast emails recorded yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map((email) => (
+                  <div key={email.id} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                    <p className="line-clamp-1 text-sm font-semibold text-gray-900">{email.subject}</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {email.sent_count} sent to {email.audience} on{' '}
+                      {new Date(email.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   )

@@ -76,7 +76,7 @@ function OnboardingContent() {
 
   if (loadingUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF]">
         <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
       </div>
     )
@@ -86,7 +86,7 @@ function OnboardingContent() {
   const labelCls = "block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5"
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="w-full max-w-md bg-white border border-gray-100 rounded-2xl p-8">
 
         <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#E1F5EE' }}>
@@ -178,7 +178,7 @@ function OnboardingContent() {
 export default function AccountOnboardingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF]">
         <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
       </div>
     }>

@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import BusinessDetailClient from '@/components/businesses/BusinessDetailClient'
 
 interface Props {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 /* ─────────────────────────────────────────────
@@ -36,9 +36,10 @@ async function getBusinessBySlug(slug: string) {
    🔍 SEO Metadata
 ───────────────────────────────────────────── */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const biz = await getBusinessBySlug(params.slug)
+  const { slug } = await params
+  const biz = await getBusinessBySlug(slug)
 
-  if (!biz || biz.plan !== 'storefront') {
+  if (!biz || !['storefront', 'pro_store'].includes(String(biz.plan))) {
     return {
       title: 'Store not found — Markeetee',
     }
@@ -70,15 +71,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
    🧱 Page
 ───────────────────────────────────────────── */
 export default async function StorePage({ params }: Props) {
-  const biz = await getBusinessBySlug(params.slug)
+  const { slug } = await params
+  const biz = await getBusinessBySlug(slug)
 
   // 🚫 Not found or wrong plan
-  if (!biz || biz.plan !== 'storefront') {
+  if (!biz || !['storefront', 'pro_store'].includes(String(biz.plan))) {
     notFound()
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F8F7]">
+    <div className="min-h-screen bg-[#FBF7EF]">
       <BusinessDetailClient id={biz.id} />
     </div>
   )

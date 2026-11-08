@@ -172,7 +172,7 @@ function UnsubscribeContent() {
 
 export default function UnsubscribePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="bg-white rounded-2xl border border-gray-100 p-8 max-w-md w-full">
         <Suspense fallback={
           <div className="flex justify-center py-8">

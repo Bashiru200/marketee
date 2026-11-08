@@ -1,108 +1,247 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { createClient } from '@supabase/supabase-js'
-import { LIMITS, getClientIp, rateLimitResponse } from '@/lib/rateLimit'
+import { authErrorResponse, createAdminClient, requireAdminAccess } from '@/lib/adminAuth'
+import {
+  ensureUnsubscribeToken,
+  isSubscribedToEmailType,
+  type EmailPreference,
+} from '@/lib/emailPreferences'
+import { LIMITS, rateLimitResponse } from '@/lib/rateLimit'
+import { broadcastEmailTemplate } from '@/lib/emailTemplates'
+
+type Audience = 'all' | 'owners' | 'customers'
+type SendMode = 'test' | 'bulk'
+
+interface Recipient {
+  id: string
+  email: string | null
+  name: string | null
+  role: string | null
+}
+
+const VALID_AUDIENCES = new Set<Audience>(['all', 'owners', 'customers'])
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://markeetee.com'
+const BATCH_SIZE = 50
+
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status })
+}
+
+function cleanText(value: unknown, maxLength: number) {
+  return String(value ?? '').trim().slice(0, maxLength)
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function formatMessageBody(message: string) {
+  return message
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => `<p style="margin:0 0 16px;">${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
+    .join('')
+}
+
+function shouldDryRun(mode: SendMode) {
+  return process.env.NODE_ENV !== 'production' || mode === 'test'
+}
+
+async function getRecipients(audience: Audience) {
+  const supabase = createAdminClient()
+  let query = supabase
+    .from('profiles')
+    .select('id, email, name, role')
+    .not('email', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(5000)
+
+  if (audience === 'owners') query = query.eq('role', 'owner')
+  if (audience === 'customers') query = query.eq('role', 'customer')
+
+  const { data, error } = await query
+  if (error) throw error
+
+  const recipients = ((data ?? []) as Recipient[]).filter((recipient) => recipient.email)
+  const emails = recipients.map((recipient) => recipient.email!.toLowerCase())
+
+  const preferenceMap = new Map<string, EmailPreference>()
+
+  if (emails.length > 0) {
+    const { data: preferences, error: prefError } = await supabase
+      .from('email_preferences')
+      .select('email, token, unsubscribed_from, unsubscribed_all')
+      .in('email', emails)
+
+    if (prefError) throw prefError
+
+    for (const preference of (preferences ?? []) as EmailPreference[]) {
+      preferenceMap.set(preference.email.toLowerCase(), preference)
+    }
+  }
+
+  const subscribed = recipients.filter((recipient) => {
+    const preference = preferenceMap.get(recipient.email!.toLowerCase())
+    return isSubscribedToEmailType(preference, 'broadcast') && isSubscribedToEmailType(preference, 'marketing')
+  })
+
+  return {
+    recipients: subscribed,
+    skipped: recipients.length - subscribed.length,
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    await requireAdminAccess({ superAdminOnly: true })
+    const audience = req.nextUrl.searchParams.get('audience') ?? 'owners'
+
+    if (!VALID_AUDIENCES.has(audience as Audience)) {
+      return jsonError('Invalid audience', 400)
+    }
+
+    const { recipients, skipped } = await getRecipients(audience as Audience)
+    return NextResponse.json({
+      audience,
+      count: recipients.length,
+      skippedByPreferences: skipped,
+    })
+  } catch (error) {
+    try {
+      return authErrorResponse(error)
+    } catch (unhandled) {
+      console.error('[broadcast-email:get]', unhandled)
+      return jsonError('Unable to load recipients', 500)
+    }
+  }
+}
 
 export async function POST(req: NextRequest) {
-  const resend   = new Resend(process.env.RESEND_API_KEY!)
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
   try {
-    const { subject, body, audience, adminId } = await req.json()
+    const admin = await requireAdminAccess({ superAdminOnly: true })
+    const payload = await req.json()
 
-    if (!subject?.trim() || !body?.trim() || !audience) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const mode = payload.mode === 'test' ? 'test' : 'bulk'
+    const audience = payload.audience as Audience
+    const subject = cleanText(payload.subject, 150)
+    const message = cleanText(payload.body ?? payload.message, 8000)
+    const headline = cleanText(payload.headline || subject, 120)
+    const ctaLabel = cleanText(payload.ctaLabel, 40)
+    const ctaUrl = cleanText(payload.ctaUrl, 500)
+    const expectedRecipientCount = Number(payload.expectedRecipientCount)
+    const confirmed = payload.confirmed === true
+
+    if (!VALID_AUDIENCES.has(audience)) return jsonError('Invalid audience', 400)
+    if (subject.length < 4) return jsonError('Subject is too short', 400)
+    if (message.length < 20) return jsonError('Message must be at least 20 characters', 400)
+    if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) return jsonError('CTA URL must start with http:// or https://', 400)
+
+    const { recipients, skipped } = await getRecipients(audience)
+    if (mode === 'bulk' && recipients.length === 0) return jsonError('No subscribed recipients found', 400)
+    if (mode === 'bulk' && !confirmed) return jsonError('Confirm this bulk send before continuing', 400)
+    if (mode === 'bulk' && expectedRecipientCount !== recipients.length) {
+      return jsonError('Recipient count changed. Refresh the count and confirm again.', 409)
     }
 
-    // Verify admin
-    const { data: admin } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', adminId)
-      .single()
-
-    if (!admin?.is_admin) {
-      return NextResponse.json({ error: 'Unauthorised' }, { status: 403 })
-    }
-
-    // Rate limit — 2 broadcasts per hour per admin
-    const limit = LIMITS.broadcast(adminId)
+    const limit = LIMITS.broadcast(`${admin.id}:${mode}`)
     if (!limit.success) {
       return rateLimitResponse(limit.resetAt)
     }
 
-    // Fetch recipients
-    let query = supabase.from('profiles').select('email, name').not('email', 'is', null)
-    if (audience === 'owners')    query = query.eq('role', 'owner')
-    if (audience === 'customers') query = query.eq('role', 'customer')
+    const supabase = createAdminClient()
+    const dryRun = shouldDryRun(mode)
+    const from = process.env.EMAIL_FROM
+    const resendKey = process.env.RESEND_API_KEY
 
-    const { data: recipients } = await query
-    if (!recipients || recipients.length === 0) {
-      return NextResponse.json({ error: 'No recipients found' }, { status: 400 })
+    if (!dryRun && (!from || !resendKey)) {
+      return jsonError('Email provider is not configured', 500)
     }
 
-    // Send in batches of 50
-    const BATCH = 50
-    let sent = 0
+    const recipientsToSend = mode === 'test'
+      ? [{
+          id: admin.id,
+          email: admin.email,
+          name: admin.name,
+          role: 'admin',
+        } as Recipient]
+      : recipients
 
-    for (let i = 0; i < recipients.length; i += BATCH) {
-      const batch  = recipients.slice(i, i + BATCH)
-      const emails = batch
-        .filter(r => r.email)
-        .map(r => ({
-          from:    process.env.EMAIL_FROM!,
-          to:      r.email!,
-          subject,
-          html:    buildEmailHtml({ name: r.name ?? 'there', subject, body }),
+    if (recipientsToSend.some((recipient) => !recipient.email)) {
+      return jsonError('No email address available for this send', 400)
+    }
+
+    const failed: Array<{ email: string; error: string }> = []
+    let sent = 0
+    const resend = !dryRun ? new Resend(resendKey!) : null
+
+    for (let i = 0; i < recipientsToSend.length; i += BATCH_SIZE) {
+      const batch = recipientsToSend.slice(i, i + BATCH_SIZE)
+
+      try {
+        const emails = await Promise.all(batch.map(async (recipient) => {
+          const token = await ensureUnsubscribeToken(supabase, recipient.email!, recipient.id)
+          const unsubscribeUrl = `${APP_URL}/api/unsubscribe?token=${token}&type=broadcast`
+          const template = broadcastEmailTemplate({
+            recipientName: recipient.name,
+            subject,
+            headline,
+            body: formatMessageBody(message),
+            ctaLabel: ctaLabel || undefined,
+            ctaUrl: ctaUrl || undefined,
+            unsubscribeUrl,
+          })
+
+          return {
+            from: from!,
+            to: recipient.email!,
+            subject: template.subject,
+            html: template.html,
+          }
         }))
 
-      if (emails.length > 0) {
-        await resend.batch.send(emails)
+        if (!dryRun) {
+          await resend!.batch.send(emails)
+        }
+
         sent += emails.length
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Provider error'
+        for (const recipient of batch) {
+          failed.push({ email: recipient.email ?? 'unknown', error: message })
+        }
       }
     }
 
-    // Log to broadcast_emails
     await supabase.from('broadcast_emails').insert({
-      subject, body, audience,
+      subject,
+      body: message,
+      audience,
       sent_count: sent,
-      sent_by:    adminId,
+      sent_by: admin.id,
     })
 
-    return NextResponse.json({ ok: true, sent })
-  } catch (err) {
-    console.error('[broadcast]', err)
-    return NextResponse.json({ error: 'Failed to send emails' }, { status: 500 })
+    const status = failed.length > 0 ? 207 : 200
+    return NextResponse.json({
+      ok: failed.length === 0,
+      dryRun,
+      mode,
+      sent,
+      failedCount: failed.length,
+      skippedByPreferences: skipped,
+      failures: failed.slice(0, 10),
+    }, { status })
+  } catch (error) {
+    try {
+      return authErrorResponse(error)
+    } catch (unhandled) {
+      console.error('[broadcast-email:post]', unhandled)
+      return jsonError('Failed to send email', 500)
+    }
   }
-}
-
-function buildEmailHtml({ name, subject, body }: { name: string; subject: string; body: string }) {
-  const paragraphs = body
-    .split('\n\n')
-    .filter(Boolean)
-    .map(p => `<p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('')
-
-  return `
-    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px 16px">
-      <div style="background:#085041;padding:24px 32px;border-radius:12px 12px 0 0">
-        <p style="margin:0;font-size:22px;font-weight:700;color:#fff">Markeetee</p>
-      </div>
-      <div style="background:#fff;padding:28px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
-        <p style="margin:0 0 20px;font-size:15px;color:#111827">Hi <strong>${name}</strong>,</p>
-        ${paragraphs}
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #f3f4f6">
-          <p style="margin:0;font-size:12px;color:#9ca3af">
-            You received this because you have an account on Markeetee.
-          </p>
-        </div>
-      </div>
-      <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:16px">
-        © 2025 Markeetee
-      </p>
-    </div>
-  `
 }

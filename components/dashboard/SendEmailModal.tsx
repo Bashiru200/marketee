@@ -12,6 +12,8 @@ interface Props {
   recipientEmail: string
   recipientName:  string
   businessName:   string
+  businessCategory?: string | null
+  businessSubcategory?: string | null
   businessId?:    string
   /** Open immediately without needing the trigger button */
   startOpen?:     boolean
@@ -28,8 +30,148 @@ interface LinkButton {
   url:   string
 }
 
+interface EmailPreset {
+  label: string
+  subject: string
+  body: string
+}
+
+const CATEGORY_COPY: Record<string, { offer: string; nextStep: string; detail: string }> = {
+  restaurant: {
+    offer: 'menu, catering options, hours, and table availability',
+    nextStep: 'reserve a time or place an order',
+    detail: 'menu preferences, party size, date, and pickup or delivery details',
+  },
+  food: {
+    offer: 'available groceries, pantry items, prices, and pickup options',
+    nextStep: 'confirm what you need and arrange pickup or delivery',
+    detail: 'items, quantities, preferred pickup time, and any substitutions',
+  },
+  beauty: {
+    offer: 'service options, appointment times, pricing, and preparation details',
+    nextStep: 'choose an appointment time',
+    detail: 'service type, preferred date, hair or skin needs, and inspiration photos if helpful',
+  },
+  fashion: {
+    offer: 'available styles, sizing, custom orders, turnaround times, and pickup options',
+    nextStep: 'confirm sizing or schedule a fitting',
+    detail: 'size, color, style, deadline, and any reference photos',
+  },
+  herbs: {
+    offer: 'wellness products, availability, usage guidance, and pickup options',
+    nextStep: 'confirm the right product for your needs',
+    detail: 'product interest, quantity, allergies, and preferred pickup time',
+  },
+  music: {
+    offer: 'availability, bookings, services, pricing, and scheduling',
+    nextStep: 'confirm your date or request',
+    detail: 'event date, location, audience size, service needed, and budget',
+  },
+  crafts: {
+    offer: 'available pieces, custom options, pricing, and delivery details',
+    nextStep: 'confirm the item or custom request',
+    detail: 'item, dimensions, colors, deadline, and delivery preference',
+  },
+  services: {
+    offer: 'service scope, availability, pricing, and next steps',
+    nextStep: 'schedule a consultation',
+    detail: 'service needed, timeline, location, and best contact method',
+  },
+  nightlife: {
+    offer: 'hours, reservations, event details, bottle service, and group options',
+    nextStep: 'confirm your date and group size',
+    detail: 'date, time, group size, occasion, and seating preference',
+  },
+}
+
+function getCategoryCopy(category?: string | null) {
+  return CATEGORY_COPY[category ?? ''] ?? CATEGORY_COPY.services
+}
+
+function getEmailPresets({
+  category,
+  subcategory,
+  recipientName,
+  businessName,
+}: {
+  category?: string | null
+  subcategory?: string | null
+  recipientName: string
+  businessName: string
+}): EmailPreset[] {
+  const copy = getCategoryCopy(category)
+  const categoryLabel = subcategory || category || 'business'
+  const name = recipientName || 'there'
+
+  return [
+    {
+      label: 'Professional reply',
+      subject: `Re: Your enquiry to ${businessName}`,
+      body: `Hi ${name},
+
+Thank you for reaching out to ${businessName}. We would be happy to help with your ${categoryLabel} enquiry.
+
+We can share ${copy.offer}. To help us respond accurately, please send:
+• ${copy.detail}
+• Your preferred contact method
+
+Once we have those details, we can help you ${copy.nextStep}.
+
+Best,
+${businessName}`,
+    },
+    {
+      label: 'Availability',
+      subject: `${businessName} availability`,
+      body: `Hi ${name},
+
+Thank you for your interest in ${businessName}.
+
+We currently have availability and can help with ${copy.offer}. Please reply with:
+• Your preferred date or time
+• The specific item or service you need
+• Any important details we should know
+
+We will confirm the next steps as soon as possible.
+
+Best,
+${businessName}`,
+    },
+    {
+      label: 'Quote / pricing',
+      subject: `Pricing from ${businessName}`,
+      body: `Hi ${name},
+
+Thank you for contacting ${businessName}. We can prepare a clear quote for you.
+
+Please send:
+• ${copy.detail}
+• Your preferred date or deadline
+• Your budget range, if you have one
+
+After reviewing the details, we will reply with pricing and next steps.
+
+Best,
+${businessName}`,
+    },
+    {
+      label: 'Follow-up',
+      subject: `Following up from ${businessName}`,
+      body: `Hi ${name},
+
+I wanted to follow up on your enquiry to ${businessName}.
+
+We are still happy to help. If you are interested, please reply with any remaining questions or the best time to continue.
+
+Thank you,
+${businessName}`,
+    },
+  ]
+}
+
 export default function SendEmailModal({
   recipientEmail, recipientName, businessName, businessId,
+  businessCategory, businessSubcategory,
   startOpen = false, onSent, onClose, triggerLabel = 'Send email',
 }: Props) {
   const supabase = createClient()
@@ -47,6 +189,12 @@ export default function SendEmailModal({
 
   const fileRef = useRef<HTMLInputElement>(null)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const presets = getEmailPresets({
+    category: businessCategory,
+    subcategory: businessSubcategory,
+    recipientName,
+    businessName,
+  })
 
   // ── Handle image upload to Supabase Storage ──────────────────────────
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -109,6 +257,13 @@ export default function SendEmailModal({
     setLinks(l => l.filter((_, idx) => idx !== i))
   }
 
+  function applyPreset(preset: EmailPreset) {
+    setSubject(preset.subject)
+    setBody(preset.body)
+    setError('')
+    setTimeout(() => bodyRef.current?.focus(), 0)
+  }
+
   // ── Send ─────────────────────────────────────────────────────────────
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
@@ -128,6 +283,8 @@ export default function SendEmailModal({
         images,
         links:        validLinks,
         fromBusiness: businessName,
+        businessCategory,
+        businessSubcategory,
         businessId,
         userId:       user?.id,
       }),
@@ -208,6 +365,33 @@ export default function SendEmailModal({
         ) : (
           <form onSubmit={handleSend} className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-4">
+
+              {/* Templates */}
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    Professional templates
+                  </label>
+                  {(businessSubcategory || businessCategory) && (
+                    <span className="text-[10px] font-semibold px-2 py-1 rounded-full"
+                      style={{ background:'#E1F5EE', color:'#085041' }}>
+                      {businessSubcategory || businessCategory}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {presets.map(preset => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => applyPreset(preset)}
+                      className="text-left rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:border-green-300 hover:bg-green-50/40 focus:outline-none focus:ring-2 focus:ring-green-600"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Subject */}
               <div>
@@ -306,7 +490,7 @@ export default function SendEmailModal({
                 </div>
 
                 {links.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">Add clickable buttons like "View menu" or "Book now"</p>
+                  <p className="text-xs text-gray-400 italic">Add clickable buttons like &quot;View menu&quot; or &quot;Book now&quot;</p>
                 ) : (
                   <div className="space-y-2">
                     {links.map((link, i) => (

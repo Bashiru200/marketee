@@ -59,25 +59,25 @@ export default function Footer() {
   ]
 
   return (
-    <footer className="bg-[#0B2E26] text-white mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-14">
+    <footer className="border-t border-[#E7DDCA] bg-[#FBF7EF] text-[#053528] dark:border-[#20362d] dark:bg-[#06120e] dark:text-white">
+      <div className="max-w-7xl mx-auto px-6 py-14 sm:py-16">
 
         {/* ── Top section ── */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+        <div className="grid grid-cols-1 gap-10 mb-12 md:grid-cols-[1.25fr_0.8fr_0.8fr_0.8fr]">
 
           {/* Brand */}
-          <div>
+          <div className="max-w-sm">
             <div className="flex items-center gap-2 mb-4">
               <Image
-                src="/android-chrome-512x512.png"
+                src="/logo.png"
                 alt="Markeetee"
-                width={36} height={36}
-                className="rounded-lg"
+                width={40} height={40}
+                className="rounded-xl bg-white object-contain ring-1 ring-[#E7DDCA] dark:ring-white/10"
               />
-              <span className="text-lg font-bold">Markeetee</span>
+              <span className="text-xl font-black">Markeetee</span>
             </div>
 
-            <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.65)' }}>
+            <p className="text-sm leading-7 mb-5 text-[#536A63] dark:text-white/70">
               Africa is here. Find it. Connecting the African diaspora
               with businesses across the United States.
             </p>
@@ -91,8 +91,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-white text-[#085041] ring-1 ring-[#D9CBB4] transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#085041] focus:ring-offset-2 focus:ring-offset-[#FBF7EF] dark:bg-white/10 dark:text-white/85 dark:ring-white/10 dark:focus:ring-white dark:focus:ring-offset-[#053528]"
                   onMouseEnter={e => {
                     const colors: Record<string, string> = {
                       Facebook:  '#1877F2',
@@ -103,8 +102,8 @@ export default function Footer() {
                     ;(e.currentTarget as HTMLElement).style.color = '#fff'
                   }}
                   onMouseLeave={e => {
-                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'
-                    ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)'
+                    ;(e.currentTarget as HTMLElement).style.background = ''
+                    ;(e.currentTarget as HTMLElement).style.color = ''
                   }}>
                   {s.icon}
                 </a>
@@ -115,8 +114,7 @@ export default function Footer() {
           {/* Link columns */}
           {Object.entries(links).map(([section, items]) => (
             <div key={section}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-4"
-                style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-xs font-black uppercase tracking-[0.16em] mb-4 text-[#7A8C86] dark:text-white/40">
                 {section}
               </p>
               <ul className="space-y-3">
@@ -124,10 +122,8 @@ export default function Footer() {
                   <li key={label}>
                     <Link
                       href={href}
-                      className="text-sm transition-colors duration-150"
-                      style={{ color: 'rgba(255,255,255,0.75)' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#fff' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.75)' }}>
+                      className="text-sm text-[#536A63] transition-colors duration-150 underline-offset-4 hover:text-[#085041] hover:underline focus:outline-none focus:ring-2 focus:ring-[#085041] focus:ring-offset-2 focus:ring-offset-[#FBF7EF] dark:text-white/75 dark:hover:text-white dark:focus:ring-white dark:focus:ring-offset-[#053528]"
+                    >
                       {label}
                     </Link>
                   </li>
@@ -138,21 +134,20 @@ export default function Footer() {
         </div>
 
         {/* ── Bottom bar ── */}
-        <div className="border-t pt-6 flex flex-col md:flex-row justify-between items-center gap-4"
-          style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        <div className="border-t border-[#E7DDCA] pt-6 flex flex-col md:flex-row justify-between items-center gap-4 dark:border-white/10">
 
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="text-xs text-[#7A8C86] dark:text-white/40">
             © {year} Markeetee · Built for the African diaspora
           </p>
 
-          <div className="flex gap-5 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <div className="flex gap-5 text-xs text-[#7A8C86] dark:text-white/40">
             {[
               { label: 'Terms',   href: '/terms'   },
               { label: 'Privacy', href: '/privacy' },
               { label: 'Contact', href: '/contact' },
             ].map(({ label, href }) => (
               <Link key={label} href={href}
-                className="transition-colors hover:text-white"
+                className="transition-colors hover:text-[#085041] underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-[#085041] focus:ring-offset-2 focus:ring-offset-[#FBF7EF] dark:hover:text-white dark:focus:ring-white dark:focus:ring-offset-[#053528]"
                 style={{ color: 'inherit' }}>
                 {label}
               </Link>

@@ -31,7 +31,7 @@ interface Props {
 function BusinessCard({ b }: { b: BusinessRow }) {
   const grad = GRADIENTS[b.category ?? ''] || GRADIENTS.services
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-green-400 transition-colors group">
+    <div className="bg-[#FFFDF8] border border-[#E7DDCA] rounded-2xl overflow-hidden hover:border-green-400 hover:shadow-lg hover:shadow-[#085041]/10 transition-colors group">
       <div className="relative h-36">
         {b.cover_image
           ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
@@ -57,17 +57,17 @@ function BusinessCard({ b }: { b: BusinessRow }) {
         )}
       </div>
       <div className="p-3">
-        <p className="font-medium text-sm text-gray-900 truncate group-hover:text-green-700 transition-colors">{b.name}</p>
-        <p className="text-xs text-gray-400 truncate mb-1.5">{b.subcategory ?? b.category} · {b.city}</p>
+        <p className="font-medium text-sm text-[#153B32] truncate group-hover:text-green-700 transition-colors">{b.name}</p>
+        <p className="text-xs text-[#7A8C86] truncate mb-1.5">{b.subcategory ?? b.category} · {b.city}</p>
         <div className="flex items-center gap-1.5 mb-1.5">
           {[1,2,3,4,5].map(i => (
             <Star key={i} size={11} className={i <= Math.round(b.rating) ? 'text-amber-400 fill-current' : 'text-gray-200'} />
           ))}
-          <span className="text-xs font-medium text-gray-800">{b.rating?.toFixed(1) || '—'}</span>
-          <span className="text-xs text-gray-400">({b.review_count})</span>
+          <span className="text-xs font-medium text-[#153B32]">{b.rating?.toFixed(1) || '—'}</span>
+          <span className="text-xs text-[#7A8C86]">({b.review_count})</span>
         </div>
         {b.address && (
-          <div className="flex items-center gap-1 text-xs text-gray-400 mb-2.5">
+          <div className="flex items-center gap-1 text-xs text-[#7A8C86] mb-2.5">
             <MapPin size={10} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
             <span className="truncate">{b.address}</span>
           </div>
@@ -75,7 +75,7 @@ function BusinessCard({ b }: { b: BusinessRow }) {
         {b.tags && b.tags.length > 0 && (
           <div className="flex gap-1 flex-wrap mb-3">
             {b.tags.slice(0, 3).map(t => (
-              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-800">{t}</span>
+              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#F8F2E8] text-green-800 ring-1 ring-[#E7DDCA]">{t}</span>
             ))}
           </div>
         )}
@@ -88,7 +88,7 @@ function BusinessCard({ b }: { b: BusinessRow }) {
           {b.lat && b.lng && (
             <a href={`https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}`}
               target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs border border-gray-200 text-gray-500 px-2.5 py-1.5 rounded-lg hover:border-green-400 hover:text-green-700 transition-colors">
+              className="flex items-center gap-1 text-xs border border-[#D9CBB4] text-[#5D716B] px-2.5 py-1.5 rounded-lg hover:border-green-400 hover:text-green-700 transition-colors">
               <MapPin size={11} /> Map
             </a>
           )}
@@ -111,7 +111,7 @@ export default function BusinessGrid({ businesses, categories }: Props) {
   const [filtersOpen,  setFiltersOpen]  = useState(false)
 
   const filtered = useMemo(() => {
-    let r = businesses.filter(b => {
+    const r = businesses.filter(b => {
       const q  = query.toLowerCase()
       const mq = !query  || b.name.toLowerCase().includes(q) ||
         (b.tags ?? []).some(t => t.toLowerCase().includes(q)) ||
@@ -140,18 +140,18 @@ export default function BusinessGrid({ businesses, categories }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FBF7EF]">
       {/* Search bar */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
+      <div className="bg-[#FBF7EF]/95 border-b border-[#E7DDCA] sticky top-16 z-30 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
+          <div className="flex-1 flex items-center gap-2 bg-white border border-[#D9CBB4] rounded-xl px-3 py-2 focus-within:ring-2 focus-within:border-transparent transition-all">
             <Search size={15} className="text-gray-400 flex-shrink-0" />
             <input value={query} onChange={e => { setQuery(e.target.value); setPage(1) }}
               placeholder='Search by name, category, or tag'
               className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400" />
             {query && <button onClick={() => { setQuery(''); setPage(1) }}><X size={14} className="text-gray-400" /></button>}
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 border border-gray-200 rounded-xl px-3 py-2 bg-white focus-within:ring-2 focus-within:border-transparent transition-all">
+          <div className="hidden sm:flex items-center gap-1.5 border border-[#D9CBB4] rounded-xl px-3 py-2 bg-white focus-within:ring-2 focus-within:border-transparent transition-all">
             <MapPin size={14} className="flex-shrink-0" style={{ color: '#1D9E75' }} />
             <input value={city} onChange={e => { setCity(e.target.value); setPage(1) }}
               placeholder="Enter city or state"
@@ -159,7 +159,7 @@ export default function BusinessGrid({ businesses, categories }: Props) {
             {city && <button onClick={() => { setCity(''); setPage(1) }}><X size={12} className="text-gray-400" /></button>}
           </div>
           <button onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-sm font-medium transition-colors ${filtersOpen ? 'text-white border-green-600' : 'bg-white border-gray-200 text-gray-600'}`}
+            className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-sm font-medium transition-colors ${filtersOpen ? 'text-white border-green-600' : 'bg-white border-[#D9CBB4] text-gray-600'}`}
             style={filtersOpen ? { background: '#1D9E75' } : {}}>
             <SlidersHorizontal size={14} />
             Filters
@@ -174,7 +174,7 @@ export default function BusinessGrid({ businesses, categories }: Props) {
         {/* Filter panel */}
         {filtersOpen && (
           <div className="max-w-7xl mx-auto px-4 pb-4">
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-[#FFFDF8] border border-[#E7DDCA] rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 shadow-sm">
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Category</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -269,7 +269,7 @@ export default function BusinessGrid({ businesses, categories }: Props) {
         ) : (
           <div className="space-y-3">
             {paginated.map(b => (
-              <div key={b.id} className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 hover:border-green-300 transition-colors">
+              <div key={b.id} className="bg-[#FFFDF8] border border-[#E7DDCA] rounded-2xl p-4 flex gap-4 hover:border-green-300 transition-colors">
                 <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden">
                   {b.cover_image
                     ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />

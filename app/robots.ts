@@ -12,6 +12,7 @@ export default function robots(): MetadataRoute.Robots {
           '/coming-soon?*',
           '/api/',
           '/admin',
+          '/account',
           '/dashboard',
           '/auth/',
           '/settings',

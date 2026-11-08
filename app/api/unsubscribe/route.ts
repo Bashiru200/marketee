@@ -3,7 +3,7 @@
 // POST (granular preference updates from the unsubscribe page)
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import crypto from 'crypto'
+import { ensureUnsubscribeToken as ensureToken } from '@/lib/emailPreferences'
 
 function getSupabase() {
   return createClient(
@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabase()
   const { searchParams } = new URL(req.url)
   const token = searchParams.get('token')
-  const type  = searchParams.get('type') ?? 'all'
+  const requestedType = searchParams.get('type') ?? 'all'
+  const type = ['all', 'marketing', 'reviews', 'broadcast'].includes(requestedType)
+    ? requestedType
+    : 'all'
 
   if (!token) {
     return NextResponse.redirect(
@@ -68,6 +71,9 @@ export async function POST(req: NextRequest) {
     // preferences: { marketing: bool, reviews: bool, broadcast: bool, all: bool }
 
     if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+    if (!preferences || typeof preferences !== 'object') {
+      return NextResponse.json({ error: 'Missing preferences' }, { status: 400 })
+    }
 
     const unsubscribed_from: string[] = []
     if (preferences.marketing) unsubscribed_from.push('marketing')
@@ -95,22 +101,5 @@ export async function ensureUnsubscribeToken(
   email: string,
   userId?: string
 ): Promise<string> {
-  const supabase = getSupabase()
-
-  const { data: existing } = await supabase
-    .from('email_preferences')
-    .select('token')
-    .eq('email', email)
-    .single()
-
-  if (existing?.token) return existing.token
-
-  const token = crypto.randomBytes(24).toString('hex')
-  await supabase.from('email_preferences').upsert({
-    email,
-    user_id: userId ?? null,
-    token,
-  }, { onConflict: 'email' })
-
-  return token
+  return ensureToken(getSupabase(), email, userId)
 }

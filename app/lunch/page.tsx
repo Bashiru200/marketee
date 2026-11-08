@@ -52,7 +52,7 @@ const FLAGS = ['🇳🇬','🇬🇭','🇰🇪','🇸🇳','🇿🇦','🇪🇹'
 
 export default function LaunchPage() {
   return (
-    <main className="min-h-screen" style={{ background: '#F8FAF9' }}>
+    <main className="min-h-screen" style={{ background: '#FBF7EF' }}>
       <section className="max-w-6xl mx-auto px-4 py-20">
 
         {/* ── Hero ── */}

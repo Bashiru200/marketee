@@ -52,7 +52,7 @@ function AcceptInviteContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF]">
         <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
       </div>
     )
@@ -60,7 +60,7 @@ function AcceptInviteContent() {
 
   if (error || !invite) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
         <div className="bg-white rounded-2xl border border-gray-100 p-8 max-w-md w-full text-center">
           <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-50">
             <AlertCircle size={22} className="text-red-500" />
@@ -78,7 +78,7 @@ function AcceptInviteContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="bg-white rounded-2xl border border-gray-100 p-8 max-w-md w-full">
         <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#E1F5EE' }}>
           <Mail size={24} style={{ color: '#0F6E56' }} />
@@ -107,7 +107,7 @@ function AcceptInviteContent() {
 export default function AcceptInvitePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF]">
         <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
       </div>
     }>

@@ -894,6 +894,8 @@ export function businessMessageTemplate({
   messageBody,
   images,
   links,
+  businessCategory,
+  businessSubcategory,
   businessId,
 }: {
   recipientName: string
@@ -901,11 +903,30 @@ export function businessMessageTemplate({
   messageBody:   string
   images:        string[]
   links:         Array<{ label: string; url: string }>
+  businessCategory?: string | null
+  businessSubcategory?: string | null
   businessId?:   string
 }): { subject: string; html: string } {
 
   const BRAND_MID   = '#085041'
   const BRAND_LIGHT = '#E1F5EE'
+  const categoryTheme: Record<string, { label: string; accent: string; bg: string }> = {
+    restaurant: { label:'Restaurant',       accent:'#7C3AED', bg:'#F3EEFF' },
+    food:       { label:'Food & Grocery',   accent:'#0F6E56', bg:'#E8F7F1' },
+    beauty:     { label:'Beauty & Hair',    accent:'#BE185D', bg:'#FCE7F3' },
+    fashion:    { label:'Fashion',          accent:'#B45309', bg:'#FEF3C7' },
+    herbs:      { label:'Herbs & Wellness', accent:'#4D7C0F', bg:'#ECFCCB' },
+    music:      { label:'Music & Arts',     accent:'#C2410C', bg:'#FFEDD5' },
+    crafts:     { label:'Crafts & Decor',   accent:'#0369A1', bg:'#E0F2FE' },
+    services:   { label:'Services',         accent:'#475569', bg:'#F1F5F9' },
+    nightlife:  { label:'Bars & Nightlife', accent:'#5B21B6', bg:'#EDE9FE' },
+  }
+  const theme = categoryTheme[businessCategory ?? ''] ?? {
+    label: businessCategory || 'Business',
+    accent: BRAND_MID,
+    bg: BRAND_LIGHT,
+  }
+  const categoryLabel = businessSubcategory || theme.label
 
   const subject = `Message from ${businessName}`
 
@@ -917,29 +938,30 @@ export function businessMessageTemplate({
     .map(line => {
       const trimmed = line.trim()
       if (trimmed.startsWith('• ')) {
-        return `<li style="margin-bottom:6px;">${trimmed.slice(2)}</li>`
+        return `<li style="margin-bottom:8px;font-size:15px;line-height:1.7;color:#374151;">${trimmed.slice(2)}</li>`
       }
       return line ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#374151;">${line}</p>` : ''
     })
     .join('')
-    .replace(/(<li[^>]*>[\s\S]*?<\/li>)+/g, m => `<ul style="padding-left:20px;margin:0 0 16px;color:#374151;">${m}</ul>`)
+    .replace(/(<li[^>]*>[\s\S]*?<\/li>)+/g, m => `<ul style="padding-left:20px;margin:0 0 18px;color:#374151;">${m}</ul>`)
 
   // Image grid — up to 5 photos
   const imageGrid = images.length === 0 ? '' : `
-    <div style="margin:24px 0;">
-      <table width="100%" cellpadding="0" cellspacing="0">
+    <div style="margin:26px 0 4px;">
+      <p style="margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6B7280;">Photos from ${escapeHtml(businessName)}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;">
         <tr>
           ${images.slice(0, 3).map(img => `
-            <td width="${100 / Math.min(images.length, 3)}%" style="padding:2px;">
-              <img src="${safeUrl(img)}" alt="" style="display:block;width:100%;height:auto;border-radius:8px;" />
+            <td width="${100 / Math.min(images.length, 3)}%" style="padding:3px;">
+              <img src="${safeUrl(img)}" alt="" style="display:block;width:100%;height:auto;border-radius:14px;border:1px solid #E5E7EB;" />
             </td>
           `).join('')}
         </tr>
         ${images.length > 3 ? `
           <tr>
             ${images.slice(3, 5).map(img => `
-              <td width="50%" style="padding:2px;">
-                <img src="${safeUrl(img)}" alt="" style="display:block;width:100%;height:auto;border-radius:8px;" />
+              <td width="50%" style="padding:3px;">
+                <img src="${safeUrl(img)}" alt="" style="display:block;width:100%;height:auto;border-radius:14px;border:1px solid #E5E7EB;" />
               </td>
             `).join('')}
             ${images.length === 4 ? '<td width="50%"></td>' : ''}
@@ -950,11 +972,11 @@ export function businessMessageTemplate({
 
   // Link buttons — first is primary, others secondary
   const linkButtons = links.length === 0 ? '' : `
-    <div style="margin:28px 0;">
+    <div style="margin:30px 0 4px;">
       ${links.map((link, i) => `
         <div style="margin-bottom:${i === links.length - 1 ? '0' : '10px'};">
           <a href="${safeUrl(link.url)}"
-            style="display:block;background:${i === 0 ? BRAND_GREEN : BRAND_LIGHT};color:${i === 0 ? '#ffffff' : BRAND_DARK};font-size:14px;font-weight:700;padding:14px 24px;border-radius:12px;text-decoration:none;text-align:center;">
+            style="display:block;background:${i === 0 ? BRAND_GREEN : '#ffffff'};color:${i === 0 ? '#ffffff' : BRAND_DARK};font-size:14px;font-weight:800;padding:14px 24px;border-radius:12px;text-decoration:none;text-align:center;border:${i === 0 ? '0' : `1px solid ${BRAND_MINT}`};">
             ${escapeHtml(link.label)} →
           </a>
         </div>
@@ -964,57 +986,92 @@ export function businessMessageTemplate({
   const businessLink = businessId ? `${APP_URL}/businesses/${businessId}` : APP_URL
 
   const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
-<body style="margin:0;padding:0;background:#F4F7F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#F4F7F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+${preheader(`${businessName} sent you a message on Markeetee.`)}
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F6;padding:32px 12px;">
 <tr><td align="center">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:20px;overflow:hidden;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#fff;border-radius:22px;overflow:hidden;border:1px solid #DCE8E3;">
 
   <!-- Header -->
-  <tr><td style="background:${BRAND_DARK};padding:28px 32px;">
-    <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">Markeetee</p>
-    <p style="margin:4px 0 0;font-size:12px;color:${BRAND_MINT};">Africa is here. Find it.</p>
+  <tr><td style="background:${BRAND_DARK};padding:32px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td>
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td><img src="${LOGO_URL}" width="40" height="40" alt="Markeetee" style="display:block;border-radius:10px;background:#ffffff;" /></td>
+              <td style="padding-left:10px;vertical-align:middle;">
+                <p style="margin:0;font-size:22px;font-weight:900;color:#fff;letter-spacing:-.02em;">Markeetee</p>
+                <p style="margin:3px 0 0;font-size:12px;color:${BRAND_MINT};">Africa is here. Find it.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td align="right" style="vertical-align:top;">
+          <span style="display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#ffffff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:999px;">Business message</span>
+        </td>
+      </tr>
+    </table>
   </td></tr>
 
   <!-- Sender badge -->
-  <tr><td style="padding:28px 32px 0;">
-    <div style="display:inline-block;background:${BRAND_LIGHT};padding:6px 14px;border-radius:20px;">
-      <p style="margin:0;font-size:11px;font-weight:700;color:${BRAND_DARK};text-transform:uppercase;letter-spacing:0.05em;">
-        Message from ${escapeHtml(businessName)}
-      </p>
-    </div>
+  <tr><td style="padding:30px 32px 0;">
+    <table cellpadding="0" cellspacing="0" width="100%" style="background:#FAFAF9;border:1px solid #E5E7EB;border-radius:16px;">
+      <tr>
+        <td style="padding:18px;">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:800;color:#6B7280;text-transform:uppercase;letter-spacing:.08em;">Message from</p>
+          <p style="margin:0;font-size:20px;font-weight:900;color:${BRAND_DARK};line-height:1.25;">${escapeHtml(businessName)}</p>
+        </td>
+        <td align="right" style="padding:18px;vertical-align:top;">
+          <span style="display:inline-block;background:${theme.bg};color:${theme.accent};font-size:11px;font-weight:800;padding:7px 12px;border-radius:999px;">
+            ${escapeHtml(categoryLabel)}
+          </span>
+        </td>
+      </tr>
+    </table>
   </td></tr>
 
   <!-- Greeting -->
-  <tr><td style="padding:16px 32px 0;">
-    <h1 style="margin:0 0 6px;font-size:22px;font-weight:800;color:#111827;">
-      Hi ${escapeHtml(recipientName ?? 'there')} 👋
+  <tr><td style="padding:24px 32px 0;">
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#111827;letter-spacing:-.02em;">
+      Hi ${escapeHtml(recipientName ?? 'there')},
     </h1>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#6B7280;">
+      ${escapeHtml(businessName)} sent this message through Markeetee.
+    </p>
   </td></tr>
 
   <!-- Body -->
-  <tr><td style="padding:16px 32px 8px;">
-    ${formattedBody}
-    ${imageGrid}
-    ${linkButtons}
+  <tr><td style="padding:22px 32px 12px;">
+    <div style="background:#ffffff;border:1px solid #E5E7EB;border-radius:16px;padding:22px;">
+      ${formattedBody}
+      ${imageGrid}
+      ${linkButtons}
+    </div>
   </td></tr>
 
   <!-- Business card footer -->
   <tr><td style="padding:16px 32px 32px;">
-    <div style="background:${BRAND_LIGHT};border-radius:16px;padding:20px;text-align:center;">
-      <p style="margin:0 0 4px;font-size:13px;color:${BRAND_MID};font-weight:600;">Sent by</p>
-      <p style="margin:0 0 12px;font-size:16px;color:${BRAND_DARK};font-weight:800;">${escapeHtml(businessName)}</p>
+    <div style="background:${BRAND_LIGHT};border:1px solid ${BRAND_MINT};border-radius:16px;padding:22px;text-align:center;">
+      <p style="margin:0 0 5px;font-size:12px;color:${BRAND_MID};font-weight:800;text-transform:uppercase;letter-spacing:.08em;">Business profile</p>
+      <p style="margin:0 0 14px;font-size:17px;color:${BRAND_DARK};font-weight:900;">${escapeHtml(businessName)}</p>
       <a href="${businessLink}"
-        style="display:inline-block;background:${BRAND_GREEN};color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;text-decoration:none;">
+        style="display:inline-block;background:${BRAND_GREEN};color:#fff;font-size:13px;font-weight:800;padding:11px 22px;border-radius:10px;text-decoration:none;">
         View business →
       </a>
     </div>
   </td></tr>
 
   <!-- Compliance footer -->
-  <tr><td style="background:#F9FBFA;padding:20px 32px;border-top:1px solid #E5E7EB;text-align:center;">
-    <p style="margin:0 0 6px;font-size:11px;color:#6B7280;">
+  <tr><td style="background:#F9FBFA;padding:24px 32px;border-top:1px solid #E5E7EB;text-align:center;">
+    <p style="margin:0 0 8px;font-size:11px;line-height:1.6;color:#6B7280;">
       This email was sent via Markeetee, the African business directory.
     </p>
     <p style="margin:0;font-size:11px;">

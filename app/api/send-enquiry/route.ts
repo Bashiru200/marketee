@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
 
+type BusinessOwnerProfile = {
+  email?: string | null
+  name?: string | null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { businessId, businessName, name, email, phone, message } = await req.json()
@@ -23,7 +28,14 @@ export async function POST(req: NextRequest) {
       .eq('id', businessId)
       .single()
 
-    const ownerEmail = (biz?.profiles as any)?.email
+    const profiles = biz?.profiles as
+      | BusinessOwnerProfile
+      | BusinessOwnerProfile[]
+      | null
+      | undefined
+    const ownerEmail = Array.isArray(profiles)
+      ? profiles[0]?.email
+      : profiles?.email
     if (!ownerEmail) {
       // No owner email — still return ok (enquiry saved to DB already)
       return NextResponse.json({ ok: true })

@@ -54,8 +54,10 @@ export const metadata: Metadata = {
 const darkModeScript = `
 (function(){
   try {
-    var mode = localStorage.getItem('markeetee-dark-mode');
-    if (mode === 'true') document.documentElement.classList.add('dark');
+    var mode = localStorage.getItem('markeetee-theme-v2');
+    localStorage.removeItem('markeetee-theme');
+    localStorage.removeItem('markeetee-dark-mode');
+    if (mode === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   } catch(e) {}
 })();
@@ -67,11 +69,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: darkModeScript }} />
       </head>
-      <body>
+      <body className="bg-[#FAFAF9] text-[#1C1C1C]">
         <AuthProvider>
           <Navbar />
           <AnnouncementBanner />
-          <main>{children}</main>
+          <main className="bg-[#FAFAF9]">{children}</main>
           <FooterWrapper />
           <MobileBottomNav />
           <LocationPrompt />

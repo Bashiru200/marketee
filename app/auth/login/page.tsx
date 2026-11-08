@@ -337,7 +337,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F6F8F7] p-4 sm:p-6 lg:p-8">
+    <main className="min-h-screen bg-[#FBF7EF] p-4 sm:p-6 lg:p-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] border border-gray-200 bg-white shadow-xl shadow-[#053528]/5 lg:grid-cols-[410px_minmax(0,1fr)]">
         <BrandPanel />
 

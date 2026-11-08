@@ -8,7 +8,7 @@ import ThemeToggle       from '@/components/ui/ThemeToggle'
 import {
   Search, Menu, X, MapPin, LayoutDashboard,
   User, Settings, LogOut, ChevronDown,
-  Heart, Star, Building2, BookOpen, Rocket
+  Heart, Star, Building2, BookOpen, CircleHelp
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
@@ -60,37 +60,34 @@ export default function Navbar() {
   const menuItems = isOwner ? ownerMenu : customerMenu
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+    <header className="sticky top-0 z-50 border-b border-[#E7DDCA] bg-[#FBF7EF]/95 backdrop-blur dark:border-[#20362d] dark:bg-[#081913]/95">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#085041] focus:ring-offset-2 focus:ring-offset-[#FBF7EF] dark:focus:ring-offset-[#081913]">
           <Image
-            src="/apple-touch-icon.png"
+            src="/logo.png"
             alt="Markeetee"
-            width={36}
-            height={36}
-            className="rounded-xl"
+            width={38}
+            height={38}
+            className="rounded-xl object-contain"
           />
-          <span className="font-bold text-xl text-gray-900">Markeetee</span>
+          <span className="font-black text-xl text-[#053528] dark:text-[#edf7f2]">Markeetee</span>
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-5">
-          <Link href="/search" className="text-sm text-gray-600 hover:text-green-700 flex items-center gap-1.5 transition-colors">
+        <nav className="hidden md:flex items-center gap-3">
+          <Link href="/search" className="text-sm font-semibold text-[#31594E] hover:text-[#085041] flex items-center gap-1.5 rounded-xl px-2 py-2 transition-colors dark:text-[#b8cec5] dark:hover:text-[#9FE1CB]">
             <Search size={14} /> Explore
           </Link>
-          <Link href="/map" className="text-sm text-gray-600 hover:text-green-700 flex items-center gap-1.5 transition-colors">
+          <Link href="/map" className="text-sm font-semibold text-[#31594E] hover:text-[#085041] flex items-center gap-1.5 rounded-xl px-2 py-2 transition-colors dark:text-[#b8cec5] dark:hover:text-[#9FE1CB]">
             <MapPin size={14} /> Map
           </Link>
-          <Link href="/blog" className="text-sm text-gray-600 hover:text-green-700 flex items-center gap-1.5 transition-colors">
-            <BookOpen size={14} /> Blog
-          </Link>
-          <Link href="/about" className="text-sm text-gray-600 hover:text-green-700 transition-colors">
-            About
+          <Link href="/how-it-works" className="text-sm font-semibold text-[#31594E] hover:text-[#085041] flex items-center gap-1.5 rounded-xl px-2 py-2 transition-colors dark:text-[#b8cec5] dark:hover:text-[#9FE1CB]">
+            <CircleHelp size={14} /> How it works
           </Link>
           {isOwner && (
-            <Link href="/dashboard" className="text-sm text-gray-600 hover:text-green-700 flex items-center gap-1.5 transition-colors">
+            <Link href="/dashboard" className="text-sm font-semibold text-[#31594E] hover:text-[#085041] flex items-center gap-1.5 rounded-xl px-2 py-2 transition-colors dark:text-[#b8cec5] dark:hover:text-[#9FE1CB]">
               <LayoutDashboard size={14} /> Dashboard
             </Link>
           )}
@@ -104,7 +101,7 @@ export default function Navbar() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all"
+                className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all dark:hover:border-[#294239] dark:hover:bg-[#10231d]"
               >
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt={displayName}
@@ -180,12 +177,12 @@ export default function Navbar() {
             </div>
           ) : (
             <>
-              <Link href="/auth/login" className="text-sm font-medium border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:border-green-300 hover:text-green-700 transition-colors">
-                Sign in
+              <Link href="/auth/login" className="text-sm font-bold border border-[#D9CBB4] bg-white/60 text-[#31594E] px-4 py-2 rounded-xl hover:border-[#085041] hover:text-[#085041] transition-colors dark:border-[#294239] dark:bg-[#10231d] dark:text-[#b8cec5] dark:hover:border-[#9FE1CB] dark:hover:text-[#9FE1CB]">
+                Log in
               </Link>
               <ListBusinessButton
-                className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-colors hover:opacity-90 inline-block"
-                style={{ background: '#1D9E75' }}>
+                className="text-sm font-bold text-white px-4 py-2 rounded-xl transition-colors hover:bg-[#053528] inline-block"
+                style={{ background: '#085041' }}>
                 List your business
               </ListBusinessButton>
             </>
@@ -196,14 +193,20 @@ export default function Navbar() {
         <ThemeToggle />
 
         {/* Mobile hamburger */}
-        <button className="md:hidden p-1 text-gray-600" onClick={() => setMobileOpen(!mobileOpen)}>
+        <button
+          type="button"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
+          className="md:hidden rounded-lg p-2 text-[#31594E] hover:bg-white dark:text-[#b8cec5] dark:hover:bg-[#10231d]"
+          onClick={() => setMobileOpen(!mobileOpen)}
+        >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t bg-white">
+        <div className="md:hidden border-t border-[#E7DDCA] bg-[#FBF7EF] dark:border-[#20362d] dark:bg-[#081913]">
           {isLoggedIn && (
             <div className="px-4 py-4 border-b border-gray-100 flex items-center gap-3" style={{ background: '#f0faf6' }}>
               {profile?.avatar_url ? (
@@ -227,19 +230,23 @@ export default function Navbar() {
 
           <div className="px-4 py-3 space-y-1">
             <Link href="/search" onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
-              <Search size={14} className="text-gray-400" /> Explore
+              className="flex items-center gap-2 py-2.5 text-sm font-medium text-[#31594E] border-b border-[#E7DDCA] dark:border-[#20362d] dark:text-[#b8cec5]">
+              <Search size={14} className="text-[#085041]" /> Explore businesses
             </Link>
             <Link href="/map" onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
-              <MapPin size={14} className="text-gray-400" /> Map
+              className="flex items-center gap-2 py-2.5 text-sm font-medium text-[#31594E] border-b border-[#E7DDCA] dark:border-[#20362d] dark:text-[#b8cec5]">
+              <MapPin size={14} className="text-[#085041]" /> Map
+            </Link>
+            <Link href="/how-it-works" onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 py-2.5 text-sm font-medium text-[#31594E] border-b border-[#E7DDCA] dark:border-[#20362d] dark:text-[#b8cec5]">
+              <CircleHelp size={14} className="text-[#085041]" /> How it works
             </Link>
             <Link href="/blog" onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
-              <BookOpen size={14} className="text-gray-400" /> Blog
+              className="flex items-center gap-2 py-2.5 text-sm text-[#5D716B] border-b border-[#E7DDCA] dark:border-[#20362d] dark:text-[#9fb5ac]">
+              <BookOpen size={14} className="text-[#085041]" /> Blog
             </Link>
             <Link href="/about" onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
+              className="flex items-center gap-2 py-2.5 text-sm text-[#5D716B] border-b border-[#E7DDCA] dark:border-[#20362d] dark:text-[#9fb5ac]">
               About
             </Link>
 
@@ -276,30 +283,23 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/auth/login" onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 py-2.5 text-sm text-gray-700 border-b border-gray-50">
-                  <User size={14} className="text-gray-400" /> Sign in
+                  className="flex items-center gap-2 py-2.5 text-sm font-medium text-[#31594E] border-b border-[#E7DDCA] dark:border-[#20362d] dark:text-[#b8cec5]">
+                  <User size={14} className="text-[#085041]" /> Log in
                 </Link>
                 <div className="flex gap-2 mt-3">
                   <Link href="/auth/signup" onClick={() => setMobileOpen(false)}
                     className="flex-1 text-center text-white py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: '#1D9E75' }}>
+                    style={{ background: '#085041' }}>
                     Sign up free
                   </Link>
                   <ListBusinessButton
                     className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold border-2"
-                    style={{ borderColor: '#1D9E75', color: '#1D9E75' }}>
+                    style={{ borderColor: '#085041', color: '#085041' }}>
                     List business
                   </ListBusinessButton>
                 </div>
               </>
             )}
-
-            {/* Launch access banner */}
-            <Link href="/launch" onClick={() => setMobileOpen(false)}
-              className="mt-4 flex items-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #053528, #1D9E75)' }}>
-              <Rocket size={14} /> 🚀 Free launch access
-            </Link>
           </div>
         </div>
       )}

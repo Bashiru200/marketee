@@ -2,6 +2,7 @@
 // Visit /api/preview-email?type=weekly to preview any email template
 
 import { NextRequest, NextResponse } from 'next/server'
+import { authErrorResponse, requireAdminAccess } from '@/lib/adminAuth'
 import {
   weeklySummaryTemplate,
   welcomeEmailTemplate,
@@ -29,6 +30,18 @@ function pickHtml(t: { subject: string; html: string }): string {
 }
 
 export async function GET(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      await requireAdminAccess()
+    } catch (error) {
+      try {
+        return authErrorResponse(error)
+      } catch {
+        return new NextResponse('Preview unavailable', { status: 500 })
+      }
+    }
+  }
+
   const type = req.nextUrl.searchParams.get('type') ?? 'weekly'
 
   try {

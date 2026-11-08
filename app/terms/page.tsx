@@ -91,7 +91,7 @@ export default function TermsPage() {
   ]
 
   return (
-    <div className="bg-[#F8FAF9] min-h-screen">
+    <div className="bg-[#FBF7EF] min-h-screen">
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-gray-900">

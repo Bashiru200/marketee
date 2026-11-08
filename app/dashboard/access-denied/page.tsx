@@ -3,7 +3,7 @@ import { ShieldX } from 'lucide-react'
 
 export default function AccessDeniedPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="bg-white border border-gray-100 rounded-2xl p-10 max-w-md w-full text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: '#FEF2F2' }}>
           <ShieldX size={28} className="text-red-400" />

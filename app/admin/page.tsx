@@ -522,7 +522,7 @@ export default function AdminPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] px-4 py-8">
+      <div className="min-h-screen bg-[#FBF7EF] px-4 py-8">
         <div className="max-w-7xl mx-auto flex items-center gap-3 text-gray-500">
           <Loader2 size={18} className="animate-spin" />
           Loading admin dashboard...
@@ -532,7 +532,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9]">
+    <div className="min-h-screen bg-[#FBF7EF]">
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg">
           {toast}

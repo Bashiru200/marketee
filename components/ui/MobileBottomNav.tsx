@@ -38,7 +38,7 @@ export default function MobileBottomNav() {
       <div className="h-16 md:hidden" />
 
       {/* Bottom nav bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-100"
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-100 dark:bg-[#081913] dark:border-[#20362d]"
         style={{ paddingBottom:'env(safe-area-inset-bottom)' }}>
         <div className="flex items-center justify-around h-16">
           {navItems.map(({ href, icon:Icon, label }) => {

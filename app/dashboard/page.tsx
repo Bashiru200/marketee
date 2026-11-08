@@ -496,7 +496,7 @@ export default function DashboardPage() {
   const profileScore = Math.round((recs.filter(r => r.done).length / recs.length) * 100)
 
   return (
-    <div className="min-h-screen" style={{ background:'#F6F8F7' }}>
+    <div className="min-h-screen" style={{ background:'#FBF7EF' }}>
 
       {/* Toast */}
       {toast && (

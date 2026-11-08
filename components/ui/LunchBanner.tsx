@@ -177,7 +177,7 @@ export default function LaunchBanner() {
           <div className="flex items-center gap-3">
 
             <Link
-              href="/launch"
+              href="/lunch"
               className="px-5 py-2.5 rounded-xl bg-white font-semibold transition hover:scale-105"
               style={{
                 color: '#085041',

@@ -22,7 +22,7 @@ export default function AuthErrorPage({
   const content = messages[message] ?? messages.unknown_error
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="bg-white rounded-2xl border border-gray-100 p-10 max-w-md w-full text-center shadow-sm">
         <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-50">
           <AlertCircle size={26} className="text-red-500" />

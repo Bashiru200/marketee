@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
           if (profile.role === 'owner') {
             // Owner without a business yet → send to setup
             if (!profile.business_id) {
-              return NextResponse.redirect(`${origin}/business/new`)
+              return NextResponse.redirect(`${origin}/businesses/new`)
             }
             return NextResponse.redirect(`${origin}/dashboard`)
           }
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
         // ── Route based on the chosen role ────────────────────────────────
         if (chosenRole === 'owner') {
-          return NextResponse.redirect(`${origin}/business/new?welcome=1`)
+          return NextResponse.redirect(`${origin}/businesses/new?welcome=1`)
         }
         return NextResponse.redirect(`${origin}/account/onboarding?welcome=1`)
       }

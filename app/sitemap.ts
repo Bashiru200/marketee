@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-const APP_URL = 'https://markeetee.com'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://markeetee.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
@@ -12,9 +12,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: APP_URL,              lastModified: new Date(), changeFrequency: 'daily',   priority: 1.0 },
     { url: `${APP_URL}/search`,  lastModified: new Date(), changeFrequency: 'daily',   priority: 0.9 },
     { url: `${APP_URL}/map`,     lastModified: new Date(), changeFrequency: 'daily',   priority: 0.8 },
-    { url: `${APP_URL}/launch`,  lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.7 },
+    { url: `${APP_URL}/lunch`,   lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${APP_URL}/blog`,    lastModified: new Date(), changeFrequency: 'daily',   priority: 0.8 },
     { url: `${APP_URL}/about`,   lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${APP_URL}/faq`,     lastModified: new Date(), changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${APP_URL}/how-it-works`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: `${APP_URL}/privacy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
     { url: `${APP_URL}/terms`,   lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
     { url: `${APP_URL}/contact`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },

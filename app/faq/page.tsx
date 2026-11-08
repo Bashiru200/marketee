@@ -226,7 +226,7 @@ export default function FAQPage() {
   ]
 
   return (
-    <div className="bg-[#F8FAF9] min-h-screen">
+    <div className="bg-[#FBF7EF] min-h-screen">
       <div className="max-w-5xl mx-auto px-4 py-16">
         <div className="text-center mb-10">
           <div

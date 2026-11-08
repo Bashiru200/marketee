@@ -30,7 +30,7 @@ export default function ResetPasswordPage() {
   }
 
   if (done) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="bg-white rounded-2xl border border-gray-100 p-10 max-w-md w-full text-center">
         <CheckCircle2 size={40} className="mx-auto mb-4" style={{ color: '#1D9E75' }} />
         <h1 className="text-xl font-bold text-gray-900 mb-2">Password updated!</h1>
@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
   )
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="bg-white rounded-2xl border border-gray-100 p-8 max-w-md w-full">
 
         <div className="flex items-center gap-2 mb-8">

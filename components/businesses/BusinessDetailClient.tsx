@@ -156,14 +156,24 @@ function Gallery({
 }
 
 // ── Main component ────────────────────────────────────────────────────────
-export default function BusinessDetailClient({ id }: { id: string }) {
+export default function BusinessDetailClient({
+  id,
+  initialBusiness = null,
+  initialReviews = [],
+  initialProducts = [],
+}: {
+  id: string
+  initialBusiness?: any | null
+  initialReviews?: any[]
+  initialProducts?: any[]
+}) {
   const supabase = createClient()
   const { user } = useAuth()
 
-  const [biz,             setBiz]             = useState<any>(null)
-  const [reviews,         setReviews]         = useState<any[]>([])
-  const [products,        setProducts]        = useState<any[]>([])
-  const [loading,         setLoading]         = useState(true)
+  const [biz,             setBiz]             = useState<any>(initialBusiness)
+  const [reviews,         setReviews]         = useState<any[]>(initialReviews)
+  const [products,        setProducts]        = useState<any[]>(initialProducts)
+  const [loading,         setLoading]         = useState(!initialBusiness)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [galleryIdx,      setGalleryIdx]      = useState<number | null>(null)
   const [showClaim,       setShowClaim]       = useState(false)

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const {
       to, toName, subject, body,
-      images, links, fromBusiness, businessId, userId,
+      images, links, fromBusiness, businessCategory, businessSubcategory, businessId,
     } = await request.json() as {
       to:           string
       toName:       string
@@ -20,8 +20,9 @@ export async function POST(request: Request) {
       images?:      string[]
       links?:       LinkButton[]
       fromBusiness: string
+      businessCategory?: string | null
+      businessSubcategory?: string | null
       businessId?:  string
-      userId?:      string
     }
 
     if (!to || !subject || !body) {
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
       messageBody:    body,
       images:         images ?? [],
       links:          links ?? [],
+      businessCategory,
+      businessSubcategory,
       businessId,
     })
 

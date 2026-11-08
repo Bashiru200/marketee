@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50: #e8f7f1;
   --color-brand-100: #c5eadb;
@@ -17,6 +19,7 @@ body {
   background: #FAFAF9;
   color: #1C1C1C;
   font-family: system-ui, -apple-system, sans-serif;
+  --search-tab-muted: #6B7280;
 }
 
 /* Typography */
@@ -29,6 +32,31 @@ body {
 /* Business card hover */
 .business-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .business-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
+
+/* Loading skeletons */
+.skeleton {
+  background-color: #F8F2E8;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+.skeleton-card {
+  background-color: #FFFDF8;
+  border-color: #E7DDCA;
+}
+
+.dark .skeleton {
+  background-color: #17382f;
+}
+
+.dark .skeleton-card {
+  background-color: #101b17;
+  border-color: #20362d;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 
 /* Map backgrounds — both class names supported */
 .map-bg, .map-container {
@@ -45,6 +73,20 @@ body {
   pointer-events: none;
 }
 
+.dark .map-bg,
+.dark .map-container {
+  background:
+    radial-gradient(circle at 22% 28%, rgba(29, 158, 117, 0.24) 0%, transparent 38%),
+    radial-gradient(circle at 78% 68%, rgba(183, 110, 75, 0.16) 0%, transparent 42%),
+    linear-gradient(135deg, #0d251f 0%, #102f28 48%, #16382f 100%);
+}
+
+.dark .map-container::before {
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(159, 225, 203, 0.12) 0%, transparent 48%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+}
+
 /* Animate */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -54,30 +96,49 @@ body {
 
 /* ── Dark mode overrides ───────────────────────────────────────────────── */
 .dark body {
-  background: #0f1117;
-  color: #e5e7eb;
+  background:
+    radial-gradient(circle at top left, rgba(29, 158, 117, 0.12), transparent 34rem),
+    linear-gradient(180deg, #07130f 0%, #0a1210 42%, #0d1110 100%);
+  color: #e9f2ee;
+  --search-tab-muted: #9fb5ac;
 }
 
-.dark .bg-white          { background-color: #1e2029 !important; }
-.dark .bg-gray-50        { background-color: #16181f !important; }
-.dark .bg-gray-100       { background-color: #1e2029 !important; }
-.dark .border-gray-100   { border-color: #2d2f3a !important; }
-.dark .border-gray-200   { border-color: #2d2f3a !important; }
-.dark .text-gray-900     { color: #f3f4f6 !important; }
-.dark .text-gray-800     { color: #e5e7eb !important; }
-.dark .text-gray-700     { color: #d1d5db !important; }
-.dark .text-gray-600     { color: #9ca3af !important; }
-.dark .text-gray-500     { color: #6b7280 !important; }
-.dark .text-gray-400     { color: #4b5563 !important; }
-.dark header.sticky      { background-color: #1e2029 !important; border-color: #2d2f3a !important; }
-.dark footer             { background-color: #1e2029 !important; border-color: #2d2f3a !important; }
+.dark .bg-white          { background-color: #101b17 !important; }
+.dark .bg-gray-50        { background-color: #0b1512 !important; }
+.dark .bg-gray-100       { background-color: #13201b !important; }
+.dark .border-gray-100   { border-color: #20362d !important; }
+.dark .border-gray-200   { border-color: #294239 !important; }
+.dark .text-gray-950     { color: #f4faf7 !important; }
+.dark .text-gray-900     { color: #edf7f2 !important; }
+.dark .text-gray-800     { color: #dcebe5 !important; }
+.dark .text-gray-700     { color: #bed1c9 !important; }
+.dark .text-gray-600     { color: #9fb5ac !important; }
+.dark .text-gray-500     { color: #829990 !important; }
+.dark .text-gray-400     { color: #6f867d !important; }
+.dark header.sticky {
+  background-color: rgba(8, 25, 19, 0.92) !important;
+  border-color: #20362d !important;
+  box-shadow: 0 1px 0 rgba(159, 225, 203, 0.06), 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+.dark footer {
+  background:
+    radial-gradient(circle at top left, rgba(29, 158, 117, 0.13), transparent 32rem),
+    #06120e !important;
+  border-color: #20362d !important;
+}
 .dark input, .dark textarea, .dark select {
-  background-color: #16181f !important;
-  border-color: #2d2f3a !important;
-  color: #f3f4f6 !important;
+  background-color: #0c1713 !important;
+  border-color: #294239 !important;
+  color: #edf7f2 !important;
+  color-scheme: dark;
 }
 .dark input::placeholder, .dark textarea::placeholder {
-  color: #4b5563 !important;
+  color: #6f867d !important;
+}
+
+.dark option {
+  background-color: #0c1713;
+  color: #edf7f2;
 }
 
 /* ── Mobile bottom nav clearance ──────────────────────────────────────── */

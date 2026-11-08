@@ -17,18 +17,40 @@ const GRADIENTS: Record<string, string> = {
   nightlife: 'linear-gradient(135deg,#2D1B69,#6B46C1)',
 }
 
-export default function BusinessCard({ business: b }: any) {
+interface BusinessCardBusiness {
+  id: string
+  name: string
+  category: string | null
+  subcategory?: string | null
+  address: string | null
+  city: string | null
+  cover_image: string | null
+  rating: number | null
+  review_count: number | null
+  tags: string[] | null
+  country: string | null
+  lat: number | null
+  lng: number | null
+  featured?: boolean | null
+  premium?: boolean | null
+  verified?: boolean | null
+  hours_open?: string | null
+  days_open?: string[] | null
+}
+
+export default function BusinessCard({ business: b }: { business: BusinessCardBusiness }) {
   const grad = GRADIENTS[b.category ?? ''] || GRADIENTS.services
 
   return (
     <div className="
       group
-      bg-white
+      bg-[#FFFDF8]
       rounded-2xl
       overflow-hidden
-      border border-gray-100
+      border border-[#E7DDCA]
       hover:border-[#1D9E75]/30
       hover:shadow-lg
+      hover:shadow-[#085041]/10
       transition-all
     ">
 
@@ -107,7 +129,7 @@ export default function BusinessCard({ business: b }: any) {
 
         {/* Address */}
         {b.address && (
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+          <div className="flex items-center gap-2 text-xs text-[#5D716B] mb-2">
             <MapPin size={12} className="text-[#1D9E75]" />
             <span className="line-clamp-1">
               {b.address}, {b.city}
@@ -126,12 +148,12 @@ export default function BusinessCard({ business: b }: any) {
         )}
 
         {/* Tags */}
-        {b.tags?.length > 0 && (
+        {(b.tags?.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
-            {b.tags.slice(0, 3).map((t: string) => (
+            {b.tags?.slice(0, 3).map((t: string) => (
               <span
                 key={t}
-                className="text-xs px-2 py-1 rounded-full bg-[#E1F5EE] text-[#085041]"
+                className="text-xs px-2 py-1 rounded-full bg-[#F8F2E8] text-[#085041] ring-1 ring-[#E7DDCA]"
               >
                 {t}
               </span>
@@ -168,7 +190,7 @@ export default function BusinessCard({ business: b }: any) {
                 px-3
                 flex items-center gap-1
                 text-sm
-                border
+                border border-[#D9CBB4]
                 rounded-xl
                 hover:border-[#1D9E75]
                 hover:text-[#1D9E75]

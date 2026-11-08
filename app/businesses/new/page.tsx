@@ -225,7 +225,7 @@ export default function BusinessNewPage() {
   // ── Success screen ────────────────────────────────────────────────────
   if (success) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+      <main className="flex min-h-screen items-center justify-center bg-[#FBF7EF] px-4 py-12">
         <div className="w-full max-w-xl rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-12">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
             style={{ backgroundColor: BRAND.mint }}>
@@ -248,7 +248,7 @@ export default function BusinessNewPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[#FBF7EF]">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-10">
 

@@ -109,7 +109,7 @@ function WelcomeContent() {
 
     // Owners go straight to the business form, not customer onboarding
     if (chosenRole === 'owner') {
-      router.push('/business/new?welcome=1')
+      router.push('/businesses/new?welcome=1')
       return
     }
     setStage('onboarding')
@@ -136,7 +136,7 @@ function WelcomeContent() {
 
   if (loadingUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF]">
         <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
       </div>
     )
@@ -146,7 +146,7 @@ function WelcomeContent() {
   const labelCls = "block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5"
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF] p-4">
       <div className="w-full max-w-md bg-white border border-gray-100 rounded-2xl p-8">
 
         {/* ── Stage: no account found ── */}
@@ -303,7 +303,7 @@ function WelcomeContent() {
 export default function WelcomePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF7EF]">
         <Loader2 size={28} className="animate-spin" style={{ color: '#1D9E75' }} />
       </div>
     }>

@@ -1,75 +1,81 @@
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header skeleton */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="h-6 w-40 bg-gray-200 rounded" style={{ animation: 'pulse 2s infinite' }} />
-          <div className="flex gap-3">
-            <div className="h-10 w-24 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-            <div className="h-10 w-24 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-          </div>
+    <div className="min-h-screen bg-[#FBF7EF]">
+      <div className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-[#E7DDCA] bg-[#FBF7EF]/95 px-4 py-4 backdrop-blur">
+        <div className="skeleton h-10 w-10 rounded-xl" />
+        <div className="space-y-2">
+          <div className="skeleton h-4 w-32 rounded" />
+          <div className="skeleton h-3 w-20 rounded" />
         </div>
+        <div className="skeleton h-9 w-16 rounded-lg" />
       </div>
 
-      {/* Dashboard stats skeleton */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="h-4 w-24 bg-gray-100 rounded mb-3" style={{ animation: 'pulse 2s infinite' }} />
-              <div className="h-8 w-16 bg-gray-200 rounded" style={{ animation: 'pulse 2s infinite' }} />
+      <div className="mx-auto max-w-7xl px-4 py-6 lg:py-8">
+        <div className="flex items-start gap-6">
+          <aside className="skeleton-card sticky top-6 hidden h-fit w-60 shrink-0 overflow-hidden rounded-2xl border lg:block">
+            <div className="space-y-2 p-4">
+              <div className="skeleton h-10 rounded-xl" />
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={item} className="skeleton h-9 rounded-xl" />
+              ))}
             </div>
-          ))}
-        </div>
+          </aside>
 
-        {/* Main content area skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Section 1 */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="h-5 w-32 bg-gray-200 rounded mb-4" style={{ animation: 'pulse 2s infinite' }} />
-              <div className="space-y-3">
-                {[1, 2, 3].map(j => (
-                  <div key={j} className="h-12 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-                ))}
+          <main className="min-w-0 flex-1 space-y-6">
+            <div className="hidden items-center gap-3 lg:flex">
+              <div className="skeleton h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <div className="skeleton h-6 w-44 rounded" />
+                <div className="skeleton h-4 w-60 rounded" />
               </div>
             </div>
 
-            {/* Section 2 */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="h-5 w-40 bg-gray-200 rounded mb-4" style={{ animation: 'pulse 2s infinite' }} />
-              <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map(j => (
-                  <div key={j} className="h-24 bg-gray-100 rounded-lg" style={{ animation: 'pulse 2s infinite' }} />
-                ))}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="skeleton-card rounded-2xl border p-5">
+                  <div className="skeleton mb-3 h-5 w-5 rounded" />
+                  <div className="skeleton mb-2 h-8 w-16 rounded" />
+                  <div className="skeleton h-3 w-24 rounded" />
+                </div>
+              ))}
+            </div>
+
+            <div className="skeleton-card overflow-hidden rounded-2xl border">
+              <div className="flex items-center justify-between border-b border-[#E7DDCA] px-5 py-4">
+                <div className="skeleton h-5 w-32 rounded" />
+                <div className="skeleton h-5 w-16 rounded" />
+              </div>
+              <div className="flex gap-4 p-5">
+                <div className="skeleton h-20 w-20 shrink-0 rounded-xl" />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="skeleton h-5 w-48 max-w-full rounded" />
+                  <div className="skeleton h-4 w-full rounded" />
+                  <div className="skeleton h-4 w-2/3 rounded" />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {[1, 2].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6">
-                <div className="h-5 w-24 bg-gray-200 rounded mb-4" style={{ animation: 'pulse 2s infinite' }} />
-                <div className="space-y-2">
-                  {[1, 2, 3].map(j => (
-                    <div key={j} className="h-4 w-full bg-gray-100 rounded" style={{ animation: 'pulse 2s infinite' }} />
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="skeleton-card rounded-2xl border p-5">
+                <div className="skeleton mb-5 h-5 w-40 rounded" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map((item) => (
+                    <div key={item} className="skeleton h-14 rounded-xl" />
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="skeleton-card rounded-2xl border p-5">
+                <div className="skeleton mb-5 h-5 w-32 rounded" />
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((item) => (
+                    <div key={item} className="skeleton h-4 rounded" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 // Dashboard inbox for owner to view/manage lead enquiries + reply with rich emails
 'use client'
 import { useState, useEffect } from 'react'
-import { Mail, Loader2, Check, Phone, MessageSquare, Send } from 'lucide-react'
+import { Mail, Loader2, Check, MessageSquare, Send } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import SendEmailModal from '@/components/dashboard/SendEmailModal'
 
@@ -17,8 +17,10 @@ interface Lead {
 }
 
 interface Business {
-  id:   string
-  name: string
+  id:          string
+  name:        string
+  category:    string | null
+  subcategory: string | null
 }
 
 export default function LeadInbox({ businessId }: { businessId: string }) {
@@ -35,7 +37,7 @@ export default function LeadInbox({ businessId }: { businessId: string }) {
           .select('*').eq('business_id', businessId)
           .order('created_at', { ascending: false }),
         supabase.from('businesses')
-          .select('id, name').eq('id', businessId).single(),
+          .select('id, name, category, subcategory').eq('id', businessId).single(),
       ])
       setLeads(leadsData ?? [])
       setBusiness(bizData ?? null)
@@ -153,6 +155,8 @@ export default function LeadInbox({ businessId }: { businessId: string }) {
           recipientEmail={replyTo.email}
           recipientName={replyTo.name}
           businessName={business.name}
+          businessCategory={business.category}
+          businessSubcategory={business.subcategory}
           businessId={business.id}
           startOpen
           onSent={() => markReplied(replyTo.id)}

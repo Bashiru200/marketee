@@ -38,7 +38,7 @@ export default function AboutPage() {
   ]
 
   return (
-    <main className="bg-[#F8FAF9] min-h-screen">
+    <main className="bg-[#FBF7EF] min-h-screen">
       <section className="max-w-6xl mx-auto px-4 py-20">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#1D9E75' }}>
