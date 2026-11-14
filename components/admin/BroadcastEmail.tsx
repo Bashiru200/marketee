@@ -7,7 +7,6 @@ import {
   Building2,
   CheckCircle2,
   Clock,
-  Eye,
   Loader2,
   Mail,
   Send,
@@ -30,6 +29,7 @@ interface SentEmail {
 
 interface AudienceCount {
   count: number
+  registeredEmailCount: number
   skippedByPreferences: number
 }
 
@@ -41,7 +41,7 @@ const AUDIENCES: Array<{
 }> = [
   { value: 'owners', label: 'Business owners', desc: 'Owners with Markeetee accounts', icon: Building2 },
   { value: 'customers', label: 'Customers', desc: 'People discovering businesses', icon: User },
-  { value: 'all', label: 'Everyone', desc: 'All subscribed users', icon: Users },
+  { value: 'all', label: 'Everyone', desc: 'All registered email addresses', icon: Users },
 ]
 
 const EMAIL_TYPES: Array<{
@@ -106,16 +106,16 @@ export default function BroadcastEmail() {
   const supabase = useRef(createClient()).current
   const { profile } = useAuth()
 
-  const [audience, setAudience] = useState<Audience>('owners')
+  const [audience, setAudience] = useState<Audience>('all')
   const [emailType, setEmailType] = useState<EmailType>('announcement')
   const [subject, setSubject] = useState(EMAIL_TYPES[0].subject)
   const [body, setBody] = useState(EMAIL_TYPES[0].body)
   const [ctaLabel, setCtaLabel] = useState(EMAIL_TYPES[0].ctaLabel)
   const [ctaUrl, setCtaUrl] = useState(APP_URL)
   const [counts, setCounts] = useState<Record<Audience, AudienceCount>>({
-    owners: { count: 0, skippedByPreferences: 0 },
-    customers: { count: 0, skippedByPreferences: 0 },
-    all: { count: 0, skippedByPreferences: 0 },
+    owners: { count: 0, registeredEmailCount: 0, skippedByPreferences: 0 },
+    customers: { count: 0, registeredEmailCount: 0, skippedByPreferences: 0 },
+    all: { count: 0, registeredEmailCount: 0, skippedByPreferences: 0 },
   })
   const [history, setHistory] = useState<SentEmail[]>([])
   const [loadingCounts, setLoadingCounts] = useState(true)
@@ -126,6 +126,7 @@ export default function BroadcastEmail() {
   const selectedType = EMAIL_TYPES.find((type) => type.value === emailType) ?? EMAIL_TYPES[0]
   const selectedAudience = AUDIENCES.find((item) => item.value === audience) ?? AUDIENCES[0]
   const recipientCount = counts[audience].count
+  const registeredEmailCount = counts[audience].registeredEmailCount
   const skippedCount = counts[audience].skippedByPreferences
   const isValid = subject.trim().length >= 4 && body.trim().length >= 20 && (!ctaUrl || /^https?:\/\//i.test(ctaUrl))
 
@@ -136,9 +137,9 @@ export default function BroadcastEmail() {
   const loadCounts = useCallback(async () => {
     setLoadingCounts(true)
     const nextCounts: Record<Audience, AudienceCount> = {
-      owners: { count: 0, skippedByPreferences: 0 },
-      customers: { count: 0, skippedByPreferences: 0 },
-      all: { count: 0, skippedByPreferences: 0 },
+      owners: { count: 0, registeredEmailCount: 0, skippedByPreferences: 0 },
+      customers: { count: 0, registeredEmailCount: 0, skippedByPreferences: 0 },
+      all: { count: 0, registeredEmailCount: 0, skippedByPreferences: 0 },
     }
 
     await Promise.all(AUDIENCES.map(async ({ value }) => {
@@ -147,6 +148,7 @@ export default function BroadcastEmail() {
       const data = await response.json()
       nextCounts[value] = {
         count: data.count ?? 0,
+        registeredEmailCount: data.registeredEmailCount ?? data.count ?? 0,
         skippedByPreferences: data.skippedByPreferences ?? 0,
       }
     }))
@@ -225,13 +227,11 @@ export default function BroadcastEmail() {
       return
     }
 
-    const dryRunCopy = data.dryRun ? ' Dry run only; no live email was sent.' : ''
     const partialCopy = data.failedCount ? ` ${data.failedCount} recipient(s) failed and can be retried later.` : ''
-    const action = mode === 'test' ? 'Test prepared' : 'Bulk send complete'
 
     setNotice({
       type: data.failedCount ? 'error' : 'success',
-      message: `${action}: ${data.sent} recipient(s).${partialCopy}${dryRunCopy}`,
+      message: `Email sent: ${data.sent} recipient(s).${partialCopy}`,
     })
     setConfirmed(false)
     await loadCounts()
@@ -295,7 +295,7 @@ export default function BroadcastEmail() {
                     <p className="mt-2 text-sm font-bold text-gray-950">{option.label}</p>
                     <p className="mt-1 text-xs leading-5 text-gray-500">{option.desc}</p>
                     <p className="mt-3 text-xs font-bold text-[#085041]">
-                      {loadingCounts ? 'Loading...' : `${counts[option.value].count} subscribed`}
+                      {loadingCounts ? 'Loading...' : `${counts[option.value].registeredEmailCount} registered`}
                     </p>
                   </button>
                 )
@@ -400,22 +400,13 @@ export default function BroadcastEmail() {
                 className="mt-0.5 accent-amber-500"
               />
               <span>
-                I confirm this bulk email should go to <strong>{recipientCount}</strong> subscribed {selectedAudience.label.toLowerCase()}.
+                I confirm this email should go to <strong>{recipientCount}</strong> {selectedAudience.label.toLowerCase()}.
                 {skippedCount > 0 ? ` ${skippedCount} opted-out recipient(s) will be skipped.` : ''}
               </span>
             </label>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => send('test')}
-              disabled={sending !== null || !isValid}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#085041] bg-white px-4 py-3 text-sm font-bold text-[#085041] disabled:opacity-50"
-            >
-              {sending === 'test' ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
-              Send test to {profile?.email ?? 'admin'}
-            </button>
+          <div>
             <button
               type="button"
               onClick={() => send('bulk')}
@@ -462,7 +453,11 @@ export default function BroadcastEmail() {
                 <span className="font-semibold text-gray-900">{selectedAudience.label}</span>
               </div>
               <div className="flex justify-between gap-3">
-                <span className="text-gray-500">Subscribed recipients</span>
+                <span className="text-gray-500">Registered emails</span>
+                <span className="font-semibold text-gray-900">{registeredEmailCount}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Recipients to send</span>
                 <span className="font-semibold text-gray-900">{recipientCount}</span>
               </div>
               <div className="flex justify-between gap-3">

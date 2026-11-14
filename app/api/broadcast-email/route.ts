@@ -50,7 +50,7 @@ function formatMessageBody(message: string) {
 }
 
 function shouldDryRun(mode: SendMode) {
-  return process.env.NODE_ENV !== 'production' || mode === 'test'
+  return mode === 'test'
 }
 
 async function getRecipients(audience: Audience) {
@@ -93,6 +93,7 @@ async function getRecipients(audience: Audience) {
 
   return {
     recipients: subscribed,
+    registeredEmailCount: recipients.length,
     skipped: recipients.length - subscribed.length,
   }
 }
@@ -106,10 +107,11 @@ export async function GET(req: NextRequest) {
       return jsonError('Invalid audience', 400)
     }
 
-    const { recipients, skipped } = await getRecipients(audience as Audience)
+    const { recipients, registeredEmailCount, skipped } = await getRecipients(audience as Audience)
     return NextResponse.json({
       audience,
       count: recipients.length,
+      registeredEmailCount,
       skippedByPreferences: skipped,
     })
   } catch (error) {
@@ -142,7 +144,7 @@ export async function POST(req: NextRequest) {
     if (message.length < 20) return jsonError('Message must be at least 20 characters', 400)
     if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) return jsonError('CTA URL must start with http:// or https://', 400)
 
-    const { recipients, skipped } = await getRecipients(audience)
+    const { recipients, registeredEmailCount, skipped } = await getRecipients(audience)
     if (mode === 'bulk' && recipients.length === 0) return jsonError('No subscribed recipients found', 400)
     if (mode === 'bulk' && !confirmed) return jsonError('Confirm this bulk send before continuing', 400)
     if (mode === 'bulk' && expectedRecipientCount !== recipients.length) {
@@ -232,6 +234,7 @@ export async function POST(req: NextRequest) {
       dryRun,
       mode,
       sent,
+      registeredEmailCount,
       failedCount: failed.length,
       skippedByPreferences: skipped,
       failures: failed.slice(0, 10),
