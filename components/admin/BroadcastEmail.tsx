@@ -195,6 +195,11 @@ export default function BroadcastEmail() {
       return
     }
 
+    if (mode === 'test' && !profile?.email) {
+      setNotice({ type: 'error', message: 'No admin email is available for a test send.' })
+      return
+    }
+
     if (mode === 'bulk' && !confirmed) {
       setNotice({ type: 'error', message: 'Confirm the recipient count before sending a bulk email.' })
       return
@@ -203,21 +208,34 @@ export default function BroadcastEmail() {
     setSending(mode)
     setNotice(null)
 
-    const response = await fetch('/api/broadcast-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode,
-        audience,
-        subject,
-        headline: subject,
-        body,
-        ctaLabel,
-        ctaUrl,
-        confirmed: mode === 'bulk' ? confirmed : true,
-        expectedRecipientCount: recipientCount,
-      }),
-    })
+    const response = mode === 'test'
+      ? await fetch('/api/admin-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toEmail: profile?.email,
+            toName: profile?.name ?? profile?.email,
+            subject,
+            body,
+            ctaLabel,
+            ctaUrl,
+          }),
+        })
+      : await fetch('/api/broadcast-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode,
+            audience,
+            subject,
+            headline: subject,
+            body,
+            ctaLabel,
+            ctaUrl,
+            confirmed,
+            expectedRecipientCount: recipientCount,
+          }),
+        })
 
     const data = await response.json()
     setSending(null)
@@ -227,8 +245,16 @@ export default function BroadcastEmail() {
       return
     }
 
-    const partialCopy = data.failedCount ? ` ${data.failedCount} recipient(s) failed and can be retried later.` : ''
+    if (mode === 'test') {
+      setNotice({
+        type: 'success',
+        message: `Test email sent to ${profile?.email}.`,
+      })
+      await loadHistory()
+      return
+    }
 
+    const partialCopy = data.failedCount ? ` ${data.failedCount} recipient(s) failed and can be retried later.` : ''
     setNotice({
       type: data.failedCount ? 'error' : 'success',
       message: `Email sent: ${data.sent} recipient(s).${partialCopy}`,
@@ -406,7 +432,16 @@ export default function BroadcastEmail() {
             </label>
           </div>
 
-          <div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => send('test')}
+              disabled={sending !== null || !isValid || !profile?.email}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#085041] bg-white px-4 py-3 text-sm font-bold text-[#085041] disabled:opacity-50"
+            >
+              {sending === 'test' ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+              Send test to {profile?.email ?? 'admin'}
+            </button>
             <button
               type="button"
               onClick={() => send('bulk')}

@@ -397,7 +397,12 @@ export default function SearchClient({
     if (minRating > 0)  q = q.gte('rating',      minRating)
 
     // Sort
-    if (sort === 'featured') q = q.order('featured', { ascending:false }).order('rating', { ascending:false })
+    if (sort === 'featured') {
+      q = q
+        .order('discovery_score', { ascending:false, nullsFirst:false })
+        .order('verified', { ascending:false, nullsFirst:false })
+        .order('created_at', { ascending:false })
+    }
     if (sort === 'rating')   q = q.order('rating',   { ascending:false })
     if (sort === 'newest')   q = q.order('created_at',{ ascending:false })
     if (sort === 'reviews')  q = q.order('review_count',{ ascending:false })

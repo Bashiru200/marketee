@@ -20,6 +20,8 @@ import ProductModal      from '@/components/ui/ProductModal'
 import GoogleMapsHours    from '@/components/ui/GoogleMapsHours'
 import LeadEnquiryForm    from '@/components/ui/LeadEnquiryForm'
 import ClaimBusinessModal  from '@/components/ui/ClaimBusinessModal'
+import { TrackedLink, ViewTracker } from '@/components/ui/TrackedAction'
+import { useEventTracking } from '@/lib/hooks/useEventTracking'
 import { canAccess }      from '@/lib/planGate'
 
 // ── Airbnb-style full-screen gallery ─────────────────────────────────────
@@ -66,7 +68,8 @@ function Gallery({
     const dx = e.changedTouches[0].clientX - touchStartX.current
     const dy = e.changedTouches[0].clientY - touchStartY.current
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-      dx < 0 ? next() : prev()
+      if (dx < 0) next()
+      else prev()
     }
     touchStartX.current = null
     touchStartY.current = null
@@ -179,6 +182,7 @@ export default function BusinessDetailClient({
   const [galleryIdx,      setGalleryIdx]      = useState<number | null>(null)
   const [showClaim,       setShowClaim]       = useState(searchParams.get('claim') === '1')
   const [copied,          setCopied]          = useState(false)
+  const { track } = useEventTracking(id, { city: biz?.city, category: biz?.category })
 
   const loadAll = useCallback(async () => {
     const [bizRes, reviewRes, productRes] = await Promise.all([
@@ -228,18 +232,20 @@ export default function BusinessDetailClient({
 
   const fullAddress  = [biz.address, biz.city, biz.state].filter(Boolean).join(', ')
   const mapsUrl      = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+  const websiteUrl   = biz.website?.startsWith('http') ? biz.website : biz.website ? `https://${biz.website}` : null
   const allPhotos    = [biz.cover_image, ...(biz.images || [])].filter(Boolean) as string[]
-  const extraPhotos  = allPhotos.slice(1, 5) // up to 4 grid thumbnails
 
   function handleShare() {
     navigator.clipboard.writeText(window.location.href)
+    void track('share')
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   return (
     <>
-    <div className="max-w-6xl mx-auto px-4 py-6">
+      <ViewTracker businessId={biz.id} city={biz.city} category={biz.category} />
+      <div className="max-w-6xl mx-auto px-4 py-6">
 
       {/* ── AIRBNB-STYLE PHOTO GRID ── */}
       <div className="relative rounded-3xl overflow-hidden"
@@ -308,7 +314,7 @@ export default function BusinessDetailClient({
             <ArrowLeft size={14} /> Back
           </Link>
           <div className="flex gap-2">
-            <SaveButton businessId={biz.id} size="md" />
+            <SaveButton businessId={biz.id} city={biz.city} category={biz.category} size="md" />
             <button
               onClick={handleShare}
               className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl text-sm font-medium hover:bg-white transition-colors">
@@ -355,31 +361,51 @@ export default function BusinessDetailClient({
       {/* ── ACTION BAR ── */}
       <div className="flex gap-3 mt-4 overflow-x-auto pb-1">
         {biz.phone && (
-          <a
+          <TrackedLink
+            businessId={biz.id}
+            type="whatsapp"
             href={`https://wa.me/${biz.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I found ${biz.name} on Markeetee. I'd like to enquire.`)}`}
+            city={biz.city}
+            category={biz.category}
             target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 flex-shrink-0 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
             style={{ background: '#25D366' }}>
             <MessageCircle size={15} /> WhatsApp
-          </a>
+          </TrackedLink>
         )}
-        <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+        <TrackedLink
+          businessId={biz.id}
+          type="directions"
+          href={mapsUrl}
+          city={biz.city}
+          category={biz.category}
+          target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-2 flex-shrink-0 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
           style={{ background: '#1D9E75' }}>
           <MapPin size={15} /> Directions
-        </a>
+        </TrackedLink>
         {biz.phone && (
-          <a href={`tel:${biz.phone}`}
+          <TrackedLink
+            businessId={biz.id}
+            type="call"
+            href={`tel:${biz.phone}`}
+            city={biz.city}
+            category={biz.category}
             className="flex items-center gap-2 flex-shrink-0 border border-gray-200 text-gray-700 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
             <Phone size={15} /> Call
-          </a>
+          </TrackedLink>
         )}
-        {biz.website && (
-          <a href={biz.website.startsWith('http') ? biz.website : `https://${biz.website}`}
+        {websiteUrl && (
+          <TrackedLink
+            businessId={biz.id}
+            type="website"
+            href={websiteUrl}
+            city={biz.city}
+            category={biz.category}
             target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 flex-shrink-0 border border-gray-200 text-gray-700 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
             <Globe size={15} /> Website
-          </a>
+          </TrackedLink>
         )}
       </div>
 
@@ -546,12 +572,12 @@ export default function BusinessDetailClient({
         <h2 className="font-bold text-lg mb-4 text-gray-900">Contact & Location</h2>
         <div className="space-y-3 text-sm">
           {biz.phone && (
-            <a href={`tel:${biz.phone}`} className="flex items-center gap-3 text-gray-600 hover:text-green-700 transition-colors">
+            <TrackedLink businessId={biz.id} type="call" href={`tel:${biz.phone}`} city={biz.city} category={biz.category} className="flex items-center gap-3 text-gray-600 hover:text-green-700 transition-colors">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#E1F5EE' }}>
                 <Phone size={14} style={{ color: '#1D9E75' }} />
               </div>
               {biz.phone}
-            </a>
+            </TrackedLink>
           )}
           {biz.email && (
             <a href={`mailto:${biz.email}`} className="flex items-center gap-3 text-gray-600 hover:text-green-700 transition-colors">
@@ -561,8 +587,13 @@ export default function BusinessDetailClient({
               {biz.email}
             </a>
           )}
-          {biz.website && (
-            <a href={biz.website.startsWith('http') ? biz.website : `https://${biz.website}`}
+          {websiteUrl && (
+            <TrackedLink
+              businessId={biz.id}
+              type="website"
+              href={websiteUrl}
+              city={biz.city}
+              category={biz.category}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 hover:text-green-700 transition-colors"
               style={{ color: '#1D9E75' }}>
@@ -570,16 +601,22 @@ export default function BusinessDetailClient({
                 <Globe size={14} style={{ color: '#1D9E75' }} />
               </div>
               {biz.website.replace(/^https?:\/\//, '')}
-            </a>
+            </TrackedLink>
           )}
           {fullAddress && (
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+            <TrackedLink
+              businessId={biz.id}
+              type="directions"
+              href={mapsUrl}
+              city={biz.city}
+              category={biz.category}
+              target="_blank" rel="noopener noreferrer"
               className="flex items-start gap-3 text-gray-600 hover:text-green-700 transition-colors">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#E1F5EE' }}>
                 <MapPin size={14} style={{ color: '#1D9E75' }} />
               </div>
               <span className="underline decoration-dashed underline-offset-2">{fullAddress}</span>
-            </a>
+            </TrackedLink>
           )}
         </div>
       </div>

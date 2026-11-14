@@ -73,8 +73,8 @@ async function SearchContent({ searchParams }: SearchPageProps) {
     query = query.order('review_count', { ascending: false })
   } else {
     query = query
-      .order('featured', { ascending: false })
-      .order('rating', { ascending: false })
+      .order('discovery_score', { ascending: false, nullsFirst: false })
+      .order('verified', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
   }
 

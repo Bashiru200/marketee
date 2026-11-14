@@ -4,16 +4,20 @@ import { Heart, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { useEventTracking } from '@/lib/hooks/useEventTracking'
 
 interface Props {
   businessId: string
+  city?: string | null
+  category?: string | null
   size?: 'sm' | 'md'
 }
 
-export default function SaveButton({ businessId, size = 'md' }: Props) {
+export default function SaveButton({ businessId, city, category, size = 'md' }: Props) {
   const supabase   = createClient()
   const router     = useRouter()
   const { user, isLoggedIn } = useAuth()
+  const { track } = useEventTracking(businessId, { city, category })
   const [saved,    setSaved]    = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [saveId,   setSaveId]   = useState<string | null>(null)
@@ -26,11 +30,11 @@ export default function SaveButton({ businessId, size = 'md' }: Props) {
       .eq('user_id', user.id)
       .eq('business_id', businessId)
       .single()
-      .then((result: any ) => {
+      .then((result: { data: { id: string } | null }) => {
         const { data } = result
         if (data) { setSaved(true); setSaveId(data.id) }
       })
-  }, [isLoggedIn, user, businessId])
+  }, [isLoggedIn, user, businessId, supabase])
 
   async function toggle(e: React.MouseEvent) {
     e.preventDefault()
@@ -54,6 +58,7 @@ export default function SaveButton({ businessId, size = 'md' }: Props) {
         .select('id')
         .single()
       if (data) { setSaved(true); setSaveId(data.id) }
+      await track('save')
     }
 
     setLoading(false)

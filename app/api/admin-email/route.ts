@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const message = cleanText(payload.body ?? payload.message, 8000)
     const ctaLabel = cleanText(payload.ctaLabel, 40)
     const ctaUrl = cleanText(payload.ctaUrl, 500)
-    const dryRun = process.env.NODE_ENV !== 'production' || payload.dryRun === true
+    const dryRun = payload.dryRun === true
 
     if (!isEmail(toEmail)) return jsonError('Enter a valid recipient email', 400)
     if (subject.length < 4) return jsonError('Subject is too short', 400)
