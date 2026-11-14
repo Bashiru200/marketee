@@ -118,16 +118,6 @@ export function ReviewNotificationEmail({
                                   Markeetee
                                 </p>
 
-                                <p
-                                  style={{
-                                    margin: '5px 0 0',
-                                    fontSize: '13px',
-                                    lineHeight: '1.5',
-                                    color: BRAND_MINT,
-                                  }}
-                                >
-                                  Africa is here. Find it.
-                                </p>
                               </td>
 
                               <td align="right">
@@ -426,7 +416,7 @@ export function ReviewNotificationEmail({
                             color: '#B0B7C3',
                           }}
                         >
-                          © 2026 Markeetee. Made for the African diaspora.
+                          © 2026 Markeetee. All rights reserved.
                         </p>
 
                         <p

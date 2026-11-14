@@ -211,16 +211,6 @@ export function WeeklySummaryEmail({
                                   Markeetee
                                 </p>
 
-                                <p
-                                  style={{
-                                    margin: '5px 0 0',
-                                    fontSize: '13px',
-                                    lineHeight: '1.5',
-                                    color: BRAND_MINT,
-                                  }}
-                                >
-                                  Africa is here. Find it.
-                                </p>
                               </td>
 
                               <td align="right">

@@ -4,7 +4,7 @@
  */
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.markeetee.com'
-const LOGO_URL = `${APP_URL}/apple-touch-icon.png`
+const LOGO_URL = `${APP_URL}/logo.png`
 
 const BRAND_DARK = '#053528'
 const BRAND_GREEN = '#1D9E75'
@@ -168,11 +168,6 @@ function wrap({
                 Markeetee
               </p>
 
-              <p style="margin:0 0 18px;font-size:13px;line-height:1.7;color:${TEXT_MUTED};">
-                Africa is here. Find it.<br />
-                The African business directory for the diaspora.
-              </p>
-
               <p style="margin:0 0 14px;font-size:12px;line-height:1.8;color:#9CA3AF;">
                 <a href="${APP_URL}" style="color:${BRAND_GREEN};text-decoration:none;">Website</a>
                 &nbsp;·&nbsp;
@@ -315,7 +310,7 @@ export function welcomeEmailTemplate({
         : 'Start discovering African-owned businesses near you.',
       badge: isOwner ? 'Business Owner' : 'Welcome',
       headline: isOwner ? 'Your business dashboard is ready' : 'Welcome to the community',
-      subline: isOwner ? 'Set up your listing and start reaching customers.' : 'Africa is here. Find it.',
+      subline: isOwner ? 'Set up your listing and start reaching customers.' : undefined,
       body: `
         ${greeting(name)}
         <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#374151;">
@@ -715,7 +710,6 @@ ${escapeHtml(businessName)} received ${reviewsThisWeek} ${reviewsThisWeek === 1 
       <tr>
         <td>
           <p style="margin:0;font-size:29px;font-weight:800;color:#ffffff;line-height:1;">Markeetee</p>
-          <p style="margin:8px 0 0;font-size:13px;font-weight:600;color:${BRAND_MINT};">Africa is here. Find it.</p>
         </td>
         <td align="right" style="vertical-align:top;">
           <span style="display:inline-block;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.24);color:#ffffff;font-size:10px;font-weight:700;padding:8px 14px;border-radius:20px;letter-spacing:0.1em;text-transform:uppercase;">Weekly summary</span>
@@ -1009,7 +1003,6 @@ ${preheader(`${businessName} sent you a message on Markeetee.`)}
               <td><img src="${LOGO_URL}" width="40" height="40" alt="Markeetee" style="display:block;border-radius:10px;background:#ffffff;" /></td>
               <td style="padding-left:10px;vertical-align:middle;">
                 <p style="margin:0;font-size:22px;font-weight:900;color:#fff;letter-spacing:-.02em;">Markeetee</p>
-                <p style="margin:3px 0 0;font-size:12px;color:${BRAND_MINT};">Africa is here. Find it.</p>
               </td>
             </tr>
           </table>

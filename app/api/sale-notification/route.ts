@@ -53,12 +53,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const recipients = saved
-      .map((s: any) => ({
+    const recipients = (saved as Array<{ profiles?: { email?: string | null; name?: string | null } | null }>)
+      .map((s) => ({
         email: s.profiles?.email,
         name:  s.profiles?.name ?? 'Valued customer',
       }))
-      .filter(r => !!r.email)
+      .filter((recipient): recipient is { email: string; name: string } => !!recipient.email)
 
     if (recipients.length === 0) {
       return NextResponse.json({ ok: true, sent: 0 })
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
             <tr><td style="background:#085041;padding:32px;">
               <table cellpadding="0" cellspacing="0"><tr>
-                <td><img src="https://markeetee.com/logo1.png" width="42" height="42" alt="Markeetee" style="display:block;border-radius:10px;"/></td>
+                <td><img src="https://markeetee.com/logo.png" width="42" height="42" alt="Markeetee" style="display:block;border-radius:10px;"/></td>
                 <td style="padding-left:12px;color:#ffffff;font-size:24px;font-weight:700;">Markeetee</td>
               </tr></table>
               <p style="margin:28px 0 6px;font-size:22px;font-weight:700;color:#ffffff;">
@@ -131,9 +131,6 @@ export async function POST(req: NextRequest) {
             </td></tr>
 
             <tr><td style="background:#f9fafb;padding:28px 32px;text-align:center;border:1px solid #eeeeee;border-top:none;border-radius:0 0 16px 16px;">
-              <img src="https://markeetee.com/Cartography_of_Africa.png" width="55" height="55" alt="Africa" style="display:block;margin:0 auto 14px;"/>
-              <p style="margin:0;font-size:14px;font-weight:600;color:#374151;">Africa is here. Find it.</p>
-              <p style="margin:6px 0 20px;font-size:13px;color:#6B7280;">The African business directory for the US diaspora.</p>
               <p style="font-size:11px;color:#9CA3AF;margin:0;">
                 © 2026 Markeetee &nbsp;·&nbsp;
                 <a href="https://markeetee.com/privacy" style="color:#9CA3AF;text-decoration:none;">Privacy</a> &nbsp;·&nbsp;

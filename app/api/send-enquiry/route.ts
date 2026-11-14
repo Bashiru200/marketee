@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
   <tr><td style="background:#FAFAF9;border-top:1px solid #E5E7EB;padding:24px;text-align:center;">
     <p style="margin:0 0 4px;font-size:13px;color:#6B7280;">This enquiry was sent via <strong>Markeetee</strong></p>
-    <p style="margin:0;font-size:12px;color:#9CA3AF;">markeetee.com · Africa is here. Find it.</p>
+    <p style="margin:0;font-size:12px;color:#9CA3AF;">markeetee.com</p>
   </td></tr>
 
 </table>
