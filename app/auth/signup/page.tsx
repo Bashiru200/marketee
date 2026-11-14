@@ -6,7 +6,7 @@ import {
   type FormEvent,
 } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowRight,
   Building2,
@@ -188,10 +188,13 @@ const PANEL_CONTENT = {
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
+  const initialRole = searchParams.get('role') === 'owner' ? 'owner' : null
+  const claimBusinessId = searchParams.get('claimBusinessId')
 
-  const [role, setRole] = useState<Role | null>(null)
-  const [step, setStep] = useState<Step>(0)
+  const [role, setRole] = useState<Role | null>(initialRole)
+  const [step, setStep] = useState<Step>(initialRole ? 1 : 0)
 
   const [form, setForm] =
     useState<AccountForm>(INITIAL_FORM)
@@ -388,6 +391,9 @@ export default function SignupPage() {
 
     callbackUrl.searchParams.set('intent', 'signup')
     callbackUrl.searchParams.set('role', selectedRole)
+    if (claimBusinessId) {
+      callbackUrl.searchParams.set('next', `/businesses/${claimBusinessId}?claim=1`)
+    }
 
     const { error: oauthError } =
       await supabase.auth.signInWithOAuth({
@@ -432,6 +438,9 @@ export default function SignupPage() {
 
       callbackUrl.searchParams.set('intent', 'signup')
       callbackUrl.searchParams.set('role', role)
+      if (claimBusinessId) {
+        callbackUrl.searchParams.set('next', `/businesses/${claimBusinessId}?claim=1`)
+      }
 
       const {
         data,
@@ -492,6 +501,11 @@ export default function SignupPage() {
           'Profile creation failed:',
           profileError,
         )
+      }
+
+      if (claimBusinessId) {
+        router.push(`/businesses/${claimBusinessId}?claim=1`)
+        return
       }
 
       setStep(2)
@@ -579,7 +593,7 @@ export default function SignupPage() {
           verified: false,
           premium: false,
           featured: false,
-          plan: 'free',
+          plan: 'starter',
           status: 'active',
         })
         .select('id')

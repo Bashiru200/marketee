@@ -7,12 +7,19 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Eye, Star, MessageSquare, MapPin, Edit, BadgeCheck,
-  Plus, ArrowUpRight, Save, Loader2, Clock, Calendar,
+  ArrowUpRight, Save, Loader2, Clock,
   Lightbulb, CheckCircle2, Menu, X, LayoutDashboard,
-  Package, BarChart2, Building2, Tag, Mail, Zap, Crown,
+  Package, BarChart2, Tag, Mail, Zap, Crown,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
+import {
+  PLAN_PRICES,
+  canAccess as canAccessFeature,
+  maxPhotos,
+  maxProducts,
+  type Feature,
+} from '@/lib/planGate'
 import ImageUpload        from '@/components/ui/ImageUpload'
 import ProductManager     from '@/components/dashboard/ProductManager'
 import GalleryUploader    from '@/components/dashboard/GalleryUploader'
@@ -42,14 +49,14 @@ type Billing = 'monthly' | 'annual'
 type TabId   = 'overview' | 'listing' | 'products' | 'analytics' | 'locations' | 'promotions' | 'enquiries' | 'reviews' | 'upgrade'
 
 // ── Sidebar nav items ─────────────────────────────────────────────────────
-const NAV_ITEMS: { id: TabId; label: string; icon: React.ElementType; planRequired?: PlanId }[] = [
+const NAV_ITEMS: { id: TabId; label: string; icon: React.ElementType; feature?: Feature; planRequired?: PlanId }[] = [
   { id:'overview',   label:'Overview',    icon: LayoutDashboard },
   { id:'listing',    label:'Listing',     icon: Edit            },
-  { id:'products',   label:'Products',    icon: Package         },
-  { id:'analytics',  label:'Analytics',   icon: BarChart2,    planRequired:'growth'    },
-  { id:'locations',  label:'Locations',   icon: MapPin,       planRequired:'pro_store' },
-  { id:'promotions', label:'Promotions',  icon: Tag,          planRequired:'pro_store' },
-  { id:'enquiries',  label:'Enquiries',   icon: Mail,         planRequired:'pro_store' },
+  { id:'products',   label:'Products',    icon: Package,      feature:'products',           planRequired:'growth'    },
+  { id:'analytics',  label:'Analytics',   icon: BarChart2,    feature:'analytics_basic',    planRequired:'growth'    },
+  { id:'locations',  label:'Locations',   icon: MapPin,       feature:'multiple_locations', planRequired:'pro_store' },
+  { id:'promotions', label:'Promotions',  icon: Tag,          feature:'promotions',         planRequired:'pro_store' },
+  { id:'enquiries',  label:'Enquiries',   icon: Mail,         feature:'lead_enquiry_form',  planRequired:'pro_store' },
   { id:'reviews',    label:'Reviews',     icon: Star            },
   { id:'upgrade',    label:'Upgrade',     icon: Crown           },
 ]
@@ -65,7 +72,15 @@ function planLabel(plan: PlanId) {
   return plan === 'pro_store' ? 'Pro Store' : plan === 'growth' ? 'Growth' : 'Starter'
 }
 
-function canAccess(userPlan: PlanId, required?: PlanId): boolean {
+function isLaunchExpired(biz: Pick<Business, 'plan' | 'plan_expires_at'>) {
+  return biz.plan === 'pro_store' && !!biz.plan_expires_at && new Date(biz.plan_expires_at) < new Date()
+}
+
+function effectivePlan(biz: Pick<Business, 'plan' | 'plan_expires_at'>): PlanId {
+  return isLaunchExpired(biz) ? 'starter' : normalizePlan(biz.plan)
+}
+
+function canAccessPlan(userPlan: PlanId, required?: PlanId): boolean {
   if (!required) return true
   // Launch mode — all features unlocked during beta/launch period
   if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'true') return true
@@ -87,16 +102,63 @@ function getPlans(currentPlan: string | null) {
     {
       id: 'growth' as PlanId,
       name: '🟡 Growth', subtitle: 'Reach more customers',
-      monthlyPrice: 29, annualPrice: 23,
+      monthlyPrice: PLAN_PRICES.growth.monthly, annualPrice: PLAN_PRICES.growth.annual,
       highlight: true, current: plan === 'growth',
       features: ['Everything in Starter','Priority search','Up to 20 photos','Products & menu','Analytics','Verified badge','Priority support'],
     },
     {
       id: 'pro_store' as PlanId,
       name: '🔵 Pro Store', subtitle: 'Your full digital storefront',
-      monthlyPrice: 49, annualPrice: 39,
+      monthlyPrice: PLAN_PRICES.pro_store.monthly, annualPrice: PLAN_PRICES.pro_store.annual,
       highlight: false, current: plan === 'pro_store',
       features: ['Everything in Growth','Custom store URL','Unlimited photos & products','Advanced analytics','Promotions','Lead enquiry form','Multiple locations','Product reviews','Dedicated support'],
+    },
+  ]
+}
+
+function formatLimit(limit: number) {
+  return Number.isFinite(limit) ? String(limit) : 'Unlimited'
+}
+
+function nextPlanFor(plan: PlanId) {
+  return plan === 'starter' ? 'growth' : plan === 'growth' ? 'pro_store' : null
+}
+
+function getSubscriptionHighlights(biz: Business, products: Product[]) {
+  const plan = effectivePlan(biz)
+  const photoCount = (biz.cover_image ? 1 : 0) + (biz.images?.length ?? 0)
+  const productLimit = maxProducts(plan)
+  const photoLimit = maxPhotos(plan)
+  const upgrade = nextPlanFor(plan)
+
+  return [
+    {
+      label: 'Plan',
+      value: planLabel(plan),
+      detail: isLaunchExpired(biz) ? 'Launch access ended' : biz.plan_interval === 'launch' ? 'Launch access active' : biz.plan_status ?? 'Active',
+      tone: plan,
+    },
+    {
+      label: 'Photos',
+      value: `${photoCount}/${formatLimit(photoLimit)}`,
+      detail: plan === 'starter' ? 'Starter includes cover photo only' : 'Use strong product and storefront photos',
+      tone: photoCount >= Math.min(photoLimit, 3) ? 'pro_store' : 'starter',
+    },
+    {
+      label: 'Products',
+      value: `${products.length}/${formatLimit(productLimit)}`,
+      detail: productLimit === 0 ? 'Upgrade to Growth to add products' : 'Keep your menu or catalog fresh',
+      tone: productLimit === 0 ? 'starter' : 'growth',
+    },
+    {
+      label: 'Next best action',
+      value: upgrade ? `Upgrade to ${planLabel(upgrade)}` : 'Fully unlocked',
+      detail: upgrade === 'growth'
+        ? 'Unlock products, gallery, analytics and verification'
+        : upgrade === 'pro_store'
+        ? 'Unlock custom URL, enquiries, promotions and locations'
+        : 'You have the full storefront toolkit',
+      tone: upgrade ? 'growth' : 'pro_store',
     },
   ]
 }
@@ -131,19 +193,6 @@ interface Product {
   description: string | null; image_url: string | null; available: boolean
 }
 
-// ── Profile strength ──────────────────────────────────────────────────────
-function getRecommendations(biz: Business, reviews: Review[], products: Product[]) {
-  return [
-    { icon:'🖼️', title:'Add a cover photo',       done: !!biz.cover_image },
-    { icon:'📝', title:'Write a description',       done: !!(biz.description && biz.description.length > 50) },
-    { icon:'📦', title:'Add at least 3 products',  done: products.length >= 3 },
-    { icon:'🕐', title:'Set your opening hours',   done: !!(biz.hours_open && biz.days_open?.length) },
-    { icon:'📍', title:'Complete your address',    done: !!(biz.street ?? biz.address) && !!biz.city },
-    { icon:'⭐', title:'Get your first 5 reviews', done: reviews.length >= 5 },
-    { icon:'📱', title:'Add your phone number',    done: !!biz.phone },
-  ]
-}
-
 // ── Sidebar component ─────────────────────────────────────────────────────
 function Sidebar({
   tab, setTab, biz, mobileOpen, setMobileOpen,
@@ -154,7 +203,7 @@ function Sidebar({
   mobileOpen: boolean
   setMobileOpen: (v: boolean) => void
 }) {
-  const plan = normalizePlan(biz.plan)
+  const plan = effectivePlan(biz)
 
   const content = (
     <div className="flex flex-col h-full">
@@ -180,8 +229,10 @@ function Sidebar({
 
       {/* Nav items */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ id, label, icon: Icon, planRequired }) => {
-          const locked  = !canAccess(plan, planRequired)
+        {NAV_ITEMS.map(({ id, label, icon: Icon, feature, planRequired }) => {
+          const locked  = feature
+            ? !canAccessFeature(plan, feature, biz.plan_expires_at)
+            : !canAccessPlan(plan, planRequired)
           const active  = tab === id
           return (
             <button key={id} type="button"
@@ -240,19 +291,23 @@ function Sidebar({
 }
 
 // ── Plan gate ─────────────────────────────────────────────────────────────
-function PlanGate({ plan, featureName, requiredPlan = 'pro_store', children, onUpgrade }: {
+function PlanGate({ plan, featureName, requiredPlan = 'pro_store', expiresAt, feature, children, onUpgrade }: {
   plan: string | null; featureName: string; requiredPlan?: PlanId
+  expiresAt?: string | null; feature?: Feature
   children: React.ReactNode; onUpgrade: () => void
 }) {
   const current = normalizePlan(plan)
-  if (canAccess(current, requiredPlan)) return <>{children}</>
+  const hasAccess = feature
+    ? canAccessFeature(current, feature, expiresAt)
+    : canAccessPlan(current, requiredPlan)
+  if (hasAccess) return <>{children}</>
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
       <div className="text-5xl mb-4">🔒</div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">Upgrade required</h2>
       <p className="text-sm text-gray-500 mb-6">
         {featureName} is available on the{' '}
-        <strong>{requiredPlan === 'growth' ? 'Growth ($29/mo)' : 'Pro Store ($49/mo)'}</strong> plan.
+        <strong>{requiredPlan === 'growth' ? `Growth ($${PLAN_PRICES.growth.monthly}/mo)` : `Pro Store ($${PLAN_PRICES.pro_store.monthly}/mo)`}</strong> plan.
       </p>
       <button onClick={onUpgrade}
         className="text-sm font-semibold text-white px-6 py-3 rounded-xl hover:opacity-90"
@@ -411,7 +466,7 @@ export default function DashboardPage() {
     if (!biz) return
     const cleaned = slugInput.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')
     if (!cleaned) { setSlugMsg({ text:'Enter a valid store name', ok:false }); return }
-    if (normalizePlan(biz.plan) !== 'pro_store') {
+    if (effectivePlan(biz) !== 'pro_store') {
       setSlugMsg({ text:'Upgrade to Pro Store to use a custom URL', ok:false }); return
     }
     setSlugSaving(true); setSlugMsg(null)
@@ -491,9 +546,8 @@ export default function DashboardPage() {
     </div>
   )
 
-  const plan = normalizePlan(biz.plan)
-  const recs = getRecommendations(biz, reviews, products)
-  const profileScore = Math.round((recs.filter(r => r.done).length / recs.length) * 100)
+  const plan = effectivePlan(biz)
+  const subscriptionHighlights = getSubscriptionHighlights(biz, products)
 
   return (
     <div className="min-h-screen" style={{ background:'#FBF7EF' }}>
@@ -565,6 +619,57 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-400 mt-1">{label}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* Subscription-aware recommendations */}
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#E1F5EE' }}>
+                        <Zap size={16} style={{ color:'#1D9E75' }} />
+                      </div>
+                      <div>
+                        <h2 className="font-semibold text-gray-900">Subscription snapshot</h2>
+                        <p className="text-xs text-gray-400">What your current plan unlocks right now</p>
+                      </div>
+                    </div>
+                    {nextPlanFor(plan) && (
+                      <button onClick={() => setTab('upgrade')}
+                        className="text-xs font-semibold text-white px-3 py-2 rounded-xl"
+                        style={{ background:'#085041' }}>
+                        Upgrade
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 p-5">
+                    {subscriptionHighlights.map(item => (
+                      <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{item.label}</p>
+                        <p className="mt-1 text-lg font-black text-gray-900">{item.value}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-500">{item.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {plan === 'starter' && (
+                    <div className="mx-5 mb-5 rounded-xl border border-amber-100 bg-amber-50 p-4">
+                      <div className="flex items-start gap-2">
+                        <Lightbulb size={15} className="mt-0.5 flex-shrink-0 text-amber-600" />
+                        <p className="text-xs leading-relaxed text-amber-800">
+                          Recommended next step: move to Growth when you are ready to sell from your listing. It unlocks products, a larger photo gallery, analytics, priority search, and the verified badge.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {plan === 'growth' && (
+                    <div className="mx-5 mb-5 rounded-xl border border-green-100 bg-green-50 p-4">
+                      <div className="flex items-start gap-2">
+                        <Lightbulb size={15} className="mt-0.5 flex-shrink-0 text-green-700" />
+                        <p className="text-xs leading-relaxed text-green-800">
+                          Recommended next step: upgrade to Pro Store if you need direct lead enquiries, promotions, multiple locations, unlimited products/photos, or a custom store URL.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Visibility Score */}
@@ -668,6 +773,7 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <GalleryUploader businessId={biz.id}
                       coverImage={form.cover_image || null} images={form.images}
+                      maxGallery={plan === 'pro_store' ? 50 : Math.max(0, maxPhotos(plan) - 1)}
                       onChange={({ cover_image, images }) => {
                         upd('cover_image', cover_image ?? '')
                         upd('images', images)
@@ -869,32 +975,36 @@ export default function DashboardPage() {
             )}
 
             {/* ── PRODUCTS ── */}
-            {tab === 'products' && <ProductManager businessId={biz.id} />}
+            {tab === 'products' && (
+              <PlanGate plan={biz.plan} expiresAt={biz.plan_expires_at} feature="products" featureName="Products" requiredPlan="growth" onUpgrade={() => setTab('upgrade')}>
+                <ProductManager businessId={biz.id} maxProducts={maxProducts(plan)} />
+              </PlanGate>
+            )}
 
             {/* ── ANALYTICS ── */}
             {tab === 'analytics' && (
-              <PlanGate plan={biz.plan} featureName="Analytics" requiredPlan="growth" onUpgrade={() => setTab('upgrade')}>
+              <PlanGate plan={biz.plan} expiresAt={biz.plan_expires_at} feature="analytics_basic" featureName="Analytics" requiredPlan="growth" onUpgrade={() => setTab('upgrade')}>
                 <AnalyticsDashboard businessId={biz.id} />
               </PlanGate>
             )}
 
             {/* ── LOCATIONS ── */}
             {tab === 'locations' && (
-              <PlanGate plan={biz.plan} featureName="Multiple locations" onUpgrade={() => setTab('upgrade')}>
+              <PlanGate plan={biz.plan} expiresAt={biz.plan_expires_at} feature="multiple_locations" featureName="Multiple locations" onUpgrade={() => setTab('upgrade')}>
                 <LocationsManager businessId={biz.id} />
               </PlanGate>
             )}
 
             {/* ── PROMOTIONS ── */}
             {tab === 'promotions' && (
-              <PlanGate plan={biz.plan} featureName="Promotions" onUpgrade={() => setTab('upgrade')}>
+              <PlanGate plan={biz.plan} expiresAt={biz.plan_expires_at} feature="promotions" featureName="Promotions" onUpgrade={() => setTab('upgrade')}>
                 <PromotionsManager businessId={biz.id} />
               </PlanGate>
             )}
 
             {/* ── ENQUIRIES ── */}
             {tab === 'enquiries' && (
-              <PlanGate plan={biz.plan} featureName="Lead enquiries" onUpgrade={() => setTab('upgrade')}>
+              <PlanGate plan={biz.plan} expiresAt={biz.plan_expires_at} feature="lead_enquiry_form" featureName="Lead enquiries" onUpgrade={() => setTab('upgrade')}>
                 <LeadInbox businessId={biz.id} />
               </PlanGate>
             )}

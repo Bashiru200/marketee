@@ -3,59 +3,91 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { businessMessageTemplate } from '@/lib/emailTemplates'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-
 interface LinkButton { label: string; url: string }
+
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status })
+}
+
+function cleanText(value: unknown, maxLength: number) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+}
+
+function isEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function cleanLinks(value: unknown): LinkButton[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map(link => ({
+      label: cleanText(link?.label, 30),
+      url: cleanText(link?.url, 2048),
+    }))
+    .filter(link => link.label && link.url)
+    .slice(0, 3)
+}
+
+function cleanImages(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map(image => cleanText(image, 2048))
+    .filter(Boolean)
+    .slice(0, 5)
+}
 
 export async function POST(request: Request) {
   try {
-    const {
-      to, toName, subject, body,
-      images, links, fromBusiness, businessCategory, businessSubcategory, businessId,
-    } = await request.json() as {
-      to:           string
-      toName:       string
-      subject:      string
-      body:         string
-      images?:      string[]
-      links?:       LinkButton[]
-      fromBusiness: string
-      businessCategory?: string | null
-      businessSubcategory?: string | null
-      businessId?:  string
-    }
+    const payload = await request.json()
+    const to = cleanText(payload.to, 320).toLowerCase()
+    const toName = cleanText(payload.toName, 120)
+    const subject = cleanText(payload.subject, 150)
+    const body = cleanText(payload.body, 10000)
+    const fromBusiness = cleanText(payload.fromBusiness, 160)
+    const businessCategory = cleanText(payload.businessCategory, 80) || null
+    const businessSubcategory = cleanText(payload.businessSubcategory, 80) || null
+    const businessId = cleanText(payload.businessId, 120)
+    const images = cleanImages(payload.images)
+    const links = cleanLinks(payload.links)
 
-    if (!to || !subject || !body) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+    if (!to || !subject || !body || !fromBusiness) return jsonError('Missing required fields', 400)
+    if (!isEmail(to)) return jsonError('Enter a valid recipient email address', 400)
+
+    const resendKey = process.env.RESEND_API_KEY
+    const from = process.env.EMAIL_FROM
+
+    if (!resendKey || !from) return jsonError('Email provider is not configured', 500)
 
     const { html } = businessMessageTemplate({
-      recipientName:  toName,
-      businessName:   fromBusiness,
-      messageBody:    body,
-      images:         images ?? [],
-      links:          links ?? [],
+      recipientName: toName || 'there',
+      businessName: fromBusiness,
+      messageBody: body,
+      images,
+      links,
       businessCategory,
       businessSubcategory,
       businessId,
     })
 
+    const resend = new Resend(resendKey)
     const { data, error } = await resend.emails.send({
-      from:    process.env.EMAIL_FROM!,
+      from,
       to,
       subject,
       html,
-      replyTo: process.env.EMAIL_FROM,
+      replyTo: from,
     })
 
     if (error) {
       console.error('[send-email] Resend error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return jsonError(error.message || 'Email provider rejected the message', 502)
     }
 
     return NextResponse.json({ id: data?.id })
   } catch (err) {
     console.error('[send-email] Error:', err)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return jsonError('Failed to send email', 500)
   }
 }

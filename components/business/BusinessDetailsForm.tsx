@@ -1,9 +1,9 @@
 'use client'
-import { AFRICAN_FLAGS, getCountryFlag } from '@/lib/africanFlags'
+import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useState } from 'react'
 import {
-  Building2, MapPin, Phone, Mail, Globe, Home,
-  Tag, DollarSign, Clock, Image as ImageIcon
+  Building2, Phone, Mail, Globe, Home,
+  Tag, DollarSign, Clock,
 } from 'lucide-react'
 import ImageUpload from '@/components/ui/ImageUpload'
 import { useFormValidation } from '@/lib/useFormValidation'
@@ -131,9 +131,11 @@ export default function BusinessDetailsForm({
     ...EMPTY_BUSINESS_FORM,
     ...initialValues,
   })
+  const [contactError, setContactError] = useState('')
 
   function upd<K extends keyof BusinessFormValues>(key: K, value: BusinessFormValues[K]) {
     setForm(f => ({ ...f, [key]: value }))
+    if (key === 'phone' || key === 'email' || key === 'website') setContactError('')
   }
 
   // ── Inline UI validation — no native browser popups ─────────────────────
@@ -141,10 +143,8 @@ export default function BusinessDetailsForm({
   const { errors, validate, validateAll, clearError } = useFormValidation({
     name:     { required: true, label: 'Business name' },
     category: { required: true, label: 'Category' },
-    country:  { required: true, label: 'Country of origin' },
     city:     { required: requiresPhysical, label: 'City' },
     state:    { required: requiresPhysical, label: 'State' },
-    phone:    { required: true, label: 'Phone number' },
   })
 
   function toggleDay(day: string) {
@@ -159,10 +159,13 @@ export default function BusinessDetailsForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const isValid = validateAll({
-      name: form.name, category: form.category, country: form.country,
-      city: form.city, state: form.state, phone: form.phone,
+      name: form.name, category: form.category,
+      city: form.city, state: form.state,
     })
+    const hasContact = !!(form.phone.trim() || form.email.trim() || form.website.trim())
+    if (!hasContact) setContactError('Add at least one contact method: phone, email, or website.')
     if (!isValid) return
+    if (!hasContact) return
     onSubmit(form)
   }
 
@@ -182,6 +185,10 @@ export default function BusinessDetailsForm({
         label="Business cover photo (optional)" />
 
       {/* ══════════ Basic info ══════════ */}
+      <div className="rounded-xl border border-green-100 bg-green-50 p-4 text-xs leading-relaxed text-green-900">
+        Start with the essentials: business name, category, location/search area, and one contact method. Photos, hours, tags, logo, and description can be completed later from your dashboard.
+      </div>
+
       <p className={sectionCls} style={{ color:'#085041' }}>Basic information</p>
 
       <div>
@@ -235,22 +242,20 @@ export default function BusinessDetailsForm({
       </div>
 
       <div>
-        <label className={labelCls}>Description <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+        <label className={labelCls}>Description <span className="font-normal normal-case text-gray-400">(optional - complete later)</span></label>
         <textarea value={form.description} onChange={e => upd('description', e.target.value)}
           placeholder="Tell customers about your business..." rows={3}
           className={`${inputCls} resize-none`} />
       </div>
 
       <div>
-        <label className={labelCls}>Country of origin *</label>
+        <label className={labelCls}>Country of origin <span className="font-normal normal-case text-gray-400">(optional)</span></label>
         <select value={form.country}
-          onChange={e => { upd('country', e.target.value); clearError('country') }}
-          onBlur={() => validate('country', form.country)}
+          onChange={e => upd('country', e.target.value)}
           className={inputCls}>
           <option value="">Select country</option>
           {Object.entries(AFRICAN_FLAGS).map(([name, flag]) => <option key={name} value={name}>{flag} {name}</option>)}
         </select>
-        {errors.country && <FieldError message={errors.country} />}
       </div>
 
       {/* ══════════ Location ══════════ */}
@@ -285,7 +290,7 @@ export default function BusinessDetailsForm({
 
       {(form.location_type === 'physical' || form.location_type === 'both') && (
       <div>
-        <label className={labelCls}>Street address {form.location_type === 'both' ? '*' : <span className="font-normal normal-case text-gray-400">(optional)</span>}</label>
+        <label className={labelCls}>Street address <span className="font-normal normal-case text-gray-400">(optional)</span></label>
         <div className="relative">
           <Home size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input type="text" value={form.street} onChange={e => upd('street', e.target.value)}
@@ -325,7 +330,7 @@ export default function BusinessDetailsForm({
           <p className="text-sm font-semibold" style={{ color: '#085041' }}>💻 Online only</p>
           <p className="text-xs mt-1" style={{ color: '#085041', opacity: 0.7 }}>
             Great — customers will reach you through your website, phone, or online store links below.
-            You won't appear on the map, but you'll show up in search and category listings.
+            You won&apos;t appear on the map, but you&apos;ll show up in search and category listings.
           </p>
         </div>
       )}
@@ -334,15 +339,14 @@ export default function BusinessDetailsForm({
       <p className={sectionCls} style={{ color:'#085041' }}>Contact</p>
 
       <div>
-        <label className={labelCls}>Phone number *</label>
+        <label className={labelCls}>Phone number <span className="font-normal normal-case text-gray-400">(phone, email, or website required)</span></label>
         <div className="relative">
           <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input type="tel" value={form.phone}
             onChange={e => { upd('phone', e.target.value); clearError('phone') }}
-            onBlur={() => validate('phone', form.phone)}
             placeholder="Used for WhatsApp & calls" className={`${inputCls} pl-9`} />
         </div>
-        {errors.phone && <FieldError message={errors.phone} />}
+        {contactError && <FieldError message={contactError} />}
       </div>
 
       <div className="grid grid-cols-2 gap-3">

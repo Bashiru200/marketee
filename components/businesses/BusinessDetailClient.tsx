@@ -2,7 +2,7 @@
 
 import { AFRICAN_FLAGS } from '@/lib/africanFlags'
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -168,6 +168,7 @@ export default function BusinessDetailClient({
   initialProducts?: any[]
 }) {
   const supabase = createClient()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
 
   const [biz,             setBiz]             = useState<any>(initialBusiness)
@@ -176,7 +177,7 @@ export default function BusinessDetailClient({
   const [loading,         setLoading]         = useState(!initialBusiness)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [galleryIdx,      setGalleryIdx]      = useState<number | null>(null)
-  const [showClaim,       setShowClaim]       = useState(false)
+  const [showClaim,       setShowClaim]       = useState(searchParams.get('claim') === '1')
   const [copied,          setCopied]          = useState(false)
 
   const loadAll = useCallback(async () => {

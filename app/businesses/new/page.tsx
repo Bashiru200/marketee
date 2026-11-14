@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -77,7 +76,6 @@ const BRAND = {
 
 // ── Main component ────────────────────────────────────────────────────────
 export default function BusinessNewPage() {
-  const router   = useRouter()
   const supabase = createClient()
   const { user, isLoggedIn } = useAuth()
 
@@ -93,11 +91,14 @@ export default function BusinessNewPage() {
   // Pre-fill for logged-in users
   React.useEffect(() => {
     if (isLoggedIn && user) {
-      setForm(f => ({
-        ...f,
-        accountEmail: user.email ?? '',
-        ownerName:    (user.user_metadata as any)?.name ?? '',
-      }))
+      const metadata = user.user_metadata as { name?: string } | null
+      queueMicrotask(() => {
+        setForm(f => ({
+          ...f,
+          accountEmail: user.email ?? '',
+          ownerName:    metadata?.name ?? '',
+        }))
+      })
     }
   }, [isLoggedIn, user])
 
@@ -117,14 +118,12 @@ export default function BusinessNewPage() {
     if (!form.businessName.trim())               return 'Enter your business name.'
     if (!form.category)                          return 'Select a business category.'
     if (hasPhysicalLocation) {
-      if (!form.address.trim())                  return 'Enter the physical business address.'
       if (!form.city.trim())                     return 'Enter the business city.'
       if (!form.state)                           return 'Select the business state.'
-      if (!form.zipCode.trim())                  return 'Enter the business ZIP code.'
     }
-    if (hasOnlineLocation && !form.website.trim()) return 'Enter the website for your online business.'
-    if (!form.phone.trim())                      return 'Enter the business phone number.'
-    if (form.description.trim().length < 40)     return 'Write a business description of at least 40 characters.'
+    if (!form.phone.trim() && !form.businessEmail.trim() && !form.website.trim()) {
+      return 'Add at least one contact method: phone, business email, or website.'
+    }
     if (!form.ownerName.trim())                  return 'Enter your full name.'
     if (!isLoggedIn) {
       if (!form.accountEmail.trim())             return 'Enter the email you will use to sign in.'
@@ -191,7 +190,7 @@ export default function BusinessNewPage() {
           state:       hasPhysicalLocation ? form.state         : null,
           zip:         hasPhysicalLocation ? form.zipCode       : null,
           country:     form.country || null,
-          phone:       form.phone,
+          phone:       form.phone || null,
           email:       form.businessEmail || null,
           website:     form.website || null,
           cover_image: coverUrl,
@@ -272,7 +271,7 @@ export default function BusinessNewPage() {
 
                 {/* ── Business info ── */}
                 <FormSection icon={Store} title="Business information"
-                  description="Tell us about your business — this is what customers will see.">
+                  description="Start with the essentials. You can add photos, products, hours, and richer details later from your dashboard.">
                   <FormField label="Business name" required className="sm:col-span-2">
                     <TextInput value={form.businessName}
                       onChange={v => updateField('businessName', v)}
@@ -296,12 +295,12 @@ export default function BusinessNewPage() {
                       icon={Globe2} />
                   </FormField>
 
-                  <FormField label="Description" required className="sm:col-span-2"
+                  <FormField label="Description" className="sm:col-span-2"
                     hint={`${form.description.length}/500`}>
                     <textarea value={form.description}
                       onChange={e => updateField('description', e.target.value)}
                       placeholder="What makes your business special? What do customers love about you?"
-                      required rows={4} maxLength={500}
+                      rows={4} maxLength={500}
                       className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none" />
                   </FormField>
                 </FormSection>
@@ -320,10 +319,10 @@ export default function BusinessNewPage() {
 
                   {hasPhysicalLocation && (
                     <>
-                      <FormField label="Street address" required className="sm:col-span-2">
+                      <FormField label="Street address" className="sm:col-span-2">
                         <TextInput value={form.address}
                           onChange={v => updateField('address', v)}
-                          placeholder="123 Main Street" icon={MapPin} required />
+                          placeholder="123 Main Street" icon={MapPin} />
                       </FormField>
                       <FormField label="Suite / apt (optional)" className="sm:col-span-2">
                         <TextInput value={form.addressLine2}
@@ -338,21 +337,20 @@ export default function BusinessNewPage() {
                           onChange={v => updateField('state', v)}
                           options={US_STATES} placeholder="Select state" required />
                       </FormField>
-                      <FormField label="ZIP code" required>
+                      <FormField label="ZIP code">
                         <TextInput value={form.zipCode}
                           onChange={v => updateField('zipCode', v)}
-                          placeholder="28215" required inputMode="numeric" />
+                          placeholder="28215" inputMode="numeric" />
                       </FormField>
                     </>
                   )}
 
                   {hasOnlineLocation && (
                     <>
-                      <FormField label="Website URL" required={hasOnlineLocation} className="sm:col-span-2">
+                      <FormField label="Website URL" className="sm:col-span-2">
                         <TextInput value={form.website}
                           onChange={v => updateField('website', v)}
                           placeholder="https://yourbusiness.com" icon={Globe2}
-                          required={hasOnlineLocation && !hasPhysicalLocation}
                           type="url" />
                       </FormField>
                       <FormField label="Online ordering URL (optional)" className="sm:col-span-2">
@@ -366,12 +364,12 @@ export default function BusinessNewPage() {
 
                 {/* ── Contact ── */}
                 <FormSection icon={Phone} title="How can customers reach you?"
-                  description="At least one contact method is required.">
-                  <FormField label="Phone number" required>
+                  description="Add one contact method now. More can be added later.">
+                  <FormField label="Phone number" hint="Phone, email, or website required">
                     <TextInput value={form.phone}
                       onChange={v => updateField('phone', v)}
                       placeholder="(704) 555-1234" icon={Phone}
-                      required inputMode="tel" type="tel" />
+                      inputMode="tel" type="tel" />
                   </FormField>
                   <FormField label="Public business email">
                     <TextInput value={form.businessEmail}
@@ -401,7 +399,7 @@ export default function BusinessNewPage() {
 
                 {/* ── Owner info ── */}
                 <FormSection icon={UserRound} title="About you"
-                  description={isLoggedIn ? "Confirm your name for your business listing." : "You'll manage the listing with this account."}>
+                  description={isLoggedIn ? "Confirm your name for your business listing." : "Use this account to manage the listing."}>
                   <FormField label="Your full name" required>
                     <TextInput value={form.ownerName}
                       onChange={v => updateField('ownerName', v)}
@@ -450,7 +448,7 @@ export default function BusinessNewPage() {
                     onChange={e => updateField('agreed', e.target.checked)}
                     className="mt-0.5 h-5 w-5 flex-shrink-0 rounded accent-emerald-600" />
                   <span className="text-sm text-gray-700 leading-relaxed">
-                    I agree to Markeetee's{' '}
+                    I agree to Markeetee&apos;s{' '}
                     <Link href="/terms" className="font-bold underline" style={{ color: BRAND.primary }}>
                       Terms of Service
                     </Link>{' '}

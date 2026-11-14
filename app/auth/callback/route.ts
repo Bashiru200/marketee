@@ -72,6 +72,8 @@ export async function GET(req: NextRequest) {
           })
         } catch {}
 
+        if (next) return NextResponse.redirect(`${origin}${next}`)
+
         // ── Route based on the chosen role ────────────────────────────────
         if (chosenRole === 'owner') {
           return NextResponse.redirect(`${origin}/businesses/new?welcome=1`)

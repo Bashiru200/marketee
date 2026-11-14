@@ -33,11 +33,16 @@ const EMPTY: Omit<Product, 'id' | 'like_count' | 'rating_avg'> = {
   image_url: null, images: [], available: true,
 }
 
-interface Props { businessId: string }
+type ProductForm = typeof EMPTY
+
+interface Props {
+  businessId: string
+  maxProducts?: number
+}
 
 const MAX_EXTRA = 5
 
-export default function ProductManager({ businessId }: Props) {
+export default function ProductManager({ businessId, maxProducts = Infinity }: Props) {
   const supabase = createClient()
   const { user } = useAuth()
 
@@ -75,8 +80,8 @@ export default function ProductManager({ businessId }: Props) {
   const [notifySending, setNotifySending] = useState(false)
   const [notifyResult,  setNotifyResult]  = useState<{ sent: number } | null>(null)
 
-  function upd(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
-  function updInline(k: string, v: any) { setInlineForm(f => ({ ...f, [k]: v })) }
+  function upd<K extends keyof ProductForm>(k: K, v: ProductForm[K]) { setForm(f => ({ ...f, [k]: v })) }
+  function updInline<K extends keyof ProductForm>(k: K, v: ProductForm[K]) { setInlineForm(f => ({ ...f, [k]: v })) }
 
   function showToast(msg: string, type: 'success' | 'error' = 'success') {
     setToast({ msg, type })
@@ -122,6 +127,10 @@ export default function ProductManager({ businessId }: Props) {
 
   // ── Open add form ─────────────────────────────────────────────────────
   function openAdd() {
+    if (products.length >= maxProducts) {
+      showToast(`Your plan allows ${maxProducts} products. Upgrade for more.`, 'error')
+      return
+    }
     setEditing(null)
     setForm({ ...EMPTY })
     setImgFile(null); setImgPreview(null)
@@ -189,6 +198,11 @@ export default function ProductManager({ businessId }: Props) {
       setProducts(ps => ps.map(p => p.id === editing.id ? { ...p, ...payload } : p))
       showToast('Product updated')
     } else {
+      if (products.length >= maxProducts) {
+        showToast(`Your plan allows ${maxProducts} products. Upgrade for more.`, 'error')
+        setSaving(false)
+        return
+      }
       const { data, error } = await supabase.from('products')
         .insert({ ...payload, business_id: businessId })
         .select().single()
@@ -335,10 +349,13 @@ export default function ProductManager({ businessId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-bold text-gray-900">Products</h3>
-          <p className="text-xs text-gray-400">{products.length} listed</p>
+          <p className="text-xs text-gray-400">
+            {products.length} / {Number.isFinite(maxProducts) ? maxProducts : 'Unlimited'} listed
+          </p>
         </div>
         <button onClick={openAdd}
-          className="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2 rounded-xl"
+          disabled={products.length >= maxProducts}
+          className="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: '#1D9E75' }}>
           <Plus size={15} /> Add product
         </button>
@@ -358,7 +375,8 @@ export default function ProductManager({ businessId }: Props) {
           <p className="text-sm font-medium text-gray-500 mb-1">No products yet</p>
           <p className="text-xs text-gray-400 mb-4">Add products for customers to browse and enquire about</p>
           <button onClick={openAdd}
-            className="text-sm font-semibold text-white px-4 py-2 rounded-xl"
+            disabled={products.length >= maxProducts}
+            className="text-sm font-semibold text-white px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: '#1D9E75' }}>
             Add first product
           </button>
@@ -471,7 +489,7 @@ export default function ProductManager({ businessId }: Props) {
                       <div className="relative flex-1">
                         <DollarSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input type="number" min="0" step="0.01" value={inlineForm.price || ''}
-                          onChange={e => updInline('price', e.target.value)}
+                          onChange={e => updInline('price', Number(e.target.value))}
                           placeholder="Enter price" className={`${inputCls} pl-7`} />
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
@@ -507,7 +525,7 @@ export default function ProductManager({ businessId }: Props) {
                       <div className="relative">
                         <DollarSign size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input type="number" min="0" step="0.01" value={inlineForm.sale_price ?? ''}
-                          onChange={e => updInline('sale_price', e.target.value)}
+                          onChange={e => updInline('sale_price', e.target.value ? Number(e.target.value) : null)}
                           placeholder="Enter sale price" className={`${inputCls} pl-7`} />
                       </div>
                       <input type="text" value={inlineForm.sale_label ?? ''}
@@ -627,7 +645,7 @@ export default function ProductManager({ businessId }: Props) {
                   <div className="relative">
                     <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="number" min="0" step="0.01" value={form.price || ''}
-                      onChange={e => upd('price', e.target.value)}
+                      onChange={e => upd('price', Number(e.target.value))}
                       placeholder="Enter price" className={`${inputCls} pl-8`} />
                   </div>
                 </div>
@@ -660,7 +678,7 @@ export default function ProductManager({ businessId }: Props) {
                         <div className="relative">
                           <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input type="number" min="0" step="0.01" value={form.sale_price ?? ''}
-                            onChange={e => upd('sale_price', e.target.value)}
+                            onChange={e => upd('sale_price', e.target.value ? Number(e.target.value) : null)}
                             placeholder="0.00" className={`${inputCls} pl-8`} />
                         </div>
                         {form.sale_price && form.price && Number(form.sale_price) < Number(form.price) && (

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import {
   X, Building2, CheckCircle2, Loader2,
-  Shield, Phone, AlertCircle, RefreshCw
+  Shield, Phone, AlertCircle, RefreshCw, ArrowRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth'
@@ -19,11 +19,43 @@ interface Props {
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:border-transparent transition-all"
 
+function ClaimBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)' }}
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ClaimModalHeader({ title, subtitle, onClose }: { title: string; subtitle?: string; onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#E1F5EE' }}>
+          <Shield size={18} style={{ color:'#085041' }} />
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+        </div>
+      </div>
+      <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+        <X size={16} />
+      </button>
+    </div>
+  )
+}
+
 export default function ClaimBusinessModal({
   businessId, businessName, businessPhone, onClose,
 }: Props) {
   const supabase = createClient()
-  const { user, isLoggedIn, isOwner } = useAuth()
+  const { user, profile, isLoggedIn, isOwner } = useAuth()
 
   const [stage,       setStage]       = useState<Stage>('form')
   const [message,     setMessage]     = useState('')
@@ -155,45 +187,24 @@ export default function ClaimBusinessModal({
     }
   }
 
-  const Backdrop = ({ children }: { children: React.ReactNode }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)' }}
-      onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden"
-        onClick={e => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  )
-
-  const ModalHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-    <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#E1F5EE' }}>
-          <Shield size={18} style={{ color:'#085041' }} />
-        </div>
-        <div>
-          <h3 className="font-bold text-gray-900">{title}</h3>
-          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
-        </div>
-      </div>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-        <X size={16} />
-      </button>
-    </div>
-  )
-
   // ── Not logged in ─────────────────────────────────────────────────────
   if (!isLoggedIn) return (
-    <Backdrop>
+    <ClaimBackdrop onClose={onClose}>
       <div className="p-8 text-center">
         <Building2 size={36} className="mx-auto mb-4" style={{ color:'#1D9E75' }} />
-        <h3 className="text-lg font-bold text-gray-900 mb-2">Sign in to claim</h3>
-        <p className="text-sm text-gray-500 mb-6">You need an account to claim a business listing.</p>
-        <Link href="/auth/signup"
-          className="block text-sm font-semibold text-white py-2.5 rounded-xl mb-2"
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Claim this business in 2 steps</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Create a free owner account, then verify with the business phone number on this listing.
+        </p>
+        {businessPhone && (
+          <p className="mb-4 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-500">
+            Verification will use the listed business phone.
+          </p>
+        )}
+        <Link href={`/auth/signup?role=owner&claimBusinessId=${businessId}`}
+          className="flex items-center justify-center gap-2 text-sm font-semibold text-white py-2.5 rounded-xl mb-2"
           style={{ background:'#1D9E75' }} onClick={onClose}>
-          Create owner account
+          Create owner account <ArrowRight size={14} />
         </Link>
         <Link href="/auth/login"
           className="block text-sm font-medium text-gray-600 py-2 hover:text-green-700 transition-colors"
@@ -201,12 +212,12 @@ export default function ClaimBusinessModal({
           Sign in
         </Link>
       </div>
-    </Backdrop>
+    </ClaimBackdrop>
   )
 
   // ── Already an owner ─────────────────────────────────────────────────
-  if (isOwner) return (
-    <Backdrop>
+  if (isOwner && profile?.business_id) return (
+    <ClaimBackdrop onClose={onClose}>
       <div className="p-8 text-center">
         <Building2 size={36} className="mx-auto mb-4" style={{ color:'#1D9E75' }} />
         <h3 className="text-lg font-bold text-gray-900 mb-2">Already a business owner</h3>
@@ -215,23 +226,23 @@ export default function ClaimBusinessModal({
         </p>
         <button onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Close</button>
       </div>
-    </Backdrop>
+    </ClaimBackdrop>
   )
 
   // ── Stage: done ───────────────────────────────────────────────────────
   if (stage === 'done') return (
-    <Backdrop>
+    <ClaimBackdrop onClose={onClose}>
       <div className="p-8 text-center">
         <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background:'#E1F5EE' }}>
           <CheckCircle2 size={26} style={{ color:'#0F6E56' }} />
         </div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">Claim submitted!</h3>
         <p className="text-sm text-gray-500 mb-1 leading-relaxed">
-          Your phone verification was successful. We'll review your claim for
+          Your phone verification was successful. We&apos;ll review your claim for
         </p>
         <p className="text-sm font-semibold text-gray-900 mb-4">{businessName}</p>
         <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-          You'll receive an email once your claim is approved. This usually takes 1–2 business days.
+          You&apos;ll receive an email once your claim is approved. This usually takes 1–2 business days.
         </p>
         <button onClick={onClose}
           className="text-sm font-semibold text-white px-6 py-2.5 rounded-xl"
@@ -239,15 +250,16 @@ export default function ClaimBusinessModal({
           Done
         </button>
       </div>
-    </Backdrop>
+    </ClaimBackdrop>
   )
 
   // ── Stage: otp ────────────────────────────────────────────────────────
   if (stage === 'otp') return (
-    <Backdrop>
-      <ModalHeader
+    <ClaimBackdrop onClose={onClose}>
+      <ClaimModalHeader
         title="Phone verification"
         subtitle={`Step 2 of 2 — verify you own this business`}
+        onClose={onClose}
       />
       <div className="p-6">
         {/* Instructions */}
@@ -311,7 +323,7 @@ export default function ClaimBusinessModal({
               ) : resendCooldown > 0 ? (
                 `Resend code in ${resendCooldown}s`
               ) : (
-                'Didn\'t receive it? Resend code'
+                'Did not receive it? Resend code'
               )}
             </button>
           </div>
@@ -322,22 +334,34 @@ export default function ClaimBusinessModal({
           </button>
         </form>
       </div>
-    </Backdrop>
+    </ClaimBackdrop>
   )
 
   // ── Stage: form (default) ─────────────────────────────────────────────
   return (
-    <Backdrop>
-      <ModalHeader
+    <ClaimBackdrop onClose={onClose}>
+      <ClaimModalHeader
         title={`Claim ${businessName}`}
         subtitle="Step 1 of 2 — verify your ownership"
+        onClose={onClose}
       />
       <div className="p-6">
+        <div className="mb-5 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-green-100 bg-green-50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-green-800">Step 1</p>
+            <p className="mt-1 text-xs text-green-900">Confirm you represent this business.</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Step 2</p>
+            <p className="mt-1 text-xs text-gray-600">Enter the SMS code sent to the listed phone.</p>
+          </div>
+        </div>
+
         {/* Security notice */}
         <div className="flex items-start gap-3 p-4 rounded-xl mb-5" style={{ background:'#FEF3C7' }}>
           <Shield size={15} style={{ color:'#D97706' }} className="flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800 leading-relaxed">
-            To prevent fraud, we'll send a verification code to the phone number
+            To prevent fraud, we&apos;ll send a verification code to the phone number
             listed for this business. You must have access to that phone to complete your claim.
           </p>
         </div>
@@ -353,12 +377,12 @@ export default function ClaimBusinessModal({
           {/* Optional message */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-              Tell us about your connection to this business <span className="font-normal normal-case">(optional)</span>
+              Your role or connection <span className="font-normal normal-case">(optional)</span>
             </label>
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
-              placeholder="e.g. I am the owner, or I work here as a manager."
+              placeholder="e.g. Owner, manager, or authorised team member."
               rows={3}
               className={`${inputCls} resize-none`}
             />
@@ -401,6 +425,6 @@ export default function ClaimBusinessModal({
           </p>
         </form>
       </div>
-    </Backdrop>
+    </ClaimBackdrop>
   )
 }

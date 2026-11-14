@@ -7,12 +7,13 @@ interface Props {
   businessId:  string
   coverImage:  string | null
   images:      string[]
+  maxGallery?: number
   onChange:    (updated: { cover_image: string | null; images: string[] }) => void
 }
 
 const MAX_GALLERY = 8 // max extra photos (not counting cover)
 
-export default function GalleryUploader({ businessId, coverImage, images, onChange }: Props) {
+export default function GalleryUploader({ businessId, coverImage, images, maxGallery = MAX_GALLERY, onChange }: Props) {
   const supabase       = createClient()
   const fileRef        = useRef<HTMLInputElement>(null)
   const coverRef       = useRef<HTMLInputElement>(null)
@@ -62,8 +63,8 @@ export default function GalleryUploader({ businessId, coverImage, images, onChan
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
 
-    const remaining = MAX_GALLERY - images.length
-    if (remaining <= 0) { showToast(`Max ${MAX_GALLERY} gallery photos`, 'error'); return }
+    const remaining = maxGallery - images.length
+    if (remaining <= 0) { showToast(`Max ${maxGallery} gallery photos`, 'error'); return }
 
     const toUpload = files.slice(0, remaining)
     setUploading(true)
@@ -117,7 +118,7 @@ export default function GalleryUploader({ businessId, coverImage, images, onChan
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Business photos</p>
-          <p className="text-xs text-gray-400 mt-0.5">{allPhotos.length} / {MAX_GALLERY + 1} photos · First photo is your cover</p>
+          <p className="text-xs text-gray-400 mt-0.5">{allPhotos.length} / {maxGallery + 1} photos · First photo is your cover</p>
         </div>
         {uploading && (
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -184,7 +185,7 @@ export default function GalleryUploader({ businessId, coverImage, images, onChan
         ))}
 
         {/* Add more slot */}
-        {images.length < MAX_GALLERY && (
+        {images.length < maxGallery && (
           <div
             onClick={() => !uploading && fileRef.current?.click()}
             className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-green-300 hover:bg-green-50 transition-colors">
@@ -197,7 +198,7 @@ export default function GalleryUploader({ businessId, coverImage, images, onChan
       {/* Helper text */}
       <p className="text-xs text-gray-400">
         Click any photo to replace the cover. Hover a gallery photo to set it as cover or remove it.
-        Max {MAX_GALLERY} gallery photos · JPG, PNG, WebP recommended.
+        Max {maxGallery} gallery photos · JPG, PNG, WebP recommended.
       </p>
 
       {/* Hidden file inputs */}
