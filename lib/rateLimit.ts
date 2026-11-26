@@ -79,6 +79,20 @@ export const LIMITS = {
     windowMs: 60 * 60 * 1000,
   }),
 
+  // Business claim OTP send — 3 per 15 minutes per signed-in user
+  claimOtp: (userId: string) => rateLimit({
+    key:      `claim-otp:${userId}`,
+    limit:    3,
+    windowMs: 15 * 60 * 1000,
+  }),
+
+  // Business claim OTP verify — 10 attempts per 15 minutes per signed-in user
+  claimOtpVerify: (userId: string) => rateLimit({
+    key:      `claim-otp-verify:${userId}`,
+    limit:    10,
+    windowMs: 15 * 60 * 1000,
+  }),
+
   // Auth attempts — 10 per 15 minutes per IP
   auth: (ip: string) => rateLimit({
     key:      `auth:${ip}`,

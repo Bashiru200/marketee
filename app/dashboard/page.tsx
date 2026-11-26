@@ -94,21 +94,21 @@ function getPlans(currentPlan: string | null) {
   return [
     {
       id: 'starter' as PlanId,
-      name: '🟢 Starter', subtitle: 'Get discovered online',
+      name: '🟢 Starter', subtitle: 'Be found',
       monthlyPrice: 0, annualPrice: 0,
       highlight: false, current: plan === 'starter',
       features: ['Business listing','Map & search','Customer reviews','Contact info','WhatsApp button','1 photo'],
     },
     {
       id: 'growth' as PlanId,
-      name: '🟡 Growth', subtitle: 'Reach more customers',
+      name: '🟡 Growth', subtitle: 'Get more attention',
       monthlyPrice: PLAN_PRICES.growth.monthly, annualPrice: PLAN_PRICES.growth.annual,
       highlight: true, current: plan === 'growth',
       features: ['Everything in Starter','Priority search','Up to 20 photos','Products & menu','Analytics','Verified badge','Priority support'],
     },
     {
       id: 'pro_store' as PlanId,
-      name: '🔵 Pro Store', subtitle: 'Your full digital storefront',
+      name: '🔵 Pro Store', subtitle: 'Turn your listing into a storefront',
       monthlyPrice: PLAN_PRICES.pro_store.monthly, annualPrice: PLAN_PRICES.pro_store.annual,
       highlight: false, current: plan === 'pro_store',
       features: ['Everything in Growth','Custom store URL','Unlimited photos & products','Advanced analytics','Promotions','Lead enquiry form','Multiple locations','Product reviews','Dedicated support'],
@@ -629,15 +629,15 @@ export default function DashboardPage() {
                         <Zap size={16} style={{ color:'#1D9E75' }} />
                       </div>
                       <div>
-                        <h2 className="font-semibold text-gray-900">Subscription snapshot</h2>
-                        <p className="text-xs text-gray-400">What your current plan unlocks right now</p>
+                        <h2 className="font-semibold text-gray-900">Growth snapshot</h2>
+                        <p className="text-xs text-gray-400">What to improve next based on your current plan</p>
                       </div>
                     </div>
                     {nextPlanFor(plan) && (
                       <button onClick={() => setTab('upgrade')}
                         className="text-xs font-semibold text-white px-3 py-2 rounded-xl"
                         style={{ background:'#085041' }}>
-                        Upgrade
+                        See growth tools
                       </button>
                     )}
                   </div>
@@ -679,6 +679,36 @@ export default function DashboardPage() {
                   products={products}
                   onFix={() => setTab('listing')}
                 />
+
+                <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background:'#E1F5EE' }}>
+                      <CheckCircle2 size={16} style={{ color:'#1D9E75' }} />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-gray-900">Owner growth checklist</h2>
+                      <p className="text-xs text-gray-400">Complete these basics to make your listing easier to trust.</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      { done: !!biz.cover_image, label: 'Add a strong cover photo' },
+                      { done: !!biz.description, label: 'Write a clear business description' },
+                      { done: !!biz.phone || !!biz.email || !!biz.website, label: 'Add at least one contact method' },
+                      { done: !!biz.hours_open || (biz.days_open?.length ?? 0) > 0, label: 'Add hours or days open' },
+                      { done: products.length > 0, label: 'Add products, menu items, or services' },
+                      { done: reviews.length > 0, label: 'Start collecting customer reviews' },
+                    ].map(item => (
+                      <button key={item.label} type="button" onClick={() => setTab(item.label.includes('product') || item.label.includes('menu') ? 'products' : item.label.includes('review') ? 'reviews' : 'listing')}
+                        className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-left text-sm">
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${item.done ? 'bg-green-100 text-green-700' : 'bg-white text-gray-300'}`}>
+                          {item.done ? '✓' : '•'}
+                        </span>
+                        <span className={item.done ? 'font-semibold text-gray-900' : 'font-medium text-gray-500'}>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Listing snapshot */}
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -1045,8 +1075,8 @@ export default function DashboardPage() {
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {plan === 'pro_store' ? 'You have access to all Markeetee features.'
-                        : plan === 'growth'  ? 'Upgrade to Pro Store for custom URL, locations, and more.'
-                        : 'Upgrade to unlock photos, products, analytics and more.'}
+                        : plan === 'growth'  ? 'Upgrade to Pro Store to capture enquiries, run promotions, add locations, and use a custom storefront URL.'
+                        : 'Upgrade to Growth to add products, more photos, analytics, priority search, and a verified badge.'}
                     </p>
                   </div>
                   {plan !== 'starter' && (

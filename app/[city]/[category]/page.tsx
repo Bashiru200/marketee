@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { rankBusinesses } from '@/lib/businessRanking'
 import { MapPin, Phone, Globe, ArrowLeft, ChevronRight } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -156,7 +157,7 @@ export default async function CityCategoryPage(
 
   const { data: businesses } = await supabase
     .from('businesses')
-    .select('id, name, category, description, street, city, state, zip, phone, email, website, cover_image, rating, review_count, verified, plan, country, hours_open, lat, lng')
+    .select('id, name, category, description, street, city, state, zip, phone, email, website, cover_image, rating, review_count, verified, premium, featured, plan, country, hours_open, lat, lng, created_at')
     .ilike('city', cityName)
     .eq('category', catInfo.dbCategory)
     .eq('status', 'active')
@@ -166,7 +167,12 @@ export default async function CityCategoryPage(
 
   if (!businesses || businesses.length === 0) notFound()
 
-  const cityState = stateLabel(businesses.map((business) => business.state))
+  const rankedBusinesses = rankBusinesses(businesses, {
+    city: cityName,
+    category: catInfo.dbCategory,
+  })
+
+  const cityState = stateLabel(rankedBusinesses.map((business) => business.state))
   const place = locationLabel(cityName, cityState)
 
   // Rich ItemList schema for Google
@@ -174,8 +180,8 @@ export default async function CityCategoryPage(
     '@context': 'https://schema.org',
     '@type':    'ItemList',
     name:       `${catInfo.displayName} in ${place}`,
-    numberOfItems: businesses.length,
-    itemListElement: businesses.map((b, i) => ({
+    numberOfItems: rankedBusinesses.length,
+    itemListElement: rankedBusinesses.map((b, i) => ({
       '@type':   'ListItem',
       position:  i + 1,
       item: {
@@ -237,20 +243,20 @@ export default async function CityCategoryPage(
 	              Best {catInfo.displayName} in {place}
             </h1>
             <p className="text-sm text-gray-500 mt-2">
-              {businesses.length} {businesses.length === 1 ? 'business' : 'businesses'} · Updated {new Date().toLocaleDateString('en-US', { month:'long', year:'numeric' })}
+              {rankedBusinesses.length} {rankedBusinesses.length === 1 ? 'business' : 'businesses'} · Updated {new Date().toLocaleDateString('en-US', { month:'long', year:'numeric' })}
             </p>
           </div>
         </div>
 
         <p className="text-gray-600 leading-7 max-w-3xl">
-	          {catInfo.longSeoCopy(place, businesses.length)}
+	          {catInfo.longSeoCopy(place, rankedBusinesses.length)}
         </p>
       </section>
 
       {/* Numbered list of businesses */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
         <div className="space-y-5">
-          {businesses.map((biz, i) => (
+          {rankedBusinesses.map((biz, i) => (
             <article key={biz.id} className="bg-white rounded-3xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
               <div className="grid md:grid-cols-[180px_1fr] gap-0">
 

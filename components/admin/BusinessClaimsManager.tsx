@@ -1,7 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Building2, CheckCircle2, XCircle, Clock,
+  Building2, CheckCircle2, XCircle,
   Loader2, Eye, MessageSquare, Search, X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -26,7 +26,7 @@ const STATUS_STYLES = {
 }
 
 export default function BusinessClaimsManager() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { log }  = useAuditLog()
 
   const [claims,   setClaims]   = useState<Claim[]>([])
@@ -37,14 +37,12 @@ export default function BusinessClaimsManager() {
   const [query,    setQuery]    = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  useEffect(() => { loadClaims() }, [])
-
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
   }
 
-  async function loadClaims() {
+  const loadClaims = useCallback(async () => {
     setLoading(true)
     const { data } = await supabase
       .from('business_claims')
@@ -56,7 +54,17 @@ export default function BusinessClaimsManager() {
       .order('created_at', { ascending: false })
     setClaims((data ?? []) as Claim[])
     setLoading(false)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) void loadClaims()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadClaims])
 
   async function handleDecision(claim: Claim, decision: 'approved' | 'rejected') {
     setUpdating(claim.id + decision)
@@ -77,11 +85,6 @@ export default function BusinessClaimsManager() {
 
     // If approved, link the business to the user
     if (decision === 'approved' && claim.businesses && claim.profiles) {
-      // Update business owner_id
-      await supabase.from('businesses')
-        .update({ owner_id: claim.profiles?.email ? undefined : undefined })
-        .eq('id', claim.businesses.id)
-
       // Get user's profile id from email
       const { data: profile } = await supabase
         .from('profiles')
@@ -106,7 +109,7 @@ export default function BusinessClaimsManager() {
     ))
 
     await log({
-      action:      decision === 'approved' ? 'verify_business' as any : 'unverify_business' as any,
+      action:      decision === 'approved' ? 'verify_business' : 'unverify_business',
       entityType:  'business',
       entityId:    claim.businesses?.id,
       entityName:  claim.businesses?.name,
@@ -216,6 +219,7 @@ export default function BusinessClaimsManager() {
                   {/* Business thumbnail */}
                   <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                     {claim.businesses?.cover_image
+                          // eslint-disable-next-line @next/next/no-img-element -- Admin thumbnails render arbitrary stored business image URLs.
                       ? <img src={claim.businesses.cover_image} alt=""
                           className="w-full h-full object-cover" />
                       : <div className="w-full h-full flex items-center justify-center text-xl"

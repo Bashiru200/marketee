@@ -4,12 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ElementType } from 'react'
 import {
   AlertTriangle,
+  Bold,
   Building2,
   CheckCircle2,
   Clock,
+  Image as ImageIcon,
+  Italic,
+  List,
   Loader2,
   Mail,
+  Plus,
   Send,
+  Trash2,
   User,
   Users,
 } from 'lucide-react'
@@ -31,6 +37,12 @@ interface AudienceCount {
   count: number
   registeredEmailCount: number
   skippedByPreferences: number
+}
+
+interface MediaItem {
+  url: string
+  alt: string
+  caption: string
 }
 
 const AUDIENCES: Array<{
@@ -90,14 +102,37 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://markeetee.com'
 
 function PreviewBody({ body }: { body: string }) {
   const paragraphs = body.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+  const escapePreviewHtml = (value: string) => value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+  const renderInline = (value: string) => escapePreviewHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
 
   return (
     <>
-      {paragraphs.map((paragraph) => (
-        <p key={paragraph} className="mb-4 text-sm leading-7 text-gray-600">
-          {paragraph}
-        </p>
-      ))}
+      {paragraphs.map((paragraph) => {
+        const lines = paragraph.split('\n').map((line) => line.trim()).filter(Boolean)
+        if (lines.every((line) => line.startsWith('• ') || line.startsWith('- '))) {
+          return (
+            <ul key={paragraph} className="mb-4 list-disc space-y-1 pl-5 text-sm leading-7 text-gray-600">
+              {lines.map((line) => (
+                <li key={line} dangerouslySetInnerHTML={{ __html: renderInline(line.replace(/^[•-]\s*/, '')) }} />
+              ))}
+            </ul>
+          )
+        }
+        return (
+          <p
+            key={paragraph}
+            className="mb-4 text-sm leading-7 text-gray-600"
+            dangerouslySetInnerHTML={{ __html: renderInline(paragraph).replace(/\n/g, '<br />') }}
+          />
+        )
+      })}
     </>
   )
 }
@@ -110,6 +145,9 @@ export default function BroadcastEmail() {
   const [emailType, setEmailType] = useState<EmailType>('announcement')
   const [subject, setSubject] = useState(EMAIL_TYPES[0].subject)
   const [body, setBody] = useState(EMAIL_TYPES[0].body)
+  const [media, setMedia] = useState<MediaItem[]>([])
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+  const [brokenMediaUrls, setBrokenMediaUrls] = useState<Record<string, true>>({})
   const [ctaLabel, setCtaLabel] = useState(EMAIL_TYPES[0].ctaLabel)
   const [ctaUrl, setCtaUrl] = useState(APP_URL)
   const [counts, setCounts] = useState<Record<Audience, AudienceCount>>({
@@ -120,6 +158,8 @@ export default function BroadcastEmail() {
   const [history, setHistory] = useState<SentEmail[]>([])
   const [loadingCounts, setLoadingCounts] = useState(true)
   const [sending, setSending] = useState<'test' | 'bulk' | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [bulkReviewOpen, setBulkReviewOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -128,11 +168,125 @@ export default function BroadcastEmail() {
   const recipientCount = counts[audience].count
   const registeredEmailCount = counts[audience].registeredEmailCount
   const skippedCount = counts[audience].skippedByPreferences
-  const isValid = subject.trim().length >= 4 && body.trim().length >= 20 && (!ctaUrl || /^https?:\/\//i.test(ctaUrl))
+  const mediaErrors = media.map((item) => {
+    const url = item.url.trim()
+    if (!url) return ''
+    if (!/^https?:\/\//i.test(url)) return 'Media URL must start with http:// or https://.'
+    if (brokenMediaUrls[url]) return 'Image preview could not be loaded. Check the URL before sending.'
+    return ''
+  })
+  const hasMediaErrors = mediaErrors.some(Boolean)
+  const validMedia = media.filter((item, index) => item.url.trim() && !mediaErrors[index]).slice(0, 4)
+  const isValid = subject.trim().length >= 4
+    && body.trim().length >= 20
+    && (!ctaUrl || /^https?:\/\//i.test(ctaUrl))
+    && !hasMediaErrors
 
   const markDirty = useCallback(() => {
     setConfirmed(false)
   }, [])
+
+  function wrapBody(before: string, after = '') {
+    markDirty()
+    const selected = typeof window !== 'undefined' ? window.getSelection()?.toString() : ''
+    if (!selected) {
+      setBody((current) => `${current}${current.endsWith('\n') ? '' : '\n'}${before}text${after}`)
+      return
+    }
+    setBody((current) => current.replace(selected, `${before}${selected}${after}`))
+  }
+
+  function addMedia() {
+    if (media.length >= 4) return
+    markDirty()
+    setMedia((current) => [...current, { url: '', alt: '', caption: '' }])
+  }
+
+  function updateMedia(index: number, field: keyof MediaItem, value: string) {
+    markDirty()
+    if (field === 'url') {
+      setBrokenMediaUrls((current) => {
+        const next = { ...current }
+        const previousUrl = media[index]?.url.trim()
+        if (previousUrl) delete next[previousUrl]
+        delete next[value.trim()]
+        return next
+      })
+    }
+    setMedia((current) => current.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, [field]: value } : item
+    )))
+  }
+
+  function handleMediaLoadError(url: string) {
+    if (!url.trim()) return
+    setBrokenMediaUrls((current) => ({ ...current, [url.trim()]: true }))
+  }
+
+  function PreviewImage({
+    src,
+    alt,
+    className,
+  }: {
+    src: string
+    alt: string
+    className: string
+  }) {
+    if (brokenMediaUrls[src.trim()]) {
+      return (
+        <div className={`${className} flex items-center justify-center bg-gray-100 text-gray-300`}>
+          <ImageIcon size={18} />
+        </div>
+      )
+    }
+
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- Admin email previews render arbitrary remote media URLs.
+      <img src={src} alt={alt} className={className} onError={() => handleMediaLoadError(src)} />
+    )
+  }
+
+  function removeMedia(index: number) {
+    markDirty()
+    setMedia((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  }
+
+  async function uploadMediaFiles(files: FileList | null) {
+    if (!files?.length) return
+    const remaining = 4 - media.length
+    if (remaining <= 0) return
+
+    setUploadingMedia(true)
+    setNotice(null)
+
+    const uploaded: MediaItem[] = []
+    for (const file of Array.from(files).slice(0, remaining)) {
+      if (file.size > 5 * 1024 * 1024) {
+        setNotice({ type: 'error', message: 'Images must be under 5MB.' })
+        continue
+      }
+
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path = `broadcast/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage
+        .from('business-images')
+        .upload(path, file, { upsert: false })
+
+      if (error) {
+        setNotice({ type: 'error', message: error.message })
+        continue
+      }
+
+      const { data } = supabase.storage.from('business-images').getPublicUrl(path)
+      uploaded.push({ url: data.publicUrl, alt: file.name.replace(/\.[^.]+$/, ''), caption: '' })
+    }
+
+    if (uploaded.length) {
+      markDirty()
+      setMedia((current) => [...current, ...uploaded])
+    }
+    setUploadingMedia(false)
+  }
 
   const loadCounts = useCallback(async () => {
     setLoadingCounts(true)
@@ -185,13 +339,14 @@ export default function BroadcastEmail() {
     setEmailType(nextType)
     setSubject(template.subject)
     setBody(template.body)
+    setMedia([])
     setCtaLabel(template.ctaLabel)
     setCtaUrl(template.value === 'owner_update' ? `${APP_URL}/dashboard` : APP_URL)
   }
 
   async function send(mode: 'test' | 'bulk') {
     if (!isValid) {
-      setNotice({ type: 'error', message: 'Complete the subject, message, and CTA URL before sending.' })
+      setNotice({ type: 'error', message: 'Complete the subject, message, CTA URL, and media URLs before sending.' })
       return
     }
 
@@ -208,34 +363,22 @@ export default function BroadcastEmail() {
     setSending(mode)
     setNotice(null)
 
-    const response = mode === 'test'
-      ? await fetch('/api/admin-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            toEmail: profile?.email,
-            toName: profile?.name ?? profile?.email,
-            subject,
-            body,
-            ctaLabel,
-            ctaUrl,
-          }),
-        })
-      : await fetch('/api/broadcast-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode,
-            audience,
-            subject,
-            headline: subject,
-            body,
-            ctaLabel,
-            ctaUrl,
-            confirmed,
-            expectedRecipientCount: recipientCount,
-          }),
-        })
+    const response = await fetch('/api/broadcast-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode,
+        audience,
+        subject,
+        headline: subject,
+        body,
+        media: validMedia,
+        ctaLabel,
+        ctaUrl,
+        confirmed,
+        expectedRecipientCount: recipientCount,
+      }),
+    })
 
     const data = await response.json()
     setSending(null)
@@ -262,6 +405,52 @@ export default function BroadcastEmail() {
     setConfirmed(false)
     await loadCounts()
     await loadHistory()
+  }
+
+  async function openHtmlPreview() {
+    if (!isValid) {
+      setNotice({ type: 'error', message: 'Complete the subject, message, CTA URL, and media URLs before previewing.' })
+      return
+    }
+
+    setPreviewing(true)
+    setNotice(null)
+
+    const response = await fetch('/api/preview-broadcast-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject,
+        headline: subject,
+        body,
+        media: validMedia,
+        ctaLabel,
+        ctaUrl,
+      }),
+    })
+
+    const html = await response.text()
+    setPreviewing(false)
+
+    if (!response.ok) {
+      try {
+        const data = JSON.parse(html)
+        setNotice({ type: 'error', message: data.error ?? 'Preview failed.' })
+      } catch {
+        setNotice({ type: 'error', message: 'Preview failed.' })
+      }
+      return
+    }
+
+    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer')
+    if (!previewWindow) {
+      setNotice({ type: 'error', message: 'Allow pop-ups to open the email preview.' })
+      return
+    }
+
+    previewWindow.document.open()
+    previewWindow.document.write(html)
+    previewWindow.document.close()
   }
 
   return (
@@ -400,9 +589,25 @@ export default function BroadcastEmail() {
           </div>
 
           <div>
-            <label htmlFor="broadcast-body" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-400">
-              Message
-            </label>
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <label htmlFor="broadcast-body" className="block text-xs font-bold uppercase tracking-wide text-gray-400">
+                Message
+              </label>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => wrapBody('**', '**')} title="Bold"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
+                  <Bold size={14} />
+                </button>
+                <button type="button" onClick={() => wrapBody('_', '_')} title="Italic"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
+                  <Italic size={14} />
+                </button>
+                <button type="button" onClick={() => wrapBody('\n• ')} title="Bullet"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
+                  <List size={14} />
+                </button>
+              </div>
+            </div>
             <textarea
               id="broadcast-body"
               value={body}
@@ -414,7 +619,93 @@ export default function BroadcastEmail() {
               minLength={20}
               className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm leading-6 outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
             />
-            <p className="mt-1 text-right text-xs text-gray-400">{body.length} characters</p>
+            <p className="mt-1 text-right text-xs text-gray-400">Supports **bold**, _italic_, and • bullets · {body.length} characters</p>
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-400">
+                Media
+              </label>
+              <button
+                type="button"
+                onClick={addMedia}
+                disabled={media.length >= 4}
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[#085041] disabled:opacity-40"
+              >
+                <Plus size={13} /> Add URL
+              </button>
+            </div>
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-500 transition hover:border-green-300 hover:bg-green-50">
+              {uploadingMedia ? <Loader2 size={15} className="animate-spin" /> : <ImageIcon size={15} />}
+              Upload images
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(event) => {
+                  void uploadMediaFiles(event.target.files)
+                  event.target.value = ''
+                }}
+              />
+            </label>
+            {media.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {media.map((item, index) => (
+                  <div key={`${item.url}-${index}`} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                    <div className="flex items-start gap-3">
+                      {item.url ? (
+                        <PreviewImage
+                          src={item.url}
+                          alt=""
+                          className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-white text-gray-300">
+                          <ImageIcon size={18} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <input
+                          value={item.url}
+                          onChange={(event) => updateMedia(index, 'url', event.target.value)}
+                          placeholder="https://image-url..."
+                          className={`w-full rounded-xl border px-3 py-2 text-xs outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75] ${
+                            mediaErrors[index] ? 'border-amber-300 bg-amber-50' : 'border-gray-200'
+                          }`}
+                        />
+                        {mediaErrors[index] ? (
+                          <p className="text-[11px] font-semibold text-amber-700">{mediaErrors[index]}</p>
+                        ) : null}
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            value={item.alt}
+                            onChange={(event) => updateMedia(index, 'alt', event.target.value)}
+                            placeholder="Alt text"
+                            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
+                          />
+                          <input
+                            value={item.caption}
+                            onChange={(event) => updateMedia(index, 'caption', event.target.value)}
+                            placeholder="Caption"
+                            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-transparent focus:ring-2 focus:ring-[#1D9E75]"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMedia(index)}
+                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-red-500 hover:bg-red-50"
+                        title="Remove media"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -435,6 +726,15 @@ export default function BroadcastEmail() {
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
+              onClick={openHtmlPreview}
+              disabled={previewing || sending !== null || !isValid}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 disabled:opacity-50 sm:col-span-2"
+            >
+              {previewing ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+              Open full email preview
+            </button>
+            <button
+              type="button"
               onClick={() => send('test')}
               disabled={sending !== null || !isValid || !profile?.email}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#085041] bg-white px-4 py-3 text-sm font-bold text-[#085041] disabled:opacity-50"
@@ -444,7 +744,7 @@ export default function BroadcastEmail() {
             </button>
             <button
               type="button"
-              onClick={() => send('bulk')}
+              onClick={() => setBulkReviewOpen(true)}
               disabled={sending !== null || !isValid || !confirmed || recipientCount === 0}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#085041] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
             >
@@ -476,6 +776,21 @@ export default function BroadcastEmail() {
                     </span>
                   </div>
                 ) : null}
+                {validMedia.length > 0 && (
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    {validMedia.map((item, index) => (
+                      <div key={`${item.url}-${index}`} className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+                        <PreviewImage src={item.url} alt={item.alt || ''} className="h-24 w-full object-cover" />
+                        {item.caption ? (
+                          <p className="p-2 text-[11px] leading-4 text-gray-500">{item.caption}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-5 border-t border-gray-100 pt-3 text-[11px] leading-5 text-gray-400">
+                  Footer includes Website, Contact, and a recipient-specific Unsubscribe link.
+                </div>
               </div>
             </div>
           </div>
@@ -533,6 +848,72 @@ export default function BroadcastEmail() {
           </div>
         </aside>
       </div>
+
+      {bulkReviewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 px-4 py-6">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-600">Final review</p>
+                <h4 className="mt-1 text-lg font-black text-gray-950">Send this bulk email?</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBulkReviewOpen(false)}
+                className="rounded-lg px-2 py-1 text-sm font-bold text-gray-400 hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-5 space-y-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Audience</span>
+                <span className="font-semibold text-gray-900">{selectedAudience.label}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Recipients</span>
+                <span className="font-semibold text-gray-900">{recipientCount}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Skipped</span>
+                <span className="font-semibold text-gray-900">{skippedCount}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Media</span>
+                <span className="font-semibold text-gray-900">{validMedia.length}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Subject</span>
+                <p className="mt-1 font-semibold text-gray-900">{subject}</p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs leading-5 text-gray-500">
+              The footer includes a recipient-specific unsubscribe link. Counts are checked again before sending.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setBulkReviewOpen(false)}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700"
+              >
+                Review more
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkReviewOpen(false)
+                  void send('bulk')
+                }}
+                disabled={sending !== null || !isValid || !confirmed || recipientCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#085041] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {sending === 'bulk' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                Send bulk email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

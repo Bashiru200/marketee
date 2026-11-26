@@ -192,9 +192,9 @@ export default function ClaimBusinessModal({
     <ClaimBackdrop onClose={onClose}>
       <div className="p-8 text-center">
         <Building2 size={36} className="mx-auto mb-4" style={{ color:'#1D9E75' }} />
-        <h3 className="text-lg font-bold text-gray-900 mb-2">Claim this business in 2 steps</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Claim this business in about 2 minutes</h3>
         <p className="text-sm text-gray-500 mb-6">
-          Create a free owner account, then verify with the business phone number on this listing.
+          Create a free owner account, verify by phone, and start managing how customers discover your business.
         </p>
         {businessPhone && (
           <p className="mb-4 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-500">
@@ -258,7 +258,7 @@ export default function ClaimBusinessModal({
     <ClaimBackdrop onClose={onClose}>
       <ClaimModalHeader
         title="Phone verification"
-        subtitle={`Step 2 of 2 — verify you own this business`}
+        subtitle="Step 2 of 2 — quick phone check"
         onClose={onClose}
       />
       <div className="p-6">
@@ -271,7 +271,7 @@ export default function ClaimBusinessModal({
             </p>
             <p className="text-xs text-gray-600 leading-relaxed">
               We sent a 6-digit code to <strong>{maskedPhone || 'the phone number on this listing'}</strong>.
-              Only someone with access to that phone can complete this claim.
+              No payment is required to claim. You can upgrade later when you want more promotional tools.
             </p>
           </div>
         </div>
@@ -342,10 +342,16 @@ export default function ClaimBusinessModal({
     <ClaimBackdrop onClose={onClose}>
       <ClaimModalHeader
         title={`Claim ${businessName}`}
-        subtitle="Step 1 of 2 — verify your ownership"
+        subtitle="Step 1 of 2 — free owner verification"
         onClose={onClose}
       />
       <div className="p-6">
+        <div className="mb-5 rounded-xl border border-green-100 bg-green-50 p-4">
+          <p className="text-sm font-bold text-green-950">Claiming is free.</p>
+          <p className="mt-1 text-xs leading-relaxed text-green-800">
+            Once approved, you can update photos, hours, contact details, products, and customer-facing information from your dashboard.
+          </p>
+        </div>
         <div className="mb-5 grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-green-100 bg-green-50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-wide text-green-800">Step 1</p>
@@ -363,6 +369,7 @@ export default function ClaimBusinessModal({
           <p className="text-xs text-amber-800 leading-relaxed">
             To prevent fraud, we&apos;ll send a verification code to the phone number
             listed for this business. You must have access to that phone to complete your claim.
+            If this number is outdated, contact support for manual review.
           </p>
         </div>
 
@@ -421,7 +428,7 @@ export default function ClaimBusinessModal({
 
           <p className="text-xs text-gray-400 text-center leading-relaxed">
             A 6-digit code will be sent to the phone number on this listing.
-            You must enter it to complete your claim.
+            You must enter it to complete your claim. No payment is required.
           </p>
         </form>
       </div>

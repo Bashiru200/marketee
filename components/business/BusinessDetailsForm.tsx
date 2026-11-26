@@ -186,7 +186,7 @@ export default function BusinessDetailsForm({
 
       {/* ══════════ Basic info ══════════ */}
       <div className="rounded-xl border border-green-100 bg-green-50 p-4 text-xs leading-relaxed text-green-900">
-        Start with the essentials: business name, category, location/search area, and one contact method. Photos, hours, tags, logo, and description can be completed later from your dashboard.
+        Create the listing in minutes: business name, category, location or service area, and one contact method. Photos, hours, tags, logo, and description can be completed later from your dashboard.
       </div>
 
       <p className={sectionCls} style={{ color:'#085041' }}>Basic information</p>

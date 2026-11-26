@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import twilio from 'twilio'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { getClientIp, LIMITS, rateLimitResponse } from '@/lib/rateLimit'
 
 function getSupabase() {
   return createClient(
@@ -24,9 +26,24 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabase()
 
   try {
-    const { businessId, userId } = await req.json()
+    const userClient = await createServerClient()
+    const {
+      data: { user },
+    } = await userClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+    }
 
-    if (!businessId || !userId) {
+    const ipLimit = LIMITS.auth(getClientIp(req))
+    if (!ipLimit.success) return rateLimitResponse(ipLimit.resetAt)
+
+    const userLimit = LIMITS.claimOtp(user.id)
+    if (!userLimit.success) return rateLimitResponse(userLimit.resetAt)
+
+    const { businessId } = await req.json()
+    const userId = user.id
+
+    if (!businessId) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
@@ -88,23 +105,24 @@ export async function POST(req: NextRequest) {
       maskedPhone:  maskPhone(normalised),
       businessName: biz.name,
     })
-  } catch (err: any) {
+  } catch (err) {
     console.error('[claim-otp/send]', err)
+    const twilioError = err as { code?: number; status?: number }
 
     // Twilio-specific error handling
-    if (err?.code === 21211) {
+    if (twilioError.code === 21211) {
       return NextResponse.json(
         { error: 'The phone number on this listing is not a valid mobile number.' },
         { status: 422 }
       )
     }
-    if (err?.code === 21608) {
+    if (twilioError.code === 21608) {
       return NextResponse.json(
         { error: 'This phone number cannot receive SMS messages.' },
         { status: 422 }
       )
     }
-    if (err?.status === 401) {
+    if (twilioError.status === 401) {
       console.error('Twilio auth failed — check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN')
       return NextResponse.json({ error: 'SMS service unavailable. Try again later.' }, { status: 503 })
     }
@@ -118,9 +136,21 @@ export async function PATCH(req: NextRequest) {
   const supabase = getSupabase()
 
   try {
-    const { businessId, userId, otp } = await req.json()
+    const userClient = await createServerClient()
+    const {
+      data: { user },
+    } = await userClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+    }
 
-    if (!businessId || !userId || !otp) {
+    const limit = LIMITS.claimOtpVerify(user.id)
+    if (!limit.success) return rateLimitResponse(limit.resetAt)
+
+    const { businessId, otp } = await req.json()
+    const userId = user.id
+
+    if (!businessId || !otp) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 

@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { rankBusinesses } from '@/lib/businessRanking'
 import SearchClient from './SearchClient'
 import SearchLoading from './loading'
 
@@ -49,7 +50,7 @@ async function SearchContent({ searchParams }: SearchPageProps) {
       address, city, state, zip, country,
       cover_image, rating, review_count,
       price_range, tags, lat, lng,
-      verified, premium, featured
+      verified, premium, featured, plan, created_at, logo_url, images
     `, { count: 'exact' })
 
   if (params.q?.trim()) {
@@ -79,7 +80,15 @@ async function SearchContent({ searchParams }: SearchPageProps) {
   }
 
   // Only fetch first page on server — client handles the rest
-  const { data: businesses, count } = await query.range(0, PAGE_SIZE - 1)
+  const rangeSize = params.sort && params.sort !== 'featured' ? PAGE_SIZE : PAGE_SIZE * 3
+  const { data: businesses, count } = await query.range(0, rangeSize - 1)
+  const initialBusinesses = params.sort && params.sort !== 'featured'
+    ? businesses ?? []
+    : rankBusinesses(businesses ?? [], {
+        query: params.q,
+        city: params.city,
+        category: params.category,
+      }).slice(0, PAGE_SIZE)
 
   const categories = CATEGORIES.map(cat => ({
     ...cat,
@@ -88,7 +97,7 @@ async function SearchContent({ searchParams }: SearchPageProps) {
 
   return (
     <SearchClient
-      initialBusinesses={businesses ?? []}
+      initialBusinesses={initialBusinesses}
       totalCount={count ?? 0}
       pageSize={PAGE_SIZE}
       categories={categories}

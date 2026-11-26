@@ -12,6 +12,7 @@ import {
   Leaf, Music, Palette, Wrench
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { rankBusinesses } from '@/lib/businessRanking'
 import SaveButton from '@/components/ui/SaveButton'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ interface Business {
   cover_image: string | null; rating: number; review_count: number
   price_range: string | null; tags: string[] | null; country: string | null
   verified: boolean; premium: boolean; featured: boolean
+  plan?: string | null; created_at?: string | null; logo_url?: string | null; images?: string[] | null
 }
 
 interface Category { id: string; name: string; icon: string; count: number }
@@ -384,7 +386,7 @@ export default function SearchClient({
         address, city, state, zip, country,
         cover_image, rating, review_count,
         price_range, tags, lat, lng,
-        verified, premium, featured
+        verified, premium, featured, plan, created_at, logo_url, images
       `, { count: 'exact' })
 
     // Filters
@@ -408,11 +410,14 @@ export default function SearchClient({
     if (sort === 'reviews')  q = q.order('review_count',{ ascending:false })
 
     // Pagination
-    q = q.range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
+    const rangeSize = sort === 'featured' ? pageSize * 3 : pageSize
+    q = q.range(pageNum * rangeSize, (pageNum + 1) * rangeSize - 1)
 
     const { data, count: cnt } = await q
 
-    const results = (data ?? []) as Business[]
+    const results = sort === 'featured'
+      ? rankBusinesses((data ?? []) as Business[], { query, city, category: cat, country }).slice(0, pageSize)
+      : (data ?? []) as Business[]
 
     if (replace) {
       setPage(pageNum)

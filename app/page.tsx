@@ -4,15 +4,16 @@ import type { ReactNode } from 'react'
 import {
   ArrowRight,
   Building2,
+  CheckCircle2,
   Map,
   MapPin,
   Search,
   Sparkles,
   Store,
-  Utensils,
 } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/server'
+import { rankBusinesses } from '@/lib/businessRanking'
 import BusinessCard from '@/components/businesses/BusinessCard'
 import ListBusinessButton from '@/components/ui/ListBusinessButton'
 
@@ -127,7 +128,12 @@ async function getHomepageData(): Promise<HomepageData> {
       verified,
       premium,
       featured,
-      country
+      country,
+      plan,
+      created_at,
+      description,
+      logo_url,
+      images
     `)
     .or('featured.eq.true,plan.eq.storefront,plan.eq.premium')
     .order('featured', { ascending: false })
@@ -142,8 +148,9 @@ async function getHomepageData(): Promise<HomepageData> {
   }
 
   return {
-    featuredBusinesses:
+    featuredBusinesses: rankBusinesses(
       (featuredResult.data as HomepageBusiness[] | null) ?? [],
+    ).slice(0, 6),
     featuredError: Boolean(featuredResult.error),
   }
 }
@@ -155,17 +162,18 @@ function HeroSection() {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#DCCFB8] bg-white/75 px-3 py-1.5 text-xs font-bold text-[#085041] shadow-sm dark:border-[#294239] dark:bg-[#10231d]/85 dark:text-[#9FE1CB]">
             <Sparkles size={14} aria-hidden="true" />
-            Discover African-owned businesses across the U.S.
+            Find African-owned businesses near you
           </div>
 
           <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.96] tracking-tight text-[#053528] dark:text-[#f4faf7] sm:text-6xl lg:text-7xl">
-            Africa is here. Find it.
+            Find African-owned businesses near you.
           </h1>
 
           <p className="mt-6 max-w-2xl text-base leading-8 text-[#31594E] dark:text-[#b8cec5] sm:text-lg">
-            Markeetee helps you discover African-owned restaurants,
-            groceries, beauty services, fashion, wellness, and local
-            services across the United States.
+            Discover African-owned restaurants, groceries, beauty
+            services, fashion, wellness, and local professionals across
+            the United States. For owners, Markeetee helps customers find
+            and contact your business.
           </p>
 
           <SearchPanel />
@@ -177,6 +185,13 @@ function HeroSection() {
             >
               Browse all businesses
               <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+            <Link
+              href="/businesses/new"
+              className="inline-flex items-center gap-2 font-bold text-[#085041] underline-offset-4 hover:underline dark:text-[#9FE1CB]"
+            >
+              List or claim your business
+              <Building2 size={15} aria-hidden="true" />
             </Link>
             <Link
               href="/map"
@@ -227,7 +242,7 @@ function HeroSection() {
                 <Store size={20} aria-hidden="true" />
               </span>
               <p className="text-sm font-bold leading-5 text-[#053528] dark:text-[#edf7f2]">
-                Restaurants, markets, salons, shops, and services in one place.
+                One place for customers to discover, save, review, and support African-owned businesses.
               </p>
             </div>
           </div>
@@ -314,8 +329,8 @@ function CategoryShortcuts() {
     <PageSection className="bg-[#FBF7EF] dark:bg-[#07130f]">
       <SectionHeading
         eyebrow="Browse by need"
-        title="Start with a category"
-        description="Use the same categories that power Markeetee search."
+        title="Customers search by what they need"
+        description="Food, beauty, fashion, wellness, groceries, and services are organized for quick discovery."
         action={
           <Link
             href="/search"
@@ -367,8 +382,8 @@ function FeaturedBusinessesSection({
     <PageSection className="border-y border-[#E7DDCA] bg-[#F8F2E8] dark:border-[#20362d] dark:bg-[#0b1512]">
       <SectionHeading
         eyebrow="Featured on Markeetee"
-        title="Discover places people can actually visit"
-        description="These listings come from the current Markeetee directory. Each card links to the live business profile."
+        title="Fresh places to discover"
+        description="Featured listings help customers find trusted businesses and give owners more visibility."
         action={
           <Link
             href="/search?sort=featured"
@@ -397,8 +412,8 @@ function FeaturedBusinessesSection({
         </div>
       ) : (
         <Notice
-          title="No featured businesses yet"
-          description="Browse all current listings, or add a business so customers can discover it."
+          title="Be one of the first featured businesses"
+          description="Browse all current listings, or add your business so customers can discover it."
           href="/search"
           label="Browse all businesses"
         />
@@ -416,7 +431,7 @@ function MapDiscoverySection() {
             Map discovery
           </p>
           <h2 className="mt-3 max-w-xl text-4xl font-black tracking-tight text-[#053528] dark:text-[#f4faf7] sm:text-5xl">
-            Find African-owned businesses by place, not just name.
+            Explore by city, neighborhood, and category.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-8 text-[#4C625B] dark:text-[#b8cec5]">
             Open the map to browse nearby restaurants, stores,
@@ -483,12 +498,13 @@ function BusinessOwnerSection() {
             For business owners
           </p>
           <h2 className="mt-5 max-w-2xl text-4xl font-black tracking-tight sm:text-5xl">
-            List your business for free.
+            Get discovered by customers already looking for you.
           </h2>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/72">
-            Add your business profile so customers can find your
-            location, understand what you offer, and contact you from
-            Markeetee.
+            Create or claim your listing, add the essentials, and turn
+            your profile into a stronger discovery channel. Start free
+            and upgrade when you want more photos, products, analytics,
+            enquiries, promotions, or a storefront URL.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <ListBusinessButton
@@ -496,6 +512,12 @@ function BusinessOwnerSection() {
             >
               List your business for free
             </ListBusinessButton>
+            <Link
+              href="/search"
+              className="inline-flex items-center justify-center rounded-2xl border border-white/25 px-6 py-3.5 text-sm font-black text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#053528]"
+            >
+              Claim an existing listing
+            </Link>
             <Link
               href="/how-it-works"
               className="inline-flex items-center justify-center rounded-2xl border border-white/25 px-6 py-3.5 text-sm font-black text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#053528]"
@@ -507,16 +529,16 @@ function BusinessOwnerSection() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            'Create a searchable profile',
-            'Add location and contact details',
-            'Show photos, products, or services',
-            'Manage your listing from the dashboard',
+            'Be found in search and map results',
+            'Show photos, products, menus, or services',
+            'Collect reviews and build customer trust',
+            'Track visibility and upgrade as you grow',
           ].map((item) => (
             <div
               key={item}
               className="rounded-2xl border border-white/10 bg-white/[0.07] p-5"
             >
-              <Utensils
+              <CheckCircle2
                 size={18}
                 className="text-[#9FE1CB]"
                 aria-hidden="true"

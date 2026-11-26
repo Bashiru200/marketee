@@ -4,29 +4,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 
-
-// Always accessible — no auth required
-const PUBLIC_PATHS = [
-  '/sitemap',
-  '/sitemap.xml',
-  '/robots.txt',
-  '/.well-known',
-  '/api/',
-  '/auth/',
-  '/admin',
-  '/_next',
-  '/favicon',
-  '/apple-touch-icon',
-  '/android-chrome',
-  '/og-',
-  '/robots',
-  '/sitemap',
-]
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
-
 
   // ── Supabase session refresh ──────────────────────────────────────────
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {

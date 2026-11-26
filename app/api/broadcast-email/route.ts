@@ -10,13 +10,18 @@ import { LIMITS, rateLimitResponse } from '@/lib/rateLimit'
 import { broadcastEmailTemplate } from '@/lib/emailTemplates'
 
 type Audience = 'all' | 'owners' | 'customers'
-type SendMode = 'test' | 'bulk'
 
 interface Recipient {
   id: string
   email: string | null
   name: string | null
   role: string | null
+}
+
+interface MediaItem {
+  url: string
+  alt?: string
+  caption?: string
 }
 
 const VALID_AUDIENCES = new Set<Audience>(['all', 'owners', 'customers'])
@@ -41,16 +46,41 @@ function escapeHtml(value: string) {
 }
 
 function formatMessageBody(message: string) {
+  const inline = (value: string) => escapeHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
+
   return message
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean)
-    .map((paragraph) => `<p style="margin:0 0 16px;">${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
+    .map((paragraph) => {
+      const lines = paragraph.split('\n').map((line) => line.trim()).filter(Boolean)
+      if (lines.every((line) => line.startsWith('• ') || line.startsWith('- '))) {
+        return `<ul style="margin:0 0 18px;padding-left:20px;">${lines
+          .map((line) => `<li style="margin:0 0 8px;">${inline(line.replace(/^[•-]\s*/, ''))}</li>`)
+          .join('')}</ul>`
+      }
+      return `<p style="margin:0 0 16px;">${inline(paragraph).replace(/\n/g, '<br />')}</p>`
+    })
     .join('')
 }
 
-function shouldDryRun(mode: SendMode) {
-  return mode === 'test'
+function cleanMedia(value: unknown): MediaItem[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => ({
+      url: cleanText(item?.url, 2048),
+      alt: cleanText(item?.alt, 120),
+      caption: cleanText(item?.caption, 160),
+    }))
+    .filter((item) => /^https?:\/\//i.test(item.url))
+    .slice(0, 4)
+}
+
+function shouldDryRun() {
+  return false
 }
 
 async function getRecipients(audience: Audience) {
@@ -136,6 +166,7 @@ export async function POST(req: NextRequest) {
     const headline = cleanText(payload.headline || subject, 120)
     const ctaLabel = cleanText(payload.ctaLabel, 40)
     const ctaUrl = cleanText(payload.ctaUrl, 500)
+    const media = cleanMedia(payload.media)
     const expectedRecipientCount = Number(payload.expectedRecipientCount)
     const confirmed = payload.confirmed === true
 
@@ -157,7 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createAdminClient()
-    const dryRun = shouldDryRun(mode)
+    const dryRun = shouldDryRun()
     const from = process.env.EMAIL_FROM
     const resendKey = process.env.RESEND_API_KEY
 
@@ -194,6 +225,7 @@ export async function POST(req: NextRequest) {
             subject,
             headline,
             body: formatMessageBody(message),
+            media,
             ctaLabel: ctaLabel || undefined,
             ctaUrl: ctaUrl || undefined,
             unsubscribeUrl,
@@ -220,13 +252,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await supabase.from('broadcast_emails').insert({
+    const historyPayload = {
       subject,
       body: message,
       audience,
       sent_count: sent,
       sent_by: admin.id,
-    })
+    }
+
+    const historyWithDetails = {
+      ...historyPayload,
+      details: {
+        ctaLabel: ctaLabel || null,
+        ctaUrl: ctaUrl || null,
+        media,
+        skippedByPreferences: skipped,
+        mode,
+      },
+    }
+
+    const { error: historyError } = await supabase.from('broadcast_emails').insert(historyWithDetails)
+    if (historyError) {
+      await supabase.from('broadcast_emails').insert(historyPayload)
+    }
 
     const status = failed.length > 0 ? 207 : 200
     return NextResponse.json({

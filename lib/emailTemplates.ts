@@ -83,10 +83,6 @@ function infoBox(content: string, color = '#F0FAF6', border = BRAND_MINT) {
   `
 }
 
-function divider() {
-  return `<hr style="border:none;border-top:1px solid #F3F4F6;margin:26px 0;" />`
-}
-
 function wrap({
   subject,
   preheaderText,
@@ -549,6 +545,7 @@ export function broadcastEmailTemplate({
   subject,
   headline,
   body,
+  media = [],
   ctaLabel,
   ctaUrl,
   unsubscribeUrl,
@@ -557,26 +554,113 @@ export function broadcastEmailTemplate({
   subject: string
   headline: string
   body: string
+  media?: Array<{ url: string; alt?: string; caption?: string }>
   ctaLabel?: string
   ctaUrl?: string
   unsubscribeUrl?: string
 }) {
+  const mediaBlock = media.length === 0 ? '' : `
+    <div style="margin:26px 0 4px;">
+      <p style="margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6B7280;">Featured media</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;">
+        <tr>
+          ${media.slice(0, 2).map((item) => `
+            <td width="${100 / Math.min(media.length, 2)}%" style="padding:4px;vertical-align:top;">
+              <img src="${safeUrl(item.url)}" alt="${escapeHtml(item.alt ?? '')}" style="display:block;width:100%;height:auto;border-radius:14px;border:1px solid #E5E7EB;" />
+              ${item.caption ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#6B7280;">${escapeHtml(item.caption)}</p>` : ''}
+            </td>
+          `).join('')}
+        </tr>
+        ${media.length > 2 ? `
+          <tr>
+            ${media.slice(2, 4).map((item) => `
+              <td width="50%" style="padding:4px;vertical-align:top;">
+                <img src="${safeUrl(item.url)}" alt="${escapeHtml(item.alt ?? '')}" style="display:block;width:100%;height:auto;border-radius:14px;border:1px solid #E5E7EB;" />
+                ${item.caption ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#6B7280;">${escapeHtml(item.caption)}</p>` : ''}
+              </td>
+            `).join('')}
+            ${media.length === 3 ? '<td width="50%"></td>' : ''}
+          </tr>
+        ` : ''}
+      </table>
+    </div>
+  `
+
   return {
     subject,
-    html: wrap({
-      subject,
-      preheaderText: textPreview(body),
-      badge: 'Update',
-      headline,
-      body: `
-        ${recipientName ? greeting(recipientName) : ''}
-        <div style="font-size:15px;line-height:1.8;color:#374151;">
-          ${body}
-        </div>
-      `,
-      cta: ctaLabel && ctaUrl ? { label: ctaLabel, url: ctaUrl } : undefined,
-      unsubscribeUrl,
-    }),
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#F4F7F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:${TEXT_DARK};">
+  ${preheader(textPreview(body))}
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F6;padding:32px 12px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#fff;border-radius:22px;overflow:hidden;border:1px solid #DCE8E3;">
+        <tr><td style="background:${BRAND_DARK};padding:32px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td><img src="${LOGO_URL}" width="40" height="40" alt="Markeetee" style="display:block;border-radius:10px;background:#ffffff;" /></td>
+                    <td style="padding-left:10px;vertical-align:middle;">
+                      <p style="margin:0;font-size:22px;font-weight:900;color:#fff;">Markeetee</p>
+                      <p style="margin:3px 0 0;font-size:12px;color:${BRAND_MINT};">Africa is here. Find it.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+              <td align="right" style="vertical-align:top;">
+                <span style="display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#ffffff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:999px;">Community update</span>
+              </td>
+            </tr>
+          </table>
+          <h1 style="margin:28px 0 8px;font-size:28px;line-height:1.25;color:#ffffff;font-weight:900;">${escapeHtml(headline)}</h1>
+          <p style="margin:0;font-size:14px;line-height:1.6;color:${BRAND_MINT};">A message from the Markeetee team</p>
+        </td></tr>
+
+        <tr><td style="padding:30px 32px 0;">
+          ${recipientName ? greeting(recipientName) : ''}
+          <div style="background:#ffffff;border:1px solid #E5E7EB;border-radius:16px;padding:22px;font-size:15px;line-height:1.8;color:#374151;">
+            ${body}
+            ${mediaBlock}
+            ${ctaLabel && ctaUrl ? `
+              <div style="margin:30px 0 4px;">
+                <a href="${safeUrl(ctaUrl)}" style="display:block;background:${BRAND_GREEN};color:#fff;font-size:14px;font-weight:800;padding:14px 24px;border-radius:12px;text-decoration:none;text-align:center;">
+                  ${escapeHtml(ctaLabel)} →
+                </a>
+              </div>
+            ` : ''}
+          </div>
+        </td></tr>
+
+        <tr><td style="padding:16px 32px 32px;">
+          <div style="background:#E1F5EE;border:1px solid ${BRAND_MINT};border-radius:16px;padding:20px;text-align:center;">
+            <p style="margin:0 0 5px;font-size:12px;color:#085041;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">Markeetee</p>
+            <p style="margin:0;font-size:13px;line-height:1.6;color:#31594E;">Helping people discover and support African-owned businesses.</p>
+          </div>
+        </td></tr>
+
+        <tr><td style="background:#F9FBFA;padding:24px 32px;border-top:1px solid #E5E7EB;text-align:center;">
+          <p style="margin:0 0 8px;font-size:11px;line-height:1.6;color:#6B7280;">This email was sent by Markeetee.</p>
+          <p style="margin:0 0 12px;font-size:11px;">
+            <a href="${APP_URL}" style="color:${BRAND_GREEN};text-decoration:none;font-weight:700;">Website</a>
+            <span style="padding:0 6px;color:#D1D5DB;">·</span>
+            <a href="${APP_URL}/contact" style="color:${BRAND_GREEN};text-decoration:none;font-weight:700;">Contact</a>
+            ${unsubscribeUrl ? `<span style="padding:0 6px;color:#D1D5DB;">·</span><a href="${safeUrl(unsubscribeUrl)}" style="color:${BRAND_GREEN};text-decoration:underline;font-weight:700;">Unsubscribe</a>` : ''}
+          </p>
+          <p style="margin:0;font-size:10px;line-height:1.5;color:#9CA3AF;">© ${new Date().getFullYear()} Markeetee. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
   }
 }
 

@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { rankBusinesses } from '@/lib/businessRanking'
 import { MapPin, Search, ArrowRight } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -100,7 +101,7 @@ export default async function CityPage(
   // Fetch businesses in this city
   const { data: businesses, error } = await supabase
     .from('businesses')
-    .select('id, name, category, description, street, city, state, zip, phone, website, cover_image, rating, review_count, verified, plan, country')
+    .select('id, name, category, description, street, city, state, zip, phone, website, cover_image, rating, review_count, verified, premium, featured, plan, country, created_at')
     .ilike('city', cityName)
     .eq('status', 'active')
     .order('discovery_score', { ascending: false, nullsFirst: false })
@@ -111,14 +112,19 @@ export default async function CityPage(
     notFound()
   }
 
+  const rankedBusinesses = rankBusinesses(businesses, { city: cityName })
+
   // Group by category
   const byCategory = CATEGORIES.map(cat => ({
     ...cat,
-    businesses: businesses.filter(b => b.category === cat.id),
+    businesses: rankBusinesses(
+      rankedBusinesses.filter(b => b.category === cat.id),
+      { city: cityName, category: cat.id },
+    ),
   })).filter(c => c.businesses.length > 0)
 
-  const totalCount = businesses.length
-  const cityState = stateLabel(businesses.map((business) => business.state))
+  const totalCount = rankedBusinesses.length
+  const cityState = stateLabel(rankedBusinesses.map((business) => business.state))
   const place = locationLabel(cityName, cityState)
 
   // ─────────────────────────────────────────────────────────────────────
@@ -133,7 +139,7 @@ export default async function CityPage(
     mainEntity: {
       '@type':          'ItemList',
       numberOfItems:    totalCount,
-      itemListElement:  businesses.slice(0, 20).map((b, i) => ({
+      itemListElement:  rankedBusinesses.slice(0, 20).map((b, i) => ({
         '@type':    'ListItem',
         position:   i + 1,
         item: {
