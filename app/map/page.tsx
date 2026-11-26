@@ -1,11 +1,16 @@
 /// <reference types="google.maps" />
 'use client'
 import { AFRICAN_FLAGS } from '@/lib/africanFlags'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { ElementType } from 'react'
 import {
   APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary
 } from '@vis.gl/react-google-maps'
-import { Search, X, MapPin, Loader2, Navigation, Clock } from 'lucide-react'
+import {
+  Search, X, MapPin, Loader2, Navigation, Clock, Globe2,
+  Utensils, ShoppingBag, Scissors, Shirt, Leaf, Music,
+  Wrench, Wine, Palette, Store,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { getHoursStatus } from '@/lib/businessHours'
@@ -28,21 +33,42 @@ const MAP_STYLE = [
   { featureType:'transit',          elementType:'labels',             stylers:[{ visibility:'off' }] },
 ]
 
-const CATEGORY_PIN: Record<string, string> = {
-  food:'🍲', restaurant:'🍽️', fashion:'👗', beauty:'💇',
-  herbs:'🌿', music:'🎵', crafts:'🏺', services:'🛠️', nightlife:'🍸',
+const CATEGORY_META: Record<string, {
+  label: string
+  shortLabel: string
+  icon: ElementType
+  color: string
+  bg: string
+  border: string
+}> = {
+  all:        { label:'All',         shortLabel:'All',     icon:Globe2,      color:'#085041', bg:'#E1F5EE', border:'#9FE1CB' },
+  restaurant: { label:'Restaurants', shortLabel:'Food',    icon:Utensils,    color:'#6D28D9', bg:'#F0EBFF', border:'#C4B5FD' },
+  food:       { label:'Groceries',   shortLabel:'Market',  icon:ShoppingBag, color:'#0F6E56', bg:'#E1F5EE', border:'#9FE1CB' },
+  beauty:     { label:'Beauty',      shortLabel:'Beauty',  icon:Scissors,    color:'#BE185D', bg:'#FCE7F3', border:'#F9A8D4' },
+  fashion:    { label:'Fashion',     shortLabel:'Style',   icon:Shirt,       color:'#B45309', bg:'#FEF3C7', border:'#FCD34D' },
+  services:   { label:'Services',    shortLabel:'Service', icon:Wrench,      color:'#475569', bg:'#F1F5F9', border:'#CBD5E1' },
+  herbs:      { label:'Wellness',    shortLabel:'Wellness',icon:Leaf,        color:'#4D7C0F', bg:'#ECFCCB', border:'#BEF264' },
+  music:      { label:'Music',       shortLabel:'Music',   icon:Music,       color:'#C2410C', bg:'#FFEDD5', border:'#FDBA74' },
+  crafts:     { label:'Crafts',      shortLabel:'Crafts',  icon:Palette,     color:'#0369A1', bg:'#E0F2FE', border:'#7DD3FC' },
+  nightlife:  { label:'Nightlife',   shortLabel:'Night',   icon:Wine,        color:'#5B21B6', bg:'#EDE9FE', border:'#C4B5FD' },
 }
 
 const CATEGORIES = [
-  { id:'all',        label:'All',         icon:'🌍' },
-  { id:'restaurant', label:'Restaurants', icon:'🍽️' },
-  { id:'food',       label:'Food',        icon:'🍲' },
-  { id:'beauty',     label:'Beauty',      icon:'💇' },
-  { id:'fashion',    label:'Fashion',     icon:'👗' },
-  { id:'services',   label:'Services',    icon:'🛠️' },
-  { id:'herbs',      label:'Wellness',    icon:'🌿' },
-  { id:'music',      label:'Music',       icon:'🎵' },
+  'all',
+  'restaurant',
+  'food',
+  'beauty',
+  'fashion',
+  'services',
+  'herbs',
+  'music',
+  'crafts',
+  'nightlife',
 ]
+
+function getCategoryMeta(category: string | null | undefined) {
+  return CATEGORY_META[category ?? ''] ?? { label:'Business', shortLabel:'Biz', icon:Store, color:'#085041', bg:'#E1F5EE', border:'#9FE1CB' }
+}
 
 function distanceMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 3958.8, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180
@@ -80,11 +106,11 @@ function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => vo
   }, [placesLib, onPlace])
 
   return (
-    <div className="flex items-center gap-1 border-l border-gray-200 pl-3">
+    <div className="flex min-w-0 items-center gap-1 border-t border-gray-100 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
       <MapPin size={13} className="text-gray-400 flex-shrink-0" />
       <input ref={inputRef} value={value} onChange={e => setValue(e.target.value)}
         placeholder="Location…"
-        className="w-28 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400" />
+        className="w-full min-w-0 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400 sm:w-28" />
       {value && (
         <button onClick={() => setValue('')}>
           <X size={11} className="text-gray-400" />
@@ -95,6 +121,18 @@ function LocationSearch({ onPlace }: { onPlace: (lat: number, lng: number) => vo
 }
 
 // ── Map bounds fitter ─────────────────────────────────────────────────────
+function CameraController({ center, zoom }: { center: { lat: number; lng: number }; zoom: number }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!map) return
+    map.panTo(center)
+    map.setZoom(zoom)
+  }, [center, map, zoom])
+
+  return null
+}
+
 function BoundsFitter({ businesses, trigger }: { businesses: BusinessRow[]; trigger: number }) {
   const map = useMap()
   useEffect(() => {
@@ -107,13 +145,13 @@ function BoundsFitter({ businesses, trigger }: { businesses: BusinessRow[]; trig
     const bounds = new google.maps.LatLngBounds()
     businesses.forEach(b => bounds.extend({ lat: b.lat, lng: b.lng }))
     map.fitBounds(bounds, { top: 120, bottom: 160, left: 40, right: 40 })
-  }, [trigger])
+  }, [businesses, map, trigger])
   return null
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────
 export default function MapPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [businesses,   setBusinesses]   = useState<BusinessRow[]>([])
   const [loading,      setLoading]      = useState(true)
@@ -139,7 +177,7 @@ export default function MapPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [supabase])
 
   // ── Filtered businesses ────────────────────────────────────────────────
   const filtered = businesses.filter(b => {
@@ -236,6 +274,7 @@ export default function MapPage() {
           className="w-full h-full"
           onClick={() => setSelectedId(null)}>
 
+          <CameraController center={mapCenter} zoom={mapZoom} />
           <BoundsFitter businesses={sorted} trigger={fitTrigger} />
 
           {/* User location pulse dot */}
@@ -253,6 +292,8 @@ export default function MapPage() {
           {/* Business pins */}
           {sorted.map(b => {
             const isSelected = selectedId === b.id
+            const meta = getCategoryMeta(b.category)
+            const Icon = meta.icon
             const isNearby   = userLocation
               ? distanceMiles(userLocation.lat, userLocation.lng, b.lat, b.lng) <= 10
               : true
@@ -275,20 +316,21 @@ export default function MapPage() {
                     : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
                 }}>
                   <div style={{
-                    width: 38, height: 38,
-                    borderRadius: '50% 50% 50% 0',
+                    width: isSelected ? 44 : 38,
+                    height: isSelected ? 44 : 38,
+                    borderRadius: '16px 16px 16px 4px',
                     transform: 'rotate(-45deg)',
-                    background: isSelected ? '#085041' : '#DC2626',
-                    border: `2.5px solid ${isSelected ? '#053528' : '#991B1B'}`,
+                    background: isSelected ? '#085041' : meta.bg,
+                    border: `2.5px solid ${isSelected ? '#053528' : meta.border}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <span style={{ transform:'rotate(45deg)', fontSize:17, lineHeight:1 }}>
-                      {CATEGORY_PIN[b.category ?? ''] ?? '📍'}
+                    <span style={{ transform:'rotate(45deg)', lineHeight:1, color: isSelected ? '#ffffff' : meta.color }}>
+                      <Icon size={isSelected ? 21 : 18} strokeWidth={2.5} />
                     </span>
                   </div>
                   <div style={{
                     width:6, height:6, marginTop:2, borderRadius:'50%',
-                    background: isSelected ? '#085041' : '#DC2626',
+                    background: isSelected ? '#085041' : meta.color,
                   }} />
                 </div>
               </AdvancedMarker>
@@ -297,46 +339,50 @@ export default function MapPage() {
         </Map>
 
         {/* ── FLOATING SEARCH BAR ── */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-30">
-          <div className="flex items-center gap-2 bg-white/96 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 px-4 py-3">
-            <Search size={15} className="text-gray-400 flex-shrink-0" />
-            <input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setTimeout(() => setFitTrigger(t => t+1), 100) }}
-              placeholder="Search African businesses…"
-              className="flex-1 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium min-w-0"
-            />
-            {search && (
-              <button onClick={() => { setSearch(''); setTimeout(() => setFitTrigger(t => t+1), 100) }}>
-                <X size={14} className="text-gray-400" />
-              </button>
-            )}
+        <div className="absolute left-0 right-0 top-3 z-30 px-3 sm:left-1/2 sm:right-auto sm:top-4 sm:w-full sm:max-w-2xl sm:-translate-x-1/2 sm:px-4">
+          <div className="flex flex-col gap-2 rounded-2xl border border-white/70 bg-white/96 px-4 py-3 shadow-lg backdrop-blur-xl sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Search size={15} className="text-gray-400 flex-shrink-0" />
+              <input
+                value={search}
+                onChange={e => { setSearch(e.target.value); setTimeout(() => setFitTrigger(t => t+1), 100) }}
+                placeholder="Search African businesses…"
+                className="flex-1 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium min-w-0"
+              />
+              {search && (
+                <button onClick={() => { setSearch(''); setTimeout(() => setFitTrigger(t => t+1), 100) }}>
+                  <X size={14} className="text-gray-400" />
+                </button>
+              )}
+            </div>
             <LocationSearch onPlace={handlePlace} />
           </div>
         </div>
 
         {/* ── CATEGORY PILLS ── */}
-        <div className="absolute top-[4.5rem] left-0 right-0 z-30 px-4 overflow-x-auto scrollbar-hide">
+        <div className="absolute left-0 right-0 top-[6.9rem] z-30 overflow-x-auto px-3 scrollbar-hide sm:top-[4.75rem] sm:px-4">
           <div className="flex gap-2 pb-1" style={{ width:'max-content' }}>
-            {CATEGORIES.map(cat => {
-              const isActive  = category === cat.id
-              const catCount  = cat.id === 'all'
+            {CATEGORIES.map(catId => {
+              const meta = getCategoryMeta(catId)
+              const Icon = meta.icon
+              const isActive  = category === catId
+              const catCount  = catId === 'all'
                 ? filtered.length
-                : businesses.filter(b => b.category === cat.id &&
+                : businesses.filter(b => b.category === catId &&
                     (!search || b.name.toLowerCase().includes(search.toLowerCase()) ||
                      (b.city ?? '').toLowerCase().includes(search.toLowerCase()))
                   ).length
 
               return (
-                <button key={cat.id}
-                  onClick={() => handleCategoryClick(cat.id)}
+                <button key={catId}
+                  onClick={() => handleCategoryClick(catId)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shadow-sm"
                   style={isActive
-                    ? { background:'#1D9E75', color:'white', boxShadow:'0 2px 8px rgba(29,158,117,0.4)' }
-                    : { background:'rgba(255,255,255,0.95)', color:'#374151', backdropFilter:'blur(12px)', border:'1px solid rgba(0,0,0,0.06)' }
+                    ? { background:meta.color, color:'white', boxShadow:`0 2px 10px ${meta.color}40` }
+                    : { background:'rgba(255,255,255,0.95)', color:'#374151', backdropFilter:'blur(12px)', border:`1px solid ${meta.border}` }
                   }>
-                  <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
+                  <Icon size={14} style={{ color: isActive ? 'white' : meta.color }} />
+                  <span>{meta.label}</span>
                   {catCount > 0 && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                       style={{
@@ -347,7 +393,7 @@ export default function MapPage() {
                     </span>
                   )}
                   {/* X to clear — only show on active non-all category */}
-                  {isActive && cat.id !== 'all' && (
+                  {isActive && catId !== 'all' && (
                     <span
                       onClick={e => { e.stopPropagation(); setCategory('all'); setFitTrigger(t => t+1) }}
                       className="ml-0.5 opacity-70 hover:opacity-100 cursor-pointer"
@@ -374,10 +420,14 @@ export default function MapPage() {
         {/* ── RESULTS PILL ── */}
         {!loading && (
           <div className="absolute z-30"
-            style={{ bottom: selected ? '14rem' : '9rem', left:'1rem' }}>
+            style={{ bottom: selected ? '14rem' : '9rem', left:'0.75rem' }}>
             <div className="bg-white/96 backdrop-blur-xl rounded-full shadow-lg border border-white/60 px-4 py-2 text-xs font-semibold text-gray-700 flex items-center gap-1.5">
               {category !== 'all' && (
-                <span>{CATEGORY_PIN[category] ?? '📍'}</span>
+                (() => {
+                  const meta = getCategoryMeta(category)
+                  const Icon = meta.icon
+                  return <Icon size={13} style={{ color: meta.color }} />
+                })()
               )}
               <span>
                 {sorted.length} {sorted.length === 1 ? 'business' : 'businesses'}
@@ -397,7 +447,7 @@ export default function MapPage() {
         {/* ── BOTTOM LIST SHEET ── */}
         {!selected && (
           <div className={`absolute bottom-0 left-0 right-0 z-20 transition-transform duration-300 ease-out ${showList ? 'translate-y-0' : 'translate-y-[calc(100%-5rem)]'}`}>
-            <div className="bg-white/96 backdrop-blur-xl rounded-t-3xl shadow-2xl border-t border-white/60 max-h-[60vh] flex flex-col">
+            <div className="bg-white/96 backdrop-blur-xl rounded-t-3xl shadow-2xl border-t border-white/60 max-h-[68vh] sm:max-h-[60vh] flex flex-col">
               <button onClick={() => setShowList(v => !v)}
                 className="w-full py-3 flex flex-col items-center gap-1">
                 <div className="w-10 h-1 bg-gray-300 rounded-full" />
@@ -438,9 +488,14 @@ export default function MapPage() {
                             }>
                             <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                               {b.cover_image
+                                // eslint-disable-next-line @next/next/no-img-element -- Map sheet thumbnails render arbitrary uploaded business image URLs.
                                 ? <img src={b.cover_image} alt={b.name} className="w-full h-full object-cover" />
                                 : <div className="w-full h-full flex items-center justify-center text-2xl">
-                                    {CATEGORY_PIN[b.category ?? ''] ?? '🏪'}
+                                    {(() => {
+                                      const meta = getCategoryMeta(b.category)
+                                      const Icon = meta.icon
+                                      return <Icon size={24} style={{ color: meta.color }} />
+                                    })()}
                                   </div>
                               }
                             </div>
@@ -481,6 +536,7 @@ export default function MapPage() {
 
               {selected.cover_image ? (
                 <div className="relative h-28">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Selected map card renders arbitrary uploaded business image URLs. */}
                   <img src={selected.cover_image} alt={selected.name}
                     className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -497,7 +553,11 @@ export default function MapPage() {
               ) : (
                 <div className="relative h-14 flex items-center px-4"
                   style={{ background:'linear-gradient(135deg,#053528,#1D9E75)' }}>
-                  <span className="text-3xl">{CATEGORY_PIN[selected.category ?? ''] ?? '🏪'}</span>
+                  {(() => {
+                    const meta = getCategoryMeta(selected.category)
+                    const Icon = meta.icon
+                    return <Icon size={28} className="text-white" />
+                  })()}
                   <button onClick={() => setSelectedId(null)}
                     className="absolute top-3 right-3 w-8 h-8 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white">
                     <X size={14} />
